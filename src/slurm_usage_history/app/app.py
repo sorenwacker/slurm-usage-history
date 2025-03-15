@@ -1,7 +1,9 @@
 # /src/slurmo/app/app.py
 
+import os
 import dash
 import dash_bootstrap_components as dbc
+from dotenv import load_dotenv
 
 from .callbacks import add_callbacks
 from .DataStore import PandasDataStore as DataStore
@@ -12,6 +14,8 @@ def create_dash_app(args, server=True, url_base_pathname="/"):
     """
     Create a Dash app that visualizes data from the specified Parquet files.
     """
+
+    load_dotenv()
 
     # Initialize the Dash app
     app = dash.Dash(
@@ -33,4 +37,8 @@ def create_dash_app(args, server=True, url_base_pathname="/"):
     app.layout = layout
     add_callbacks(app, datastore)
     app.title = "Slurm Usage History Dashboard"
+    
+    server = app.server
+    server.secret_key = os.getenv('FLASK_SECRET_KEY')
+
     return app

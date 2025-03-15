@@ -909,6 +909,7 @@ resources_section = create_section(
 
 layout = html.Div(
     [
+        dcc.Store(id='session-store', storage_type='session'),
         dcc.Location(id="url", refresh=False),
         html.Div(id="dummy-output", style={"display": "none"}),
         dbc.Modal(

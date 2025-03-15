@@ -5,8 +5,9 @@ from datetime import date
 import dash
 import pandas as pd
 import plotly.express as px
-from dash import Input, Output
+from dash import Input, Output, State, dcc, html
 from dateutil.relativedelta import relativedelta
+from dash import ctx
 
 from ..app.node_config import NodeConfiguration
 from ..tools import categorize_time_series, get_time_column, natural_sort_key
@@ -23,49 +24,127 @@ COLORS = {
     "QOS": px.colors.qualitative.Set2,
 }
 
-CATEGORY_ORDERS = {
-    "User": None,
-    "Account": None,
-    "Partition": None,
-    "State": None,
-    "QOS": None,
-}
+def initialize_session_data(session_id=None):
+    return {
+        'category_orders': {
+            "User": None,
+            "Account": None,
+            "Partition": None,
+            "State": None,
+            "QOS": None,
+        },
+        'color_mappings': {
+            "User": {},
+            "Account": {},
+            "Partition": {},
+            "State": {},
+            "QOS": {},
+        }
+    }
 
+def init_app(app):
+    server = app.server
+    server.secret_key = 'your_secret_key_here'
+
+def update_app_layout(app_layout):
+    if not any(getattr(component, 'id', None) == 'session-store' for component in app_layout.children):
+        session_store = dcc.Store(id='session-store', storage_type='session')
+        app_layout.children.append(session_store)
+    return app_layout
+
+def ensure_consistent_categories_and_colors(df, category_name, color_sequence, session_data):
+    if category_name not in df.columns or session_data is None:
+        return [], {}
+    
+    if 'color_mappings' not in session_data:
+        session_data['color_mappings'] = {}
+    if category_name not in session_data['color_mappings']:
+        session_data['color_mappings'][category_name] = {}
+    
+    color_mappings = session_data['color_mappings'][category_name]
+    
+    current_values = df[category_name].unique().tolist()
+    
+    for value in current_values:
+        if value not in color_mappings:
+            color_idx = len(color_mappings) % len(color_sequence)
+            color_mappings[value] = color_sequence[color_idx]
+    
+    color_map = {value: color_mappings[value] for value in current_values}
+    
+    value_counts = df[category_name].value_counts()
+    category_order = value_counts.index.tolist()
+    
+    if 'category_orders' not in session_data:
+        session_data['category_orders'] = {}
+    session_data['category_orders'][category_name] = category_order
+    
+    return category_order, color_map
+
+def ensure_consistent_categories(df, category_name, value_column=None, session_data=None):
+    if session_data is None or 'category_orders' not in session_data or category_name not in session_data['category_orders'] or session_data['category_orders'][category_name] is None or category_name not in df.columns:
+        return df
+    
+    all_category_values = session_data['category_orders'][category_name]
+    existing_categories = set(df[category_name].unique())
+    missing_categories = set(all_category_values) - existing_categories
+    
+    if missing_categories:
+        placeholder_rows = []
+        for cat_value in missing_categories:
+            new_row = {category_name: cat_value}
+            if value_column and value_column in df.columns:
+                new_row[value_column] = 0
+            for col in df.columns:
+                if col != category_name and col not in new_row:
+                    if df[col].dtype == "object":
+                        new_row[col] = ""
+                    else:
+                        new_row[col] = 0
+            placeholder_rows.append(new_row)
+        if placeholder_rows:
+            placeholder_df = pd.DataFrame(placeholder_rows)
+            return pd.concat([df, placeholder_df], ignore_index=True)
+    return df
 
 def list_to_options(list_of_strings):
     return [{"label": x, "value": x} for x in list_of_strings]
 
-
 def add_callbacks(app, datastore):
-    def get_category_order(df, category):
-        global CATEGORY_ORDERS
-        if CATEGORY_ORDERS[category] is None and category in df.columns:
-            CATEGORY_ORDERS[category] = df[category].value_counts().index.tolist()
-        return CATEGORY_ORDERS[category] or []
-
-    def ensure_consistent_categories(df, category_name, value_column=None):
-        if CATEGORY_ORDERS[category_name] is None or category_name not in df.columns:
-            return df
-        all_category_values = CATEGORY_ORDERS[category_name]
-        existing_categories = set(df[category_name].unique())
-        missing_categories = set(all_category_values) - existing_categories
-        if missing_categories:
-            placeholder_rows = []
-            for cat_value in missing_categories:
-                new_row = {category_name: cat_value}
-                if value_column and value_column in df.columns:
-                    new_row[value_column] = 0
-                for col in df.columns:
-                    if col != category_name and col not in new_row:
-                        if df[col].dtype == "object":
-                            new_row[col] = ""
-                        else:
-                            new_row[col] = 0
-                placeholder_rows.append(new_row)
-            if placeholder_rows:
-                placeholder_df = pd.DataFrame(placeholder_rows)
-                return pd.concat([df, placeholder_df], ignore_index=True)
-        return df
+    @app.callback(
+        Output("session-store", "data"),
+        Input("account-format-segments", "value"),
+        Input("interval", "n_intervals"),
+        State("session-store", "data")
+    )
+    def update_session_data(segments_to_keep, n_intervals, current_data):
+        if current_data is None:
+            current_data = initialize_session_data()
+        
+        if segments_to_keep is not None:
+            from .account_formatter import formatter
+            formatter.max_segments = segments_to_keep
+            
+            current_data['category_orders'] = {
+                "User": None,
+                "Account": None,
+                "Partition": None,
+                "State": None,
+                "QOS": None,
+            }
+            current_data['color_mappings'] = {
+                "User": {},
+                "Account": {},
+                "Partition": {},
+                "State": {},
+                "QOS": {},
+            }
+            
+            datastore._filter_data.cache_clear()
+        
+        current_data['formatter'] = {"segments": segments_to_keep or 3}
+        
+        return current_data
 
     @app.callback(
         Output("accounts_dropdown", "options"),
@@ -195,10 +274,13 @@ def add_callbacks(app, datastore):
         Input("data_range_picker", "end_date"),
         Input("partitions_dropdown", "value"),
         Input("accounts_dropdown", "value"),
-        Input("account-formatter-store", "data"),
         Input("complete_periods_switch", "value"),
+        Input("session-store", "data"),
     )
-    def plot_active_users(hostname, start_date, end_date, partitions, accounts, formatter_data, complete_periods):
+    def plot_active_users(hostname, start_date, end_date, partitions, accounts, complete_periods, session_data):
+        if session_data is None:
+            session_data = initialize_session_data()
+            
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -211,21 +293,30 @@ def add_callbacks(app, datastore):
         time_col = get_time_column(start_date, end_date)
 
         color_by = "Account"
+        
+        category_order, color_map = ensure_consistent_categories_and_colors(
+            df, color_by, COLORS[color_by], session_data
+        )
 
         active_users = df.groupby([time_col, color_by])["User"].nunique().reset_index(name="num_active_users")
-
-        category_order = get_category_order(df, color_by)
 
         fig = px.area(
             active_users,
             x=time_col,
             y="num_active_users",
-            color="Account",
+            color=color_by,
             title="Number of Active Users",
             labels={"num_active_users": "Number of Active Users"},
-            color_discrete_sequence=COLORS["Account"],
             category_orders={color_by: category_order},
         )
+        
+        for i, trace in enumerate(fig.data):
+            if hasattr(trace, 'fillcolor') and hasattr(trace, 'name'):
+                color = color_map.get(trace.name, trace.fillcolor)
+                trace.fillcolor = color
+                if hasattr(trace, 'line') and hasattr(trace.line, 'color'):
+                    trace.line.color = color
+        
         return fig
 
     @app.callback(
@@ -238,9 +329,12 @@ def add_callbacks(app, datastore):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("color_by_dropdown", "value"),
-        Input("account-formatter-store", "data"),  # Add this input
+        Input("session-store", "data"),
     )
-    def plot_number_of_jobs(hostname, start_date, end_date, states, partitions, users, accounts, color_by, formatter_data):
+    def plot_number_of_jobs(hostname, start_date, end_date, states, partitions, users, accounts, color_by, session_data):
+        if session_data is None:
+            session_data = initialize_session_data()
+            
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -249,7 +343,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
-            format_accounts=True,  # Enable account formatting
+            format_accounts=True,
         )
         time_col = get_time_column(start_date, end_date)
         sorted_time_values = sorted(df[time_col].unique())
@@ -263,7 +357,10 @@ def add_callbacks(app, datastore):
                 title="Job submissions",
             )
         else:
-            category_order = get_category_order(df, color_by)
+            category_order, color_map = ensure_consistent_categories_and_colors(
+                df, color_by, COLORS[color_by], session_data
+            )
+            
             df_counts = df[[color_by, time_col]].groupby([color_by, time_col]).size().to_frame("Counts").reset_index()
             fig = px.bar(
                 df_counts,
@@ -271,9 +368,13 @@ def add_callbacks(app, datastore):
                 y="Counts",
                 color=color_by,
                 title="Job submissions",
-                color_discrete_sequence=COLORS[color_by],
                 category_orders={color_by: category_order},
             )
+            
+            for i, trace in enumerate(fig.data):
+                if hasattr(trace, 'marker') and hasattr(trace, 'name'):
+                    trace.marker.color = color_map.get(trace.name, trace.marker.color)
+            
         fig.update_xaxes(categoryorder="array", categoryarray=sorted_time_values)
         return fig
 
@@ -286,9 +387,12 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
-        Input("account-formatter-store", "data"),  # Add this input
+        Input("session-store", "data"),
     )
-    def plot_fraction_accounts(hostname, start_date, end_date, states, partitions, users, accounts, formatter_data):
+    def plot_fraction_accounts(hostname, start_date, end_date, states, partitions, users, accounts, session_data):
+        if session_data is None:
+            session_data = initialize_session_data()
+            
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -297,19 +401,28 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
-            format_accounts=True,  # Enable account formatting
+            format_accounts=True,
         )
-        account_order = get_category_order(df, "Account")
+        
+        category_order, color_map = ensure_consistent_categories_and_colors(
+            df, "Account", COLORS["Account"], session_data
+        )
+        
         counts = df.Account.value_counts().to_frame("Counts").reset_index()
         fig = px.pie(
             counts,
             values="Counts",
             names="Account",
             title="Job submissions by account",
-            color_discrete_sequence=COLORS["Account"],
-            category_orders={"Account": account_order},
+            category_orders={"Account": category_order},
         )
-        fig.update_traces(textposition="inside", textinfo="percent+label")
+        
+        fig.update_traces(
+            marker=dict(colors=[color_map.get(cat, "#CCCCCC") for cat in counts["Account"]]),
+            textposition="inside", 
+            textinfo="percent+label"
+        )
+        
         return fig
 
     @app.callback(
@@ -321,8 +434,12 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("session-store", "data"),
     )
-    def plot_fraction_qos(hostname, start_date, end_date, states, partitions, users, accounts):
+    def plot_fraction_qos(hostname, start_date, end_date, states, partitions, users, accounts, session_data):
+        if session_data is None:
+            session_data = initialize_session_data()
+            
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -331,18 +448,28 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            format_accounts=True,
         )
-        qos_order = get_category_order(df, "QOS")
+        
+        category_order, color_map = ensure_consistent_categories_and_colors(
+            df, "QOS", COLORS["QOS"], session_data
+        )
+        
         counts = df.QOS.value_counts().to_frame("Counts").reset_index()
         fig = px.pie(
             counts,
             values="Counts",
             names="QOS",
             title="Job submissions by quality of service (QoS)",
-            color_discrete_sequence=COLORS["QOS"],
-            category_orders={"QOS": qos_order},
+            category_orders={"QOS": category_order},
         )
-        fig.update_traces(textposition="inside", textinfo="percent+label")
+        
+        fig.update_traces(
+            marker=dict(colors=[color_map.get(cat, "#CCCCCC") for cat in counts["QOS"]]),
+            textposition="inside", 
+            textinfo="percent+label"
+        )
+        
         return fig
 
     @app.callback(
@@ -354,8 +481,12 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("session-store", "data"),
     )
-    def plot_fractions_states(hostname, start_date, end_date, states, partitions, users, accounts):
+    def plot_fractions_states(hostname, start_date, end_date, states, partitions, users, accounts, session_data):
+        if session_data is None:
+            session_data = initialize_session_data()
+            
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -364,18 +495,28 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            format_accounts=True,
         )
-        state_order = get_category_order(df, "State")
+        
+        category_order, color_map = ensure_consistent_categories_and_colors(
+            df, "State", COLORS["State"], session_data
+        )
+        
         counts = df.State.value_counts().to_frame("Counts").reset_index()
         fig = px.pie(
             counts,
             values="Counts",
             names="State",
             title="Job state",
-            color_discrete_sequence=COLORS["State"],
-            category_orders={"State": state_order},
+            category_orders={"State": category_order},
         )
-        fig.update_traces(textposition="inside", textinfo="percent+label")
+        
+        fig.update_traces(
+            marker=dict(colors=[color_map.get(cat, "#CCCCCC") for cat in counts["State"]]),
+            textposition="inside", 
+            textinfo="percent+label"
+        )
+        
         return fig
 
     @app.callback(
@@ -387,8 +528,9 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("session-store", "data"),
     )
-    def plot_cpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts):
+    def plot_cpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, session_data):
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -397,6 +539,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            format_accounts=True,
         )
         cpus_per_job = df.CPUs.value_counts().sort_index().to_frame("Count").reset_index()
         cpus_per_job["CPUs"] = cpus_per_job["CPUs"].astype(str)
@@ -420,8 +563,9 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("session-store", "data"),
     )
-    def plot_gpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts):
+    def plot_gpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, session_data):
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -430,6 +574,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            format_accounts=True,
         )
         gpus_per_job = df.GPUs.value_counts().sort_index().to_frame("Count").reset_index()
         gpus_per_job["GPUs"] = gpus_per_job["GPUs"].astype(str)
@@ -453,8 +598,9 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("session-store", "data"),
     )
-    def plot_nodes_per_job(hostname, start_date, end_date, states, partitions, users, accounts):
+    def plot_nodes_per_job(hostname, start_date, end_date, states, partitions, users, accounts, session_data):
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -463,6 +609,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            format_accounts=True,
         )
         nodes_per_job = df.Nodes.value_counts().sort_index().to_frame("Count").reset_index()
         nodes_per_job["Nodes"] = nodes_per_job["Nodes"].astype(str)
@@ -488,9 +635,12 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
-        Input("account-formatter-store", "data"),
+        Input("session-store", "data"),
     )
-    def plot_waiting_times(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, formatter_data):
+    def plot_waiting_times(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, session_data):
+        if session_data is None:
+            session_data = initialize_session_data()
+            
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -499,7 +649,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
-            format_accounts=True,  # Enable account formatting
+            format_accounts=True,
         )
         
         time_col = get_time_column(start_date, end_date)
@@ -523,7 +673,10 @@ def add_callbacks(app, datastore):
                 log_y=False,
             )
         else:
-            category_order = get_category_order(df, color_by)
+            category_order, color_map = ensure_consistent_categories_and_colors(
+                df, color_by, COLORS[color_by], session_data
+            )
+            
             stats = df[[color_by, time_col, "WaitingTime [h]"]].groupby([color_by, time_col]).describe().droplevel(0, axis=1).reset_index()
             fig = px.scatter(
                 stats,
@@ -532,9 +685,12 @@ def add_callbacks(app, datastore):
                 title=f"{name} waiting time in hours",
                 color=color_by,
                 log_y=False,
-                color_discrete_sequence=COLORS[color_by],
                 category_orders={color_by: category_order},
             )
+            
+            for i, trace in enumerate(fig.data):
+                if hasattr(trace, 'marker') and hasattr(trace, 'name'):
+                    trace.marker.color = color_map.get(trace.name, trace.marker.color)
         
         fig.update_traces(marker={"size": 10})
         fig.update_layout(yaxis_title=name)
@@ -550,9 +706,12 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
-        Input("account-formatter-store", "data"),
+        Input("session-store", "data"),
     )
-    def plot_waiting_times_hist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, formatter_data):
+    def plot_waiting_times_hist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, session_data):
+        if session_data is None:
+            session_data = initialize_session_data()
+            
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -561,7 +720,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
-            format_accounts=True,  # Enable account formatting
+            format_accounts=True,
         )
 
         df["Time Group"] = categorize_time_series(df["WaitingTime [h]"])
@@ -576,17 +735,23 @@ def add_callbacks(app, datastore):
                 text_auto=True,
             )
         else:
-            category_order = get_category_order(df, color_by)
+            category_order, color_map = ensure_consistent_categories_and_colors(
+                df, color_by, COLORS[color_by], session_data
+            )
+            
             fig = px.histogram(
                 df,
                 x="Time Group",
                 color=color_by,
                 title="Waiting Times",
-                color_discrete_sequence=COLORS[color_by],
                 histnorm="percent",
                 text_auto=True,
                 category_orders={color_by: category_order},
             )
+            
+            for i, trace in enumerate(fig.data):
+                if hasattr(trace, 'marker') and hasattr(trace, 'name'):
+                    trace.marker.color = color_map.get(trace.name, trace.marker.color)
         
         fig.update_traces(
             hovertemplate="<br>Percent = %{y:.2f}<extra>%{x}</extra>",
@@ -606,9 +771,12 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
-        Input("account-formatter-store", "data"),
+        Input("session-store", "data"),
     )
-    def plot_job_duration(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, formatter_data):
+    def plot_job_duration(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, session_data):
+        if session_data is None:
+            session_data = initialize_session_data()
+            
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -617,7 +785,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
-            format_accounts=True,  # Enable account formatting
+            format_accounts=True,
         )
         
         time_col = get_time_column(start_date, end_date)
@@ -627,7 +795,8 @@ def add_callbacks(app, datastore):
             "25%": "25 percentile",
             "max": "Maximum",
             "mean": "Mean",
-        }
+        }        
+        
         name = observable_names.get(observable, observable)
         
         if not color_by:
@@ -640,7 +809,10 @@ def add_callbacks(app, datastore):
                 log_y=False,
             )
         else:
-            category_order = get_category_order(df, color_by)
+            category_order, color_map = ensure_consistent_categories_and_colors(
+                df, color_by, COLORS[color_by], session_data
+            )
+            
             stats = df[[color_by, time_col, "Elapsed [h]"]].groupby([color_by, time_col]).describe().droplevel(0, axis=1).reset_index()
             fig = px.scatter(
                 stats,
@@ -649,9 +821,12 @@ def add_callbacks(app, datastore):
                 title=f"{name} job duration in hours",
                 color=color_by,
                 log_y=False,
-                color_discrete_sequence=COLORS[color_by],
                 category_orders={color_by: category_order},
             )
+            
+            for i, trace in enumerate(fig.data):
+                if hasattr(trace, 'marker') and hasattr(trace, 'name'):
+                    trace.marker.color = color_map.get(trace.name, trace.marker.color)
         
         fig.update_traces(marker={"size": 10})
         fig.update_layout(yaxis_title=name)
@@ -667,9 +842,12 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
-        Input("account-formatter-store", "data"),
+        Input("session-store", "data"),
     )
-    def plot_job_duration_hist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, formatter_data):
+    def plot_job_duration_hist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, session_data):
+        if session_data is None:
+            session_data = initialize_session_data()
+            
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -678,13 +856,11 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
-            format_accounts=True,  # Enable account formatting
+            format_accounts=True,
         )
         
-        # Define the same job duration thresholds used in job_duration_stacked (in hours)
         thresholds = [0, 1, 4, 12, 24, 72, 168, float('inf')]
         
-        # Define threshold labels - same as in job_duration_stacked
         threshold_labels = [
             "< 1h", 
             "1h - 4h", 
@@ -695,7 +871,6 @@ def add_callbacks(app, datastore):
             "> 7d"
         ]
         
-        # Create a new column for job duration category
         df['Duration Category'] = pd.cut(
             df['Elapsed [h]'], 
             bins=thresholds,
@@ -703,7 +878,6 @@ def add_callbacks(app, datastore):
             right=False
         )
         
-        # Sort the categories in the same order as the labels
         ordered_categories = threshold_labels
         
         if not color_by:
@@ -716,13 +890,15 @@ def add_callbacks(app, datastore):
                 category_orders={"Duration Category": ordered_categories}
             )
         else:
-            category_order = get_category_order(df, color_by)
+            category_order, color_map = ensure_consistent_categories_and_colors(
+                df, color_by, COLORS[color_by], session_data
+            )
+            
             fig = px.histogram(
                 df,
                 x="Duration Category",
                 color=color_by,
                 title="Job Duration",
-                color_discrete_sequence=COLORS[color_by],
                 histnorm="percent",
                 text_auto=True,
                 category_orders={
@@ -730,20 +906,21 @@ def add_callbacks(app, datastore):
                     color_by: category_order
                 }
             )
+            
+            for i, trace in enumerate(fig.data):
+                if hasattr(trace, 'marker') and hasattr(trace, 'name'):
+                    trace.marker.color = color_map.get(trace.name, trace.marker.color)
         
         fig.update_traces(
             hovertemplate="<br>Percent = %{y:.2f}<extra>%{x}</extra>",
             texttemplate="%{y:.1f}%",
         )
         
-        # To ensure consistent ordering
         fig.update_xaxes(categoryorder="array", categoryarray=ordered_categories)
-        
-        # Update the y-axis label
         fig.update_yaxes(title_text="Percentage of Jobs (%)")
         
         return fig
-
+        
     @app.callback(
         Output("plot_cpu_hours", "figure"),
         Input("hostname_dropdown", "value"),
@@ -754,9 +931,12 @@ def add_callbacks(app, datastore):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("color_by_dropdown", "value"),
-        Input("account-formatter-store", "data"),
+        Input("session-store", "data"),
     )
-    def plot_cpu_hours(hostname, start_date, end_date, states, partitions, users, accounts, color_by, formatter_data):
+    def plot_cpu_hours(hostname, start_date, end_date, states, partitions, users, accounts, color_by, session_data):
+        if session_data is None:
+            session_data = initialize_session_data()
+            
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -766,9 +946,11 @@ def add_callbacks(app, datastore):
             users=users,
             accounts=accounts,
             complete_periods_only=False,
-            format_accounts=True,  # Enable account formatting
+            format_accounts=True,
         )
+        
         time_col = get_time_column(start_date, end_date).replace("Submit", "Start")
+        
         if not color_by:
             total_usage = df.groupby(time_col)[["CPU-hours"]].sum().reset_index()
             return px.bar(
@@ -777,18 +959,28 @@ def add_callbacks(app, datastore):
                 y="CPU-hours",
                 title="CPU-hours used",
             )
-        category_order = get_category_order(df, color_by)
+            
+        category_order, color_map = ensure_consistent_categories_and_colors(
+            df, color_by, COLORS[color_by], session_data
+        )
+        
         color_distributions = df.groupby([time_col, color_by])[["CPU-hours"]].sum().reset_index()
-        return px.bar(
+        
+        fig = px.bar(
             color_distributions,
             x=time_col,
             y="CPU-hours",
             color=color_by,
             title="CPU-hours used",
             category_orders={color_by: category_order},
-            color_discrete_sequence=COLORS[color_by],
         )
-
+        
+        for i, trace in enumerate(fig.data):
+            if hasattr(trace, 'marker') and hasattr(trace, 'name'):
+                trace.marker.color = color_map.get(trace.name, trace.marker.color)
+                
+        return fig
+        
     @app.callback(
         Output("plot_gpu_hours", "figure"),
         Input("hostname_dropdown", "value"),
@@ -799,9 +991,12 @@ def add_callbacks(app, datastore):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("color_by_dropdown", "value"),
-        Input("account-formatter-store", "data"),  # Add this input
+        Input("session-store", "data"),
     )
-    def plot_gpu_hours(hostname, start_date, end_date, states, partitions, users, accounts, color_by, formatter_data):
+    def plot_gpu_hours(hostname, start_date, end_date, states, partitions, users, accounts, color_by, session_data):
+        if session_data is None:
+            session_data = initialize_session_data()
+            
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -811,9 +1006,11 @@ def add_callbacks(app, datastore):
             users=users,
             accounts=accounts,
             complete_periods_only=False,
-            format_accounts=True,  # Enable account formatting
+            format_accounts=True,
         )
+        
         time_col = get_time_column(start_date, end_date).replace("Submit", "Start")
+        
         if not color_by:
             total_usage = df.groupby(time_col)[["GPU-hours"]].sum().reset_index()
             return px.bar(
@@ -822,18 +1019,28 @@ def add_callbacks(app, datastore):
                 y="GPU-hours",
                 title="GPU-hours used",
             )
-        category_order = get_category_order(df, color_by)
+            
+        category_order, color_map = ensure_consistent_categories_and_colors(
+            df, color_by, COLORS[color_by], session_data
+        )
+        
         color_distributions = df.groupby([time_col, color_by])[["GPU-hours"]].sum().reset_index()
-        return px.bar(
+        
+        fig = px.bar(
             color_distributions,
             x=time_col,
             y="GPU-hours",
             color=color_by,
             title="GPU-hours used",
             category_orders={color_by: category_order},
-            color_discrete_sequence=COLORS[color_by],
         )
-
+        
+        for i, trace in enumerate(fig.data):
+            if hasattr(trace, 'marker') and hasattr(trace, 'name'):
+                trace.marker.color = color_map.get(trace.name, trace.marker.color)
+                
+        return fig
+        
     @app.callback(
         Output("plot_fraction_accounts_cpu_usage", "figure"),
         Input("hostname_dropdown", "value"),
@@ -844,21 +1051,12 @@ def add_callbacks(app, datastore):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("color_by_dropdown", "value"),
-        Input("account-formatter-store", "data"),  # This input triggers on formatter changes
+        Input("session-store", "data"),
     )
-    def plot_fraction_accounts_cpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, formatter_data):
-        # Important: Reset the category orders when formatter changes to force refresh
-        global CATEGORY_ORDERS
-        if formatter_data and 'segments' in formatter_data:
-            # Reset the cached category orders to force recalculation with new format
-            CATEGORY_ORDERS = {
-                "User": None,
-                "Account": None,
-                "Partition": None,
-                "State": None,
-                "QOS": None,
-            }
-        
+    def plot_fraction_accounts_cpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, session_data):
+        if session_data is None:
+            session_data = initialize_session_data()
+            
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -867,26 +1065,32 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
-            format_accounts=True,  # Enable account formatting
+            format_accounts=True,
         )
         
         category = color_by if color_by else "Account"
-        # Recalculate category order with newly formatted data
-        category_order = get_category_order(df, category)
         
-        # Group by category and sum CPU hours
+        category_order, color_map = ensure_consistent_categories_and_colors(
+            df, category, COLORS[category], session_data
+        )
+        
         usage_by_category = df.groupby(category)["CPU-hours"].sum().reset_index()
-        usage_by_category = ensure_consistent_categories(usage_by_category, category, "CPU-hours")
+        usage_by_category = ensure_consistent_categories(usage_by_category, category, "CPU-hours", session_data)
+        
+        ordered_colors = [color_map.get(cat, "#CCCCCC") for cat in usage_by_category[category]]
         
         fig = px.pie(
             usage_by_category, 
             values="CPU-hours", 
             names=category, 
-            color_discrete_sequence=COLORS[category], 
-            category_orders={category: category_order}, 
-            title=f"CPU-hours used by {category.lower()}"
+            title=f"CPU-hours used by {category.lower()}",
+            color=category,
+            color_discrete_map=color_map,
+            category_orders={category: category_order}
         )
+        
         fig.update_traces(textposition="inside", textinfo="percent+label")
+        
         return fig
 
     @app.callback(
@@ -899,20 +1103,11 @@ def add_callbacks(app, datastore):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("color_by_dropdown", "value"),
-        Input("account-formatter-store", "data"),  # This input triggers on formatter changes
+        Input("session-store", "data"),
     )
-    def plot_fraction_accounts_gpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, formatter_data):
-        # Important: Reset the category orders when formatter changes to force refresh
-        global CATEGORY_ORDERS
-        if formatter_data and 'segments' in formatter_data:
-            # Reset the cached category orders to force recalculation with new format
-            CATEGORY_ORDERS = {
-                "User": None,
-                "Account": None,
-                "Partition": None,
-                "State": None,
-                "QOS": None,
-            }
+    def plot_fraction_accounts_gpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, session_data):
+        if session_data is None:
+            session_data = initialize_session_data()
         
         df = datastore.filter(
             hostname=hostname,
@@ -922,26 +1117,30 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
-            format_accounts=True,  # Enable account formatting
+            format_accounts=True,
         )
         
         category = color_by if color_by else "Account"
-        # Recalculate category order with newly formatted data
-        category_order = get_category_order(df, category)
         
-        # Group by category and sum GPU hours
+        category_order, color_map = ensure_consistent_categories_and_colors(
+            df, category, COLORS[category], session_data
+        )
+        
         usage_by_category = df.groupby(category)["GPU-hours"].sum().reset_index()
-        usage_by_category = ensure_consistent_categories(usage_by_category, category, "GPU-hours")
+        usage_by_category = ensure_consistent_categories(usage_by_category, category, "GPU-hours", session_data)
         
         fig = px.pie(
             usage_by_category, 
             values="GPU-hours", 
             names=category, 
-            color_discrete_sequence=COLORS[category], 
-            category_orders={category: category_order}, 
-            title=f"GPU-hours used by {category.lower()}"
+            title=f"GPU-hours used by {category.lower()}",
+            color=category,
+            color_discrete_map=color_map,
+            category_orders={category: category_order}
         )
+        
         fig.update_traces(textposition="inside", textinfo="percent+label")
+        
         return fig
 
     @app.callback(
@@ -958,9 +1157,12 @@ def add_callbacks(app, datastore):
         Input("hide_unused_nodes_switch", "value"),
         Input("normalize_node_resources_switch", "value"),
         Input("sort_by_usage_switch", "value"),
-        Input("account-formatter-store", "data"),
+        Input("session-store", "data"),
     )
-    def plot_nodes_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, hide_unused, normalize, sort_by_usage, formatter_data):
+    def plot_nodes_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, hide_unused, normalize, sort_by_usage, session_data):
+        if session_data is None:
+            session_data = initialize_session_data()
+            
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -972,47 +1174,43 @@ def add_callbacks(app, datastore):
             complete_periods_only=False,
             format_accounts=True,
         )
+        
         cols = ["NodeList", "GPU-hours", "CPU-hours"]
         groupby_cols = ["NodeList"]
+        
         if color_by:
-            category_order = get_category_order(df, color_by)
+            category_order, color_map = ensure_consistent_categories_and_colors(
+                df, color_by, COLORS[color_by], session_data
+            )
             cols.append(color_by)
             groupby_cols.append(color_by)
         
-        # Explode the NodeList and compute usage per node
         node_usage = df[cols].explode("NodeList").dropna().groupby(groupby_cols).sum().reset_index()
         
         cpu_node_usage = node_usage.copy()
         gpu_node_usage = node_usage.copy()
         
-        # Filter out unused nodes if requested
         if hide_unused and not node_usage.empty:
             cpu_node_usage = cpu_node_usage[cpu_node_usage["CPU-hours"] > 0]
             gpu_node_usage = gpu_node_usage[gpu_node_usage["GPU-hours"] > 0]
         
-        # Calculate total usage per node (summing across all color categories)
         if color_by:
             cpu_total_per_node = cpu_node_usage.groupby("NodeList")["CPU-hours"].sum().reset_index()
             gpu_total_per_node = gpu_node_usage.groupby("NodeList")["GPU-hours"].sum().reset_index()
         
-        # Sort nodes by total usage or alphabetically
         if sort_by_usage:
             if color_by:
-                # When color factor is selected, sort by total usage across all categories
                 cpu_sorted_nodes = cpu_total_per_node.sort_values("CPU-hours", ascending=False)["NodeList"].unique() if not cpu_node_usage.empty else []
                 gpu_sorted_nodes = gpu_total_per_node.sort_values("GPU-hours", ascending=False)["NodeList"].unique() if not gpu_node_usage.empty else []
             else:
-                # Standard sorting by usage when no color factor is selected
                 cpu_sorted_nodes = cpu_node_usage.sort_values("CPU-hours", ascending=False)["NodeList"].unique() if not cpu_node_usage.empty else []
                 gpu_sorted_nodes = gpu_node_usage.sort_values("GPU-hours", ascending=False)["NodeList"].unique() if not gpu_node_usage.empty else []
         else:
-            # Alphabetical sorting
             cpu_nodes = cpu_node_usage["NodeList"].unique() if not cpu_node_usage.empty else []
             gpu_nodes = gpu_node_usage["NodeList"].unique() if not gpu_node_usage.empty else []
             cpu_sorted_nodes = sorted(cpu_nodes, key=natural_sort_key)
             gpu_sorted_nodes = sorted(gpu_nodes, key=natural_sort_key)
         
-        # Normalize by node resources if requested
         if normalize:
             node_resources = node_config.get_all_node_resources(node_usage["NodeList"].unique())
             for node in node_resources:
@@ -1030,7 +1228,6 @@ def add_callbacks(app, datastore):
         if normalize:
             subtitle = "<br><sub>Values are divided by the number of CPUs/GPUs in each node</sub>"
         
-        # Create figures
         if not color_by:
             fig_nodes_usage_cpu = px.bar(
                 cpu_node_usage,
@@ -1047,9 +1244,12 @@ def add_callbacks(app, datastore):
                 height=400,
                 title="Total CPU-hours per node" + (" (normalized)" if normalize else "") + subtitle,
                 color=color_by,
-                color_discrete_sequence=COLORS[color_by],
                 category_orders={color_by: category_order},
             )
+            
+            for i, trace in enumerate(fig_nodes_usage_cpu.data):
+                if hasattr(trace, 'marker') and hasattr(trace, 'name'):
+                    trace.marker.color = color_map.get(trace.name, trace.marker.color)
         
         if not color_by:
             fig_nodes_usage_gpu = px.bar(
@@ -1067,15 +1267,16 @@ def add_callbacks(app, datastore):
                 height=400,
                 title="Total GPU-hours per node" + (" (normalized)" if normalize else "") + subtitle,
                 color=color_by,
-                color_discrete_sequence=COLORS[color_by],
                 category_orders={color_by: category_order},
             )
+            
+            for i, trace in enumerate(fig_nodes_usage_gpu.data):
+                if hasattr(trace, 'marker') and hasattr(trace, 'name'):
+                    trace.marker.color = color_map.get(trace.name, trace.marker.color)
         
-        # Set correct sorting order for x-axis
         fig_nodes_usage_cpu.update_xaxes(categoryorder="array", categoryarray=cpu_sorted_nodes)
         fig_nodes_usage_gpu.update_xaxes(categoryorder="array", categoryarray=gpu_sorted_nodes)
         
-        # Add hover info if normalized
         if normalize:
             hover_template = "%{x}<br>%{y:.2f} hours"
             if color_by:
@@ -1097,38 +1298,17 @@ def add_callbacks(app, datastore):
         return {"display": "none"}
 
     @app.callback(
-        Output("account-formatter-store", "data"),
-        Input("account-format-segments", "value"),
-        Input("interval", "n_intervals"),  # Trigger on initial load too
-    )
-    def update_account_formatter_settings(segments_to_keep, _):
-        """Update the account formatter settings when user changes radio buttons."""
-        if segments_to_keep is not None:
-            # Update the global formatter setting
-            from .account_formatter import formatter
-
-            formatter.max_segments = segments_to_keep
-
-            # Clear the datastore filter cache to ensure all charts update
-            datastore._filter_data.cache_clear()
-
-        return {"segments": segments_to_keep or 3}  # Default to 3 if None
-
-    @app.callback(
         Output("qos_selection_dropdown", "options"),
         Input("hostname_dropdown", "value"),
         Input("data_range_picker", "start_date"),
         Input("data_range_picker", "end_date"),
     )
     def update_qos_options(hostname, start_date, end_date):
-        """Update the QOS selection dropdown options."""
         if not hostname:
             return [{"label": "All QOS", "value": "all"}]
         
-        # Get available QOS options
         qos_options = datastore.get_qos(hostname)
         
-        # Create dropdown options
         options = [{"label": "All QOS", "value": "all"}]
         options.extend([{"label": qos, "value": qos} for qos in sorted(qos_options)])
         
@@ -1144,11 +1324,9 @@ def add_callbacks(app, datastore):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
+        Input("session-store", "data"),
     )
-    def plot_job_duration_stacked(hostname, start_date, end_date, states, partitions, users, accounts, selected_qos):
-        """
-        Create a stacked bar plot showing job duration distribution by predefined thresholds.
-        """
+    def plot_job_duration_stacked(hostname, start_date, end_date, states, partitions, users, accounts, selected_qos, session_data):
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -1157,26 +1335,22 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
-            format_accounts=False,
+            format_accounts=True,
         )
         
         if df.empty:
             return px.bar(title="No data available for selected filters")
         
-        # Filter by selected QOS if specified
         if selected_qos and selected_qos != "all":
             df = df[df['QOS'] == selected_qos]
             qos_title = f" for QOS: {selected_qos}"
         else:
             qos_title = ""
         
-        # Group by time period
         time_col = get_time_column(start_date, end_date)
         
-        # Define job duration thresholds (in hours)
         thresholds = [0, 1, 4, 12, 24, 72, 168, float('inf')]
         
-        # Define threshold labels
         threshold_labels = [
             "< 1h", 
             "1h - 4h", 
@@ -1187,21 +1361,18 @@ def add_callbacks(app, datastore):
             "> 7d"
         ]
         
-        # Color scheme - using a sequential colormap from light to dark green
         colors = [
-            "rgb(237, 248, 233)",  # very light green
-            "rgb(199, 233, 192)",  # light green
-            "rgb(161, 217, 155)",  # medium-light green
-            "rgb(116, 196, 118)",  # medium green
-            "rgb(65, 171, 93)",    # medium-dark green
-            "rgb(35, 139, 69)",    # dark green
-            "rgb(0, 90, 50)"       # very dark green
+            "rgb(237, 248, 233)",
+            "rgb(199, 233, 192)",
+            "rgb(161, 217, 155)",
+            "rgb(116, 196, 118)",
+            "rgb(65, 171, 93)",
+            "rgb(35, 139, 69)",
+            "rgb(0, 90, 50)"
         ]
         
-        # Initialize results dataframe
         results = []
         
-        # Calculate job counts for each time period and duration threshold
         for period in sorted(df[time_col].unique()):
             period_df = df[df[time_col] == period]
             total_jobs = len(period_df)
@@ -1211,11 +1382,9 @@ def add_callbacks(app, datastore):
                 upper = thresholds[i + 1]
                 label = threshold_labels[i]
                 
-                # Count jobs in this duration range
                 count = ((period_df['Elapsed [h]'] >= lower) & 
                         (period_df['Elapsed [h]'] < upper)).sum()
                 
-                # Calculate percentage
                 percentage = (count / total_jobs * 100) if total_jobs > 0 else 0
                 
                 results.append({
@@ -1226,10 +1395,8 @@ def add_callbacks(app, datastore):
                     'Total Jobs': total_jobs
                 })
         
-        # Convert to dataframe
         results_df = pd.DataFrame(results)
         
-        # Create the stacked bar chart
         fig = px.bar(
             results_df,
             x=time_col,
@@ -1245,7 +1412,6 @@ def add_callbacks(app, datastore):
             hover_data=["Count", "Total Jobs"],
         )
         
-        # Improve layout
         fig.update_layout(
             legend_title_text="Job Duration",
             barmode="stack",
@@ -1257,7 +1423,7 @@ def add_callbacks(app, datastore):
                 title=time_col,
                 tickangle=45 if len(results_df[time_col].unique()) > 12 else 0
             ),
-            margin=dict(t=50, l=50, r=20, b=100),  # More space at bottom for labels
+            margin=dict(t=50, l=50, r=20, b=100),
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
@@ -1267,7 +1433,6 @@ def add_callbacks(app, datastore):
             )
         )
         
-        # Add hover template
         fig.update_traces(
             hovertemplate="<b>%{x}</b><br>" +
                         "Job Duration: %{customdata[0]} jobs<br>" +
@@ -1276,7 +1441,7 @@ def add_callbacks(app, datastore):
         )
         
         return fig
-        
+    
     @app.callback(
         Output("plot_waiting_times_stacked", "figure"),
         Input("hostname_dropdown", "value"),
@@ -1287,11 +1452,9 @@ def add_callbacks(app, datastore):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
+        Input("session-store", "data"),
     )
-    def plot_waiting_times_stacked(hostname, start_date, end_date, states, partitions, users, accounts, selected_qos):
-        """
-        Create a stacked bar plot showing waiting time distribution by predefined thresholds.
-        """
+    def plot_waiting_times_stacked(hostname, start_date, end_date, states, partitions, users, accounts, selected_qos, session_data):
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -1300,26 +1463,22 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
-            format_accounts=False,
+            format_accounts=True,
         )
         
         if df.empty:
             return px.bar(title="No data available for selected filters")
         
-        # Filter by selected QOS if specified
         if selected_qos and selected_qos != "all":
             df = df[df['QOS'] == selected_qos]
             qos_title = f" for QOS: {selected_qos}"
         else:
             qos_title = ""
         
-        # Group by time period
         time_col = get_time_column(start_date, end_date)
         
-        # Define waiting time thresholds (in hours)
         thresholds = [0, 0.5, 1, 4, 12, 24, float('inf')]
         
-        # Define threshold labels
         threshold_labels = [
             "< 30min", 
             "30min - 1h", 
@@ -1330,18 +1489,16 @@ def add_callbacks(app, datastore):
         ]
         
         colors = [
-            "rgb(255, 245, 240)",  # very light red
-            "rgb(254, 224, 210)",  # light red
-            "rgb(252, 187, 161)",  # medium-light red
-            "rgb(252, 146, 114)",  # medium red
-            "rgb(239, 59, 44)",    # medium-dark red
-            "rgb(153, 0, 13)"      # dark red
+            "rgb(255, 245, 240)",
+            "rgb(254, 224, 210)",
+            "rgb(252, 187, 161)",
+            "rgb(252, 146, 114)",
+            "rgb(239, 59, 44)",
+            "rgb(153, 0, 13)"
         ]
         
-        # Initialize results dataframe
         results = []
         
-        # Calculate job counts for each time period and waiting time threshold
         for period in sorted(df[time_col].unique()):
             period_df = df[df[time_col] == period]
             total_jobs = len(period_df)
@@ -1351,11 +1508,9 @@ def add_callbacks(app, datastore):
                 upper = thresholds[i + 1]
                 label = threshold_labels[i]
                 
-                # Count jobs in this waiting time range
                 count = ((period_df['WaitingTime [h]'] >= lower) & 
                         (period_df['WaitingTime [h]'] < upper)).sum()
                 
-                # Calculate percentage
                 percentage = (count / total_jobs * 100) if total_jobs > 0 else 0
                 
                 results.append({
@@ -1366,10 +1521,8 @@ def add_callbacks(app, datastore):
                     'Total Jobs': total_jobs
                 })
         
-        # Convert to dataframe
         results_df = pd.DataFrame(results)
         
-        # Create the stacked bar chart
         fig = px.bar(
             results_df,
             x=time_col,
@@ -1385,7 +1538,6 @@ def add_callbacks(app, datastore):
             hover_data=["Count", "Total Jobs"],
         )
         
-        # Improve layout
         fig.update_layout(
             legend_title_text="Waiting Time",
             barmode="stack",
@@ -1397,7 +1549,7 @@ def add_callbacks(app, datastore):
                 title=time_col,
                 tickangle=45 if len(results_df[time_col].unique()) > 12 else 0
             ),
-            margin=dict(t=50, l=50, r=20, b=100),  # More space at bottom for labels
+            margin=dict(t=50, l=50, r=20, b=100),
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
@@ -1407,7 +1559,6 @@ def add_callbacks(app, datastore):
             )
         )
         
-        # Add hover template
         fig.update_traces(
             hovertemplate="<b>%{x}</b><br>" +
                         "Waiting Time: %{customdata[0]} jobs<br>" +
@@ -1422,9 +1573,6 @@ def add_callbacks(app, datastore):
         Input("color_by_dropdown", "value"),
     )
     def toggle_account_format_visibility(color_by):
-        """
-        Show the account formatting options only when Account is selected as the color factor.
-        """
         if color_by == "Account":
             return {"display": "block"}
         return {"display": "none"}
