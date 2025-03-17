@@ -24,6 +24,7 @@ def create_dash_app(args, server=True, url_base_pathname="/"):
             dbc.themes.BOOTSTRAP,         
             '/assets/custom-styles.css'
     ],
+        assets_folder='src/slurm_usage_history/assets',
         server=server,
         url_base_pathname=url_base_pathname,
     )

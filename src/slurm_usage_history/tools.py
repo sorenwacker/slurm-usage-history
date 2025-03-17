@@ -6,6 +6,18 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 
+def timeit(func):
+    """Decorator to measure execution time of a function."""
+    @functools.wraps(func)
+    def wrapper_timeit(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        elapsed_time = time.perf_counter() - start_time
+        print(f"Function '{func.__name__}' executed in {elapsed_time:.4f} seconds")
+        return result
+    return wrapper_timeit
+
+
 def natural_sort_key(s):
     """
     Natural sorting function that handles numeric parts in strings properly.

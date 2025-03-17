@@ -1,3 +1,4 @@
+import os
 from datetime import date
 
 import dash_bootstrap_components as dbc
@@ -7,6 +8,27 @@ from dash import dcc, html
 from .account_formatter import formatter
 
 pio.templates.default = "plotly_white"
+
+import base64
+
+# Path to your downloaded logo
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+logo_path = os.path.join(script_dir, "../assets/REIT_logo.png")
+
+# Encode the image
+with open(logo_path, "rb") as image_file:
+    encoded_string = base64.b64encode(image_file.read()).decode()
+
+logo = html.Img(
+    src=f"data:image/png;base64,{encoded_string}",
+    height="40px",
+    className="bg-white rounded", 
+    style={
+        "padding": "4px",
+        "border-radius": "6px" 
+    }
+)
 
 COLORS = {
     "primary": "#04A5D5",
@@ -291,6 +313,11 @@ header = html.Div(
                         dbc.Row(
                             [
                                 dbc.Col(
+                                    logo, 
+                                    width="auto",
+                                    className="me-2 d-flex align-items-center"
+                                ),
+                                dbc.Col(
                                     html.H2(
                                         "Slurm Usage History Dashboard",
                                         className="m-0",
@@ -299,6 +326,7 @@ header = html.Div(
                                 ),
                             ],
                             align="center",
+                            className="g-0",  # Remove gutters between columns
                         ),
                         href="#",
                         style={"textDecoration": "none"},
