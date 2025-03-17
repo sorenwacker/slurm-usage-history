@@ -392,7 +392,7 @@ footer = html.Div(
 complete_periods_switch = dbc.Switch(
     id="complete_periods_switch",
     label="Show only complete periods",
-    value=True,
+    value=False,
     className="ms-2 mb-2",
     style={"display": "none"},
 )
