@@ -1,9 +1,6 @@
-# /src/slurm_usage_history/app/DataStore.py
-
 import functools
 import threading
 import time
-from abc import ABC, abstractmethod
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
@@ -11,30 +8,33 @@ from pathlib import Path
 import pandas as pd
 
 from .account_formatter import formatter
+from ..tools import timeit
 
 
-# Decorator for measuring execution time
-def timeit(func):
-    """Measure execution time of a function."""
+# Singleton metaclass
+class Singleton(type):
+    """
+    Metaclass to implement the Singleton pattern.
+    Ensures only one instance of a class exists.
+    """
+    _instances = {}
+    _lock = threading.Lock()
+    
+    def __call__(cls, *args, **kwargs):
+        with cls._lock:
+            if cls not in cls._instances:
+                cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+            return cls._instances[cls]
 
-    @functools.wraps(func)
-    def wrapper_timeit(*args, **kwargs):
-        start_time = time.perf_counter()
-        result = func(*args, **kwargs)
-        elapsed_time = time.perf_counter() - start_time
-        print(f"Function '{func.__name__}' executed in {elapsed_time:.4f} seconds")
-        return result
 
-    return wrapper_timeit
+# Concrete implementation using Pandas with Singleton pattern
+class PandasDataStore(metaclass=Singleton):
+    """DataStore implementation using Pandas with enhanced filtering capabilities.
+    Implemented as a Singleton to ensure only one instance exists."""
 
-
-# Abstract base class for data storage implementations
-class DataStore(ABC):
-    """Abstract base class for DataStore implementations."""
-
-    def __init__(self, directory: str | None = None, auto_refresh_interval: int = 600):
+    def __init__(self, directory=None, auto_refresh_interval=600):
         """
-        Initialize the DataStore with a directory path.
+        Initialize the PandasDataStore.
 
         Args:
             directory: Path to the data directory
@@ -45,22 +45,53 @@ class DataStore(ABC):
         self.auto_refresh_interval = auto_refresh_interval
         self._refresh_thread = None
         self._stop_refresh_flag = threading.Event()
+        self._file_timestamps = {}  # Track file timestamps for change detection
+        self._initialize_hosts()
 
-    @abstractmethod
+    def _initialize_hosts(self):
+        """Populate the `hosts` dictionary with subdirectories."""
+        for entry in self.directory.iterdir():
+            if entry.is_dir():
+                self.hosts[entry.name] = {
+                    "max_date": None,
+                    "min_date": None,
+                    "data": None,
+                    "partitions": None,  # Will store available partitions
+                    "accounts": None,  # Will store available accounts
+                    "users": None,  # Will store available users
+                    "qos": None,  # Will store available QOS options
+                    "states": None,  # Will store available states
+                }
+
     def get_hostnames(self):
         """Retrieve the list of hostnames."""
+        return list(self.hosts.keys())
 
-    @abstractmethod
-    def load_data(self):
-        """Load data into the datastore."""
+    def get_min_max_dates(self, hostname):
+        """Get minimum and maximum dates for the specified hostname."""
+        min_date = self.hosts[hostname]["min_date"]
+        max_date = self.hosts[hostname]["max_date"]
+        return min_date, max_date
 
-    @abstractmethod
-    def check_for_updates(self):
-        """Check for updated or new files and reload if necessary."""
+    def get_partitions(self, hostname):
+        """Get available partitions for the specified hostname."""
+        return self.hosts[hostname]["partitions"] or []
 
-    @abstractmethod
-    def filter(self, start_date=None, end_date=None, partitions=None, states=None):
-        """Filter data based on the given criteria."""
+    def get_accounts(self, hostname):
+        """Get available accounts for the specified hostname."""
+        return self.hosts[hostname]["accounts"] or []
+
+    def get_users(self, hostname):
+        """Get available users for the specified hostname."""
+        return self.hosts[hostname]["users"] or []
+
+    def get_qos(self, hostname):
+        """Get available QOS options for the specified hostname."""
+        return self.hosts[hostname]["qos"] or []
+
+    def get_states(self, hostname):
+        """Get available states for the specified hostname."""
+        return self.hosts[hostname]["states"] or []
 
     def start_auto_refresh(self, interval=None):
         """
@@ -136,68 +167,6 @@ class DataStore(ABC):
 
         # Return status based on whether auto-refresh is running
         return self._refresh_thread is not None and self._refresh_thread.is_alive()
-
-
-# Concrete implementation using Pandas
-class PandasDataStore(DataStore):
-    """DataStore implementation using Pandas with enhanced filtering capabilities."""
-
-    def __init__(self, directory=None, auto_refresh_interval=600):
-        """
-        Initialize the PandasDataStore.
-
-        Args:
-            directory: Path to the data directory
-            auto_refresh_interval: Refresh interval in seconds (default: 600 seconds/10 minutes)
-        """
-        super().__init__(directory, auto_refresh_interval)
-        self._initialize_hosts()
-        self._file_timestamps = {}  # Track file timestamps for change detection
-
-    def _initialize_hosts(self):
-        """Populate the `hosts` dictionary with subdirectories."""
-        for entry in self.directory.iterdir():
-            if entry.is_dir():
-                self.hosts[entry.name] = {
-                    "max_date": None,
-                    "min_date": None,
-                    "data": None,
-                    "partitions": None,  # Will store available partitions
-                    "accounts": None,  # Will store available accounts
-                    "users": None,  # Will store available users
-                    "qos": None,  # Will store available QOS options
-                    "states": None,  # Will store available states
-                }
-
-    def get_hostnames(self):
-        """Retrieve the list of hostnames."""
-        return list(self.hosts.keys())
-
-    def get_min_max_dates(self, hostname):
-        """Get minimum and maximum dates for the specified hostname."""
-        min_date = self.hosts[hostname]["min_date"]
-        max_date = self.hosts[hostname]["max_date"]
-        return min_date, max_date
-
-    def get_partitions(self, hostname):
-        """Get available partitions for the specified hostname."""
-        return self.hosts[hostname]["partitions"] or []
-
-    def get_accounts(self, hostname):
-        """Get available accounts for the specified hostname."""
-        return self.hosts[hostname]["accounts"] or []
-
-    def get_users(self, hostname):
-        """Get available users for the specified hostname."""
-        return self.hosts[hostname]["users"] or []
-
-    def get_qos(self, hostname):
-        """Get available QOS options for the specified hostname."""
-        return self.hosts[hostname]["qos"] or []
-
-    def get_states(self, hostname):
-        """Get available states for the specified hostname."""
-        return self.hosts[hostname]["states"] or []
 
     @timeit
     def load_data(self):
@@ -541,3 +510,18 @@ class PandasDataStore(DataStore):
                 df_filtered["Account"] = df_filtered["Account"].apply(formatter.format_account)
 
         return df_filtered
+
+
+# Convenience function to get the singleton instance
+def get_datastore(directory=None, auto_refresh_interval=600):
+    """
+    Get the singleton instance of PandasDataStore.
+    
+    Args:
+        directory: Path to the data directory (only used if this is the first call)
+        auto_refresh_interval: Refresh interval in seconds (only used if this is the first call)
+        
+    Returns:
+        PandasDataStore: The singleton instance
+    """
+    return PandasDataStore(directory, auto_refresh_interval)
