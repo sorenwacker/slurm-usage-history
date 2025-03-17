@@ -275,7 +275,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("complete_periods_switch", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_active_users(hostname, start_date, end_date, accounts, complete_periods, session_data):
@@ -331,7 +331,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("color_by_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_number_of_jobs(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data):
@@ -394,7 +394,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("color_by_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_fraction_accounts(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data):
@@ -451,7 +451,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_fraction_qos(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
@@ -502,7 +502,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_fractions_states(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
@@ -553,7 +553,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_cpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
@@ -592,7 +592,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_gpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
@@ -631,7 +631,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_nodes_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
@@ -672,7 +672,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_waiting_times(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, qos, session_data):
@@ -747,7 +747,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_waiting_times_dist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, qos, session_data):
@@ -816,7 +816,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_job_duration(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, qos, session_data):
@@ -891,7 +891,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_job_duration_dist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, qos, session_data):
@@ -984,7 +984,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("color_by_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_cpu_hours(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data):
@@ -1048,7 +1048,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("color_by_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_gpu_hours(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data):
@@ -1112,7 +1112,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("color_by_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_fraction_cpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos_selection, session_data):
@@ -1168,7 +1168,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("color_by_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_fraction_gpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data):
@@ -1226,7 +1226,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("sort_by_usage_switch", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_nodes_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, hide_unused, normalize, sort_by_usage, qos_selection, session_data):
@@ -1396,7 +1396,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_job_duration_stacked(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
@@ -1521,7 +1521,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
-        background=True,
+        background=False,
         manager=background_callback_manager,
     )
     def plot_waiting_times_stacked(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
