@@ -12,6 +12,7 @@ from .layout import layout
 from dash import DiskcacheManager
 import diskcache
 
+
 def create_dash_app(args, server=True, url_base_pathname="/"):
     """
     Create a Dash app that visualizes data from the specified Parquet files.
@@ -41,7 +42,9 @@ def create_dash_app(args, server=True, url_base_pathname="/"):
 
     # Layout of the app
     app.layout = layout
-    add_callbacks(app, datastore, cache, background_callback_manager)
+    #add_callbacks(app, datastore, cache, background_callback_manager)
+    add_callbacks(app, datastore, None, None)
+    
     app.title = "Slurm Usage History Dashboard"
     
     server = app.server

@@ -513,9 +513,69 @@ filters_sidebar = html.Div(
     },
     className="mb-4 mt-4",
 )
+
 overview_section = create_section(
-    "Usage Overview",
+    "Overview",
     [
+        # New summary statistics cards
+        dbc.Row(
+            [
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardHeader("Total Active Users"),
+                            dbc.CardBody(
+                                html.H3(id="total-active-users", className="card-title text-center"),
+                            ),
+                        ],
+                        style=CARD_STYLE,
+                    ),
+                    width=12,
+                    lg=3,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardHeader("Total Jobs"),
+                            dbc.CardBody(
+                                html.H3(id="total-jobs", className="card-title text-center"),
+                            ),
+                        ],
+                        style=CARD_STYLE,
+                    ),
+                    width=12,
+                    lg=3,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardHeader("Total CPU Hours"),
+                            dbc.CardBody(
+                                html.H3(id="total-cpu-hours", className="card-title text-center"),
+                            ),
+                        ],
+                        style=CARD_STYLE,
+                    ),
+                    width=12,
+                    lg=3,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardHeader("Total GPU Hours"),
+                            dbc.CardBody(
+                                html.H3(id="total-gpu-hours", className="card-title text-center"),
+                            ),
+                        ],
+                        style=CARD_STYLE,
+                    ),
+                    width=12,
+                    lg=3,
+                ),
+            ],
+            className="mb-4",
+        ),
+        # Original charts
         dbc.Row(
             [
                 dbc.Col(
@@ -608,7 +668,6 @@ overview_section = create_section(
     ],
     id="overview-section",
 )
-
 
 job_timing_section = create_section(
     "Waiting Time and Job Duration",
