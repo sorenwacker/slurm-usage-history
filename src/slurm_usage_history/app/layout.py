@@ -112,6 +112,7 @@ data_range_picker = dcc.DatePickerRange(
     start_date=date(2000, 1, 1),
     end_date=date(2001, 1, 1),
     className="w-100",
+    display_format="YYYY-MM-DD",
 )
 
 hostname_dropdown = dcc.Dropdown(

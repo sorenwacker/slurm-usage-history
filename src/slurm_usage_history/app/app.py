@@ -9,6 +9,8 @@ from .callbacks import add_callbacks
 from .DataStore import PandasDataStore as DataStore
 from .layout import layout
 
+from dash import DiskcacheManager
+import diskcache
 
 def create_dash_app(args, server=True, url_base_pathname="/"):
     """
@@ -29,6 +31,9 @@ def create_dash_app(args, server=True, url_base_pathname="/"):
         url_base_pathname=url_base_pathname,
     )
 
+    cache = diskcache.Cache("./cache")
+    background_callback_manager = DiskcacheManager(cache)
+
     # Create DataStore instance
     datastore = DataStore(directory=args.data_path)
     datastore.load_data()
@@ -36,7 +41,7 @@ def create_dash_app(args, server=True, url_base_pathname="/"):
 
     # Layout of the app
     app.layout = layout
-    add_callbacks(app, datastore)
+    add_callbacks(app, datastore, cache, background_callback_manager)
     app.title = "Slurm Usage History Dashboard"
     
     server = app.server
