@@ -272,12 +272,11 @@ def add_callbacks(app, datastore):
         Input("hostname_dropdown", "value"),
         Input("data_range_picker", "start_date"),
         Input("data_range_picker", "end_date"),
-        Input("partitions_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("complete_periods_switch", "value"),
         Input("session-store", "data"),
     )
-    def plot_active_users(hostname, start_date, end_date, partitions, accounts, complete_periods, session_data):
+    def plot_active_users(hostname, start_date, end_date, accounts, complete_periods, session_data):
         if session_data is None:
             session_data = initialize_session_data()
             
@@ -285,7 +284,6 @@ def add_callbacks(app, datastore):
             hostname=hostname,
             start_date=start_date,
             end_date=end_date,
-            partitions=partitions,
             accounts=accounts,
             format_accounts=True,
             complete_periods_only=complete_periods,
@@ -305,8 +303,8 @@ def add_callbacks(app, datastore):
             x=time_col,
             y="num_active_users",
             color=color_by,
-            title="Number of Active Users",
-            labels={"num_active_users": "Number of Active Users"},
+            title="Number of active users",
+            labels={"num_active_users": "Number of active users"},
             category_orders={color_by: category_order},
         )
         
@@ -329,9 +327,10 @@ def add_callbacks(app, datastore):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("color_by_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_number_of_jobs(hostname, start_date, end_date, states, partitions, users, accounts, color_by, session_data):
+    def plot_number_of_jobs(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data):
         if session_data is None:
             session_data = initialize_session_data()
             
@@ -343,6 +342,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            qos=qos,
             format_accounts=True,
         )
         time_col = get_time_column(start_date, end_date)
@@ -367,7 +367,7 @@ def add_callbacks(app, datastore):
                 x=time_col,
                 y="Counts",
                 color=color_by,
-                title="Job submissions",
+                title="Number of job submissions",
                 category_orders={color_by: category_order},
             )
             
@@ -387,9 +387,11 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("color_by_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_fraction_accounts(hostname, start_date, end_date, states, partitions, users, accounts, session_data):
+    def plot_fraction_accounts(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data):
         if session_data is None:
             session_data = initialize_session_data()
             
@@ -401,24 +403,31 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            qos=qos,
             format_accounts=True,
         )
         
+        
+        if color_by == 'User':
+            pass
+        else:
+            color_by = 'Account'
+
         category_order, color_map = ensure_consistent_categories_and_colors(
-            df, "Account", COLORS["Account"], session_data
+            df, color_by, COLORS[color_by], session_data
         )
         
-        counts = df.Account.value_counts().to_frame("Counts").reset_index()
+        counts = df[color_by].value_counts().to_frame("Counts").reset_index()
         fig = px.pie(
             counts,
             values="Counts",
-            names="Account",
-            title="Job submissions by account",
-            category_orders={"Account": category_order},
+            names=color_by,
+            title=f"Job submissions by {color_by.lower()}",
+            category_orders={color_by: category_order},
         )
         
         fig.update_traces(
-            marker=dict(colors=[color_map.get(cat, "#CCCCCC") for cat in counts["Account"]]),
+            marker=dict(colors=[color_map.get(cat, "#CCCCCC") for cat in counts[color_by]]),
             textposition="inside", 
             textinfo="percent+label"
         )
@@ -434,9 +443,10 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_fraction_qos(hostname, start_date, end_date, states, partitions, users, accounts, session_data):
+    def plot_fraction_qos(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
         if session_data is None:
             session_data = initialize_session_data()
             
@@ -448,6 +458,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            qos=qos,
             format_accounts=True,
         )
         
@@ -481,9 +492,10 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_fractions_states(hostname, start_date, end_date, states, partitions, users, accounts, session_data):
+    def plot_fractions_states(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
         if session_data is None:
             session_data = initialize_session_data()
             
@@ -495,6 +507,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            qos=qos,
             format_accounts=True,
         )
         
@@ -528,9 +541,10 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_cpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, session_data):
+    def plot_cpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -539,6 +553,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            qos=qos,
             format_accounts=True,
         )
         cpus_per_job = df.CPUs.value_counts().sort_index().to_frame("Count").reset_index()
@@ -563,9 +578,10 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_gpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, session_data):
+    def plot_gpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -574,6 +590,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            qos=qos,
             format_accounts=True,
         )
         gpus_per_job = df.GPUs.value_counts().sort_index().to_frame("Count").reset_index()
@@ -598,9 +615,10 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_nodes_per_job(hostname, start_date, end_date, states, partitions, users, accounts, session_data):
+    def plot_nodes_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -609,6 +627,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            qos=qos,
             format_accounts=True,
         )
         nodes_per_job = df.Nodes.value_counts().sort_index().to_frame("Count").reset_index()
@@ -635,9 +654,10 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_waiting_times(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, session_data):
+    def plot_waiting_times(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, qos, session_data):
         if session_data is None:
             session_data = initialize_session_data()
             
@@ -649,6 +669,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            qos=qos,
             format_accounts=True,
         )
         
@@ -706,9 +727,10 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_waiting_times_hist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, session_data):
+    def plot_waiting_times_dist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, qos, session_data):
         if session_data is None:
             session_data = initialize_session_data()
             
@@ -720,6 +742,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            qos=qos,
             format_accounts=True,
         )
 
@@ -771,9 +794,10 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_job_duration(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, session_data):
+    def plot_job_duration(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, qos, session_data):
         if session_data is None:
             session_data = initialize_session_data()
             
@@ -785,6 +809,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            qos=qos,
             format_accounts=True,
         )
         
@@ -842,9 +867,10 @@ def add_callbacks(app, datastore):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_job_duration_hist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, session_data):
+    def plot_job_duration_dist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, qos, session_data):
         if session_data is None:
             session_data = initialize_session_data()
             
@@ -856,6 +882,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            qos=qos,
             format_accounts=True,
         )
         
@@ -931,9 +958,10 @@ def add_callbacks(app, datastore):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("color_by_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_cpu_hours(hostname, start_date, end_date, states, partitions, users, accounts, color_by, session_data):
+    def plot_cpu_hours(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data):
         if session_data is None:
             session_data = initialize_session_data()
             
@@ -946,6 +974,7 @@ def add_callbacks(app, datastore):
             users=users,
             accounts=accounts,
             complete_periods_only=False,
+            qos=qos,
             format_accounts=True,
         )
         
@@ -991,9 +1020,10 @@ def add_callbacks(app, datastore):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("color_by_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_gpu_hours(hostname, start_date, end_date, states, partitions, users, accounts, color_by, session_data):
+    def plot_gpu_hours(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data):
         if session_data is None:
             session_data = initialize_session_data()
             
@@ -1006,6 +1036,7 @@ def add_callbacks(app, datastore):
             users=users,
             accounts=accounts,
             complete_periods_only=False,
+            qos=qos,
             format_accounts=True,
         )
         
@@ -1051,9 +1082,10 @@ def add_callbacks(app, datastore):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("color_by_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_fraction_accounts_cpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, session_data):
+    def plot_fraction_cpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos_selection, session_data):
         if session_data is None:
             session_data = initialize_session_data()
             
@@ -1065,6 +1097,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            qos=qos_selection,
             format_accounts=True,
         )
         
@@ -1103,9 +1136,10 @@ def add_callbacks(app, datastore):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("color_by_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_fraction_accounts_gpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, session_data):
+    def plot_fraction_gpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data):
         if session_data is None:
             session_data = initialize_session_data()
         
@@ -1117,6 +1151,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            qos=qos,
             format_accounts=True,
         )
         
@@ -1157,9 +1192,10 @@ def add_callbacks(app, datastore):
         Input("hide_unused_nodes_switch", "value"),
         Input("normalize_node_resources_switch", "value"),
         Input("sort_by_usage_switch", "value"),
+        Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_nodes_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, hide_unused, normalize, sort_by_usage, session_data):
+    def plot_nodes_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, hide_unused, normalize, sort_by_usage, qos_selection, session_data):
         if session_data is None:
             session_data = initialize_session_data()
             
@@ -1171,6 +1207,7 @@ def add_callbacks(app, datastore):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            qos=qos_selection,
             complete_periods_only=False,
             format_accounts=True,
         )
@@ -1305,11 +1342,11 @@ def add_callbacks(app, datastore):
     )
     def update_qos_options(hostname, start_date, end_date):
         if not hostname:
-            return [{"label": "All QOS", "value": "all"}]
+            return []
         
         qos_options = datastore.get_qos(hostname)
         
-        options = [{"label": "All QOS", "value": "all"}]
+        options = []
         options.extend([{"label": qos, "value": qos} for qos in sorted(qos_options)])
         
         return options
@@ -1326,27 +1363,22 @@ def add_callbacks(app, datastore):
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_job_duration_stacked(hostname, start_date, end_date, states, partitions, users, accounts, selected_qos, session_data):
+    def plot_job_duration_stacked(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
             end_date=end_date,
             states=states,
             partitions=partitions,
+            qos=qos,
             users=users,
             accounts=accounts,
             format_accounts=True,
         )
-        
+
         if df.empty:
             return px.bar(title="No data available for selected filters")
-        
-        if selected_qos and selected_qos != "all":
-            df = df[df['QOS'] == selected_qos]
-            qos_title = f" for QOS: {selected_qos}"
-        else:
-            qos_title = ""
-        
+
         time_col = get_time_column(start_date, end_date)
         
         thresholds = [0, 1, 4, 12, 24, 72, 168, float('inf')]
@@ -1402,7 +1434,7 @@ def add_callbacks(app, datastore):
             x=time_col,
             y="Percentage",
             color="Job Duration",
-            title=f"Job Duration Distribution by Period{qos_title}",
+            title=f"Job Duration Distribution by Period",
             labels={
                 "Percentage": "Percentage of Jobs (%)",
                 time_col: "Time Period"
@@ -1454,7 +1486,7 @@ def add_callbacks(app, datastore):
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
     )
-    def plot_waiting_times_stacked(hostname, start_date, end_date, states, partitions, users, accounts, selected_qos, session_data):
+    def plot_waiting_times_stacked(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -1462,18 +1494,13 @@ def add_callbacks(app, datastore):
             states=states,
             partitions=partitions,
             users=users,
+            qos=qos,
             accounts=accounts,
             format_accounts=True,
         )
         
         if df.empty:
             return px.bar(title="No data available for selected filters")
-        
-        if selected_qos and selected_qos != "all":
-            df = df[df['QOS'] == selected_qos]
-            qos_title = f" for QOS: {selected_qos}"
-        else:
-            qos_title = ""
         
         time_col = get_time_column(start_date, end_date)
         
@@ -1528,7 +1555,7 @@ def add_callbacks(app, datastore):
             x=time_col,
             y="Percentage",
             color="Waiting Time",
-            title=f"Waiting Time Distribution by Period{qos_title}",
+            title="Waiting Time Distribution by Period",
             labels={
                 "Percentage": "Percentage of Jobs (%)",
                 time_col: "Time Period"

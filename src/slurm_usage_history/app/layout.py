@@ -120,6 +120,17 @@ accounts_dropdown = dcc.Dropdown(
     className="w-100",
 )
 
+qos_selection_dropdown = dcc.Dropdown(
+    id="qos_selection_dropdown",
+    options=[
+    ],
+    value=None,
+    multi=True,
+    clearable=False,
+    placeholder="Filter by QoS...",
+    className="w-100",
+)
+
 state_items = [
     {"label": "Completed", "value": "COMPLETED"},
     {"label": "Cancelled", "value": "CANCELLED"},
@@ -404,6 +415,7 @@ filters_content = html.Div(
         create_filter(partitions_dropdown, "Partitions"),
         create_filter(accounts_dropdown, "Accounts"),
         create_filter(states_dropdown, "Job States"),
+        create_filter(qos_selection_dropdown, "Quality of Service"),
         users_filter_container,
         complete_periods_switch,
     ],
@@ -568,34 +580,10 @@ overview_section = create_section(
     id="overview-section",
 )
 
-qos_selection_dropdown = dcc.Dropdown(
-    id="qos_selection_dropdown",
-    options=[
-        {"label": "All QOS", "value": "all"},
-        # Other options will be added dynamically
-    ],
-    value="all",
-    clearable=False,
-    className="mb-2",
-)
 
 job_timing_section = create_section(
     "Waiting Time and Job Duration",
-    [
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        html.Label("Filter by QOS:", className="font-weight-bold"),
-                        qos_selection_dropdown,
-                    ],
-                    width=12,
-                    lg=4,
-                ),
-            ],
-            className="mb-3",
-        ),
-        
+    [   
         html.H4("Job Waiting Times", className="mt-3 mb-2"),
         dbc.Row(
             [
