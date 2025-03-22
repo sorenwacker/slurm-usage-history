@@ -4,102 +4,167 @@ import time
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
+from typing import Dict, List, Optional, Set, Tuple, Union, FrozenSet, Any, Callable
 
 import pandas as pd
 
-from .account_formatter import formatter
+from .account_formatter import AccountFormatter
 from ..tools import timeit
 
 
-# Singleton metaclass
 class Singleton(type):
-    """
-    Metaclass to implement the Singleton pattern.
+    """Metaclass to implement the Singleton pattern.
+    
     Ensures only one instance of a class exists.
     """
-    _instances = {}
-    _lock = threading.Lock()
+    _instances: Dict[type, Any] = {}
+    _lock: threading.Lock = threading.Lock()
     
     def __call__(cls, *args, **kwargs):
+        """Override the call method to implement singleton behavior.
+        
+        Returns:
+            The singleton instance of the class.
+        """
         with cls._lock:
             if cls not in cls._instances:
                 cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
             return cls._instances[cls]
 
 
-# Concrete implementation using Pandas with Singleton pattern
 class PandasDataStore(metaclass=Singleton):
     """DataStore implementation using Pandas with enhanced filtering capabilities.
-    Implemented as a Singleton to ensure only one instance exists."""
+    
+    Implemented as a Singleton to ensure only one instance exists throughout 
+    the application lifecycle.
+    """
 
-    def __init__(self, directory=None, auto_refresh_interval=600):
-        """
-        Initialize the PandasDataStore.
-
+    def __init__(
+        self, 
+        directory: Optional[Union[str, Path]] = None, 
+        auto_refresh_interval: int = 600,
+        account_formatter: Optional[Any] = None
+    ):
+        """Initialize the PandasDataStore.
+        
         Args:
-            directory: Path to the data directory
-            auto_refresh_interval: Refresh interval in seconds (default: 600 seconds/10 minutes)
+            directory: Path to the data directory. Defaults to current working directory if None.
+            auto_refresh_interval: Refresh interval in seconds. Defaults to 600 seconds (10 minutes).
+            account_formatter: Formatter for account names. Defaults to None.
         """
         self.directory = Path(directory).expanduser() if directory else Path.cwd()
-        self.hosts = {}
+        self.hosts: Dict[str, Dict[str, Any]] = {}
         self.auto_refresh_interval = auto_refresh_interval
-        self._refresh_thread = None
-        self._stop_refresh_flag = threading.Event()
-        self._file_timestamps = {}  # Track file timestamps for change detection
+        self._refresh_thread: Optional[threading.Thread] = None
+        self._stop_refresh_flag: threading.Event = threading.Event()
+        self._file_timestamps: Dict[str, Dict[Path, float]] = {}
+        self.account_formatter = account_formatter
         self._initialize_hosts()
 
-    def _initialize_hosts(self):
-        """Populate the `hosts` dictionary with subdirectories."""
+    def _initialize_hosts(self) -> None:
+        """Populate the hosts dictionary with subdirectories.
+        
+        Scans the specified directory for subdirectories and initializes 
+        data structures for each detected host.
+        """
         for entry in self.directory.iterdir():
             if entry.is_dir():
                 self.hosts[entry.name] = {
                     "max_date": None,
                     "min_date": None,
                     "data": None,
-                    "partitions": None,  # Will store available partitions
-                    "accounts": None,  # Will store available accounts
-                    "users": None,  # Will store available users
-                    "qos": None,  # Will store available QOS options
-                    "states": None,  # Will store available states
+                    "partitions": None,
+                    "accounts": None,
+                    "users": None,
+                    "qos": None,
+                    "states": None,
                 }
 
-    def get_hostnames(self):
-        """Retrieve the list of hostnames."""
+    def get_hostnames(self) -> List[str]:
+        """Retrieve the list of hostnames.
+        
+        Returns:
+            List of available host names found in the data directory.
+        """
         return list(self.hosts.keys())
 
-    def get_min_max_dates(self, hostname):
-        """Get minimum and maximum dates for the specified hostname."""
+    def get_min_max_dates(self, hostname: str) -> Tuple[Optional[str], Optional[str]]:
+        """Get minimum and maximum dates for the specified hostname.
+        
+        Args:
+            hostname: The cluster hostname.
+            
+        Returns:
+            A tuple containing (min_date, max_date) for the specified hostname.
+        """
         min_date = self.hosts[hostname]["min_date"]
         max_date = self.hosts[hostname]["max_date"]
         return min_date, max_date
 
-    def get_partitions(self, hostname):
-        """Get available partitions for the specified hostname."""
+    def get_partitions(self, hostname: str) -> List[str]:
+        """Get available partitions for the specified hostname.
+        
+        Args:
+            hostname: The cluster hostname.
+            
+        Returns:
+            List of available partitions for the specified hostname.
+        """
         return self.hosts[hostname]["partitions"] or []
 
-    def get_accounts(self, hostname):
-        """Get available accounts for the specified hostname."""
+    def get_accounts(self, hostname: str) -> List[str]:
+        """Get available accounts for the specified hostname.
+        
+        Args:
+            hostname: The cluster hostname.
+            
+        Returns:
+            List of available accounts for the specified hostname.
+        """
         return self.hosts[hostname]["accounts"] or []
 
-    def get_users(self, hostname):
-        """Get available users for the specified hostname."""
+    def get_users(self, hostname: str) -> List[str]:
+        """Get available users for the specified hostname.
+        
+        Args:
+            hostname: The cluster hostname.
+            
+        Returns:
+            List of available users for the specified hostname.
+        """
         return self.hosts[hostname]["users"] or []
 
-    def get_qos(self, hostname):
-        """Get available QOS options for the specified hostname."""
+    def get_qos(self, hostname: str) -> List[str]:
+        """Get available QOS options for the specified hostname.
+        
+        Args:
+            hostname: The cluster hostname.
+            
+        Returns:
+            List of available QOS options for the specified hostname.
+        """
         return self.hosts[hostname]["qos"] or []
 
-    def get_states(self, hostname):
-        """Get available states for the specified hostname."""
+    def get_states(self, hostname: str) -> List[str]:
+        """Get available states for the specified hostname.
+        
+        Args:
+            hostname: The cluster hostname.
+            
+        Returns:
+            List of available states for the specified hostname.
+        """
         return self.hosts[hostname]["states"] or []
 
-    def start_auto_refresh(self, interval=None):
-        """
-        Start the background thread for automatic data refresh.
-
+    def start_auto_refresh(self, interval: Optional[int] = None) -> None:
+        """Start the background thread for automatic data refresh.
+        
         Args:
             interval: Optional refresh interval in seconds. If provided, overrides
                      the interval set during initialization.
+                     
+        Raises:
+            ValueError: If the provided interval is not a positive integer.
         """
         if interval is not None:
             if not isinstance(interval, int) or interval <= 0:
@@ -111,12 +176,19 @@ class PandasDataStore(metaclass=Singleton):
             return
 
         self._stop_refresh_flag.clear()
-        self._refresh_thread = threading.Thread(target=self._auto_refresh_worker, daemon=True, name="DataStore-AutoRefresh")
+        self._refresh_thread = threading.Thread(
+            target=self._auto_refresh_worker, 
+            daemon=True, 
+            name="DataStore-AutoRefresh"
+        )
         self._refresh_thread.start()
         print(f"Started auto-refresh thread (every {self.auto_refresh_interval} seconds)")
 
-    def stop_auto_refresh(self):
-        """Stop the background thread for automatic data refresh."""
+    def stop_auto_refresh(self) -> None:
+        """Stop the background thread for automatic data refresh.
+        
+        Signals the auto-refresh thread to stop and waits for its termination.
+        """
         if self._refresh_thread is None or not self._refresh_thread.is_alive():
             print("No auto-refresh thread is running")
             return
@@ -129,8 +201,12 @@ class PandasDataStore(metaclass=Singleton):
         else:
             print("Auto-refresh thread stopped successfully")
 
-    def _auto_refresh_worker(self):
-        """Worker method for the auto-refresh thread."""
+    def _auto_refresh_worker(self) -> None:
+        """Worker method for the auto-refresh thread.
+        
+        Periodically checks for updates in the data and reloads if necessary.
+        Runs in a background thread until signaled to stop.
+        """
         while not self._stop_refresh_flag.is_set():
             try:
                 updated = self.check_for_updates()
@@ -142,22 +218,24 @@ class PandasDataStore(metaclass=Singleton):
                 print(f"Error during auto-refresh: {e!s}")
 
             # Sleep for the specified interval, but check periodically if we should stop
-            # Check every 2 seconds if we should terminate
             check_interval = 2
             for _ in range(self.auto_refresh_interval // check_interval):
                 if self._stop_refresh_flag.is_set():
                     break
                 time.sleep(check_interval)
 
-    def set_refresh_interval(self, interval):
-        """
-        Change the auto-refresh interval.
-
+    def set_refresh_interval(self, interval: int) -> bool:
+        """Change the auto-refresh interval.
+        
         Args:
-            interval: New refresh interval in seconds
-
+            interval: New refresh interval in seconds.
+            
         Returns:
-            bool: True if the interval was updated, False if auto-refresh is not running
+            True if the interval was updated and auto-refresh is running, 
+            False if auto-refresh is not running.
+            
+        Raises:
+            ValueError: If the interval is not a positive integer.
         """
         if not isinstance(interval, int) or interval <= 0:
             raise ValueError("Refresh interval must be a positive integer")
@@ -169,14 +247,25 @@ class PandasDataStore(metaclass=Singleton):
         return self._refresh_thread is not None and self._refresh_thread.is_alive()
 
     @timeit
-    def load_data(self):
-        """Load all data files into the `hosts` dictionary."""
+    def load_data(self) -> None:
+        """Load all data files into the hosts dictionary.
+        
+        Iterates through all hostnames and loads their respective data.
+        Performance is measured using the timeit decorator.
+        """
         for hostname in self.get_hostnames():
             print(f"Loading data for {hostname}...")
             self._load_host_data(hostname)
 
-    def _load_host_data(self, hostname):
-        """Load data for a specific hostname and update metadata."""
+    def _load_host_data(self, hostname: str) -> None:
+        """Load data for a specific hostname and update metadata.
+        
+        Args:
+            hostname: The hostname to load data for.
+            
+        Processes the raw data, applies transformations, and updates metadata
+        for the specified hostname.
+        """
         raw_data = self._load_raw_data(hostname)
         transformed_data = self._transform_data(raw_data)
         self.hosts[hostname]["data"] = transformed_data
@@ -186,11 +275,17 @@ class PandasDataStore(metaclass=Singleton):
         self.hosts[hostname]["max_date"] = raw_data["Submit"].dt.date.max().isoformat()
 
         # Store unique values for filtering
-        self.hosts[hostname]["partitions"] = transformed_data["Partition"].sort_values().unique().tolist() if "Partition" in transformed_data.columns else []
-        self.hosts[hostname]["accounts"] = transformed_data["Account"].sort_values().unique().tolist() if "Account" in transformed_data.columns else []
-        self.hosts[hostname]["users"] = transformed_data["User"].sort_values().unique().tolist() if "User" in transformed_data.columns else []
-        self.hosts[hostname]["qos"] = transformed_data["QOS"].sort_values().unique().tolist() if "QOS" in transformed_data.columns else []
-        self.hosts[hostname]["states"] = transformed_data["State"].sort_values().unique().tolist() if "State" in transformed_data.columns else []
+        for col, key in [
+            ("Partition", "partitions"),
+            ("Account", "accounts"),
+            ("User", "users"),
+            ("QOS", "qos"),
+            ("State", "states")
+        ]:
+            if col in transformed_data.columns:
+                self.hosts[hostname][key] = transformed_data[col].sort_values().unique().tolist()
+            else:
+                self.hosts[hostname][key] = []
 
         # Store file timestamps for future change detection
         host_dir = self.directory / hostname / "weekly-data"
@@ -198,8 +293,18 @@ class PandasDataStore(metaclass=Singleton):
         for file_path in host_dir.glob("*.parquet"):
             self._file_timestamps[hostname][file_path] = file_path.stat().st_mtime
 
-    def _load_raw_data(self, hostname):
-        """Load all Parquet files in the directory for a specific hostname."""
+    def _load_raw_data(self, hostname: str) -> pd.DataFrame:
+        """Load all Parquet files in the directory for a specific hostname.
+        
+        Args:
+            hostname: The hostname to load data for.
+            
+        Returns:
+            DataFrame containing the concatenated data from all Parquet files.
+            
+        Raises:
+            FileNotFoundError: If the directory or Parquet files are not found.
+        """
         host_dir = self.directory / hostname / "weekly-data"
         if not host_dir.exists() or not host_dir.is_dir():
             raise FileNotFoundError(f"Directory not found for hostname: {hostname}")
@@ -211,42 +316,42 @@ class PandasDataStore(metaclass=Singleton):
         return pd.concat([pd.read_parquet(file) for file in parquet_files], ignore_index=True)
 
     @timeit
-    def _transform_data(self, raw_data: pd.DataFrame):
-        """Apply necessary transformations to the raw data."""
+    def _transform_data(self, raw_data: pd.DataFrame) -> pd.DataFrame:
+        """Apply necessary transformations to the raw data.
+        
+        Args:
+            raw_data: The raw DataFrame to transform.
+            
+        Returns:
+            Transformed DataFrame with standardized formats.
+            
+        Handles column renaming and data type conversions if needed.
+        The major time-based columns (SubmitYearMonth, SubmitYearWeek, etc.) 
+        are already present in the data.
+        """
         # Ensure column existence and data types
         if "Partition" not in raw_data.columns and "Partitions" in raw_data.columns:
-            # Handle case where column might be named differently
             raw_data["Partition"] = raw_data["Partitions"]
 
         # Handle multiple partitions per job (if stored as a list or string)
         if "Partition" in raw_data.columns and raw_data["Partition"].dtype == "object":
-            # If partition is stored as a comma-separated string, take the first one
-            raw_data["Partition"] = raw_data["Partition"].apply(lambda x: x.split(",")[0].strip() if isinstance(x, str) else x)
+            raw_data["Partition"] = raw_data["Partition"].apply(
+                lambda x: x.split(",")[0].strip() if isinstance(x, str) else x
+            )
 
-        # Add date components for filtering complete periods
-        if "Submit" in raw_data.columns:
-            # Extract date components
+        # Extract SubmitYear for period filtering if not present
+        # This is needed for the get_complete_periods method
+        if "Submit" in raw_data.columns and "SubmitYear" not in raw_data.columns:
             raw_data["SubmitYear"] = raw_data["Submit"].dt.year
-            raw_data["SubmitMonth"] = raw_data["Submit"].dt.month
-            raw_data["SubmitWeek"] = raw_data["Submit"].dt.isocalendar().week
-            raw_data["SubmitDate"] = raw_data["Submit"].dt.date
-
-            # Create period indicators for complete filtering
-            raw_data["SubmitYearMonth"] = raw_data["Submit"].dt.strftime("%Y-%m")
-
-            # Calculate the start date of the week (Monday) for each submission
-            day_of_week = raw_data["Submit"].dt.dayofweek  # Monday=0, Sunday=6
-            week_start = raw_data["Submit"] - pd.to_timedelta(day_of_week, unit="D")
-            raw_data["SubmitYearWeek"] = week_start.dt.strftime("%Y-%m-%d")  # Format as YYYY-MM-DD
-
-        # Add start day if Start column exists
-        if "Start" in raw_data.columns:
-            raw_data["StartDay"] = raw_data["Start"].dt.date
-
+            
         return raw_data
 
-    def check_for_updates(self):
-        """Check all hosts for new or changed files and reload if necessary."""
+    def check_for_updates(self) -> bool:
+        """Check all hosts for new or changed files and reload if necessary.
+        
+        Returns:
+            True if any host was updated, False otherwise.
+        """
         updated = False
 
         for hostname in self.get_hostnames():
@@ -263,8 +368,15 @@ class PandasDataStore(metaclass=Singleton):
 
         return updated
 
-    def _check_host_updates(self, hostname):
-        """Check if files for a specific host have been updated or new files added."""
+    def _check_host_updates(self, hostname: str) -> bool:
+        """Check if files for a specific host have been updated or new files added.
+        
+        Args:
+            hostname: The hostname to check for updates.
+            
+        Returns:
+            True if there are updates, False otherwise.
+        """
         host_dir = self.directory / hostname / "weekly-data"
         if not host_dir.exists() or not host_dir.is_dir():
             return False
@@ -304,30 +416,31 @@ class PandasDataStore(metaclass=Singleton):
     @lru_cache(maxsize=10)
     def _filter_data(
         self,
-        hostname=None,
-        start_date=None,
-        end_date=None,
-        partitions=None,
-        accounts=None,
-        users=None,
-        qos=None,
-        states=None,
-    ):
-        """
-        Filter data based on multiple criteria.
-
+        hostname: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        partitions: Optional[FrozenSet[str]] = None,
+        accounts: Optional[FrozenSet[str]] = None,
+        users: Optional[FrozenSet[str]] = None,
+        qos: Optional[FrozenSet[str]] = None,
+        states: Optional[FrozenSet[str]] = None,
+    ) -> pd.DataFrame:
+        """Filter data based on multiple criteria.
+        
         Args:
-            hostname: The cluster hostname
-            start_date: Start date filter
-            end_date: End date filter
-            partitions: Set of partitions to include
-            accounts: Set of accounts to include
-            users: Set of users to include
-            qos: Set of QOS values to include
-            states: Set of job states to include
-
+            hostname: The cluster hostname.
+            start_date: Start date filter.
+            end_date: End date filter.
+            partitions: Set of partitions to include.
+            accounts: Set of accounts to include.
+            users: Set of users to include.
+            qos: Set of QOS values to include.
+            states: Set of job states to include.
+            
         Returns:
-            pandas.DataFrame: Filtered data
+            Filtered DataFrame.
+            
+        Uses caching to improve performance for repeated similar queries.
         """
         df_filtered = self.hosts[hostname]["data"]
 
@@ -356,25 +469,24 @@ class PandasDataStore(metaclass=Singleton):
 
         return df_filtered
 
-    def get_complete_periods(self, hostname, period_type="month"):
-        """
-        Get list of complete time periods available in the data.
-
+    def get_complete_periods(self, hostname: str, period_type: str = "month") -> List[str]:
+        """Get list of complete time periods available in the data.
+        
         Args:
-            hostname: The cluster hostname
-            period_type: Type of period ('day', 'week', 'month', 'year')
-
+            hostname: The cluster hostname.
+            period_type: Type of period ('day', 'week', 'month', 'year').
+            
         Returns:
-            list: List of complete periods
+            List of complete periods.
         """
         if hostname not in self.hosts or self.hosts[hostname]["data"] is None:
             return []
 
         df = self.hosts[hostname]["data"]
+        now = pd.Timestamp.now()
 
         if period_type == "month":
             # Get year-month periods
-            now = pd.Timestamp.now()
             current_year_month = now.strftime("%Y-%m")
 
             # All periods except current (incomplete) month
@@ -386,8 +498,6 @@ class PandasDataStore(metaclass=Singleton):
 
         if period_type == "week":
             # Get week start dates
-            now = pd.Timestamp.now()
-
             # Calculate current week's start date
             current_week_start = now - pd.to_timedelta(now.dayofweek, unit="D")
             current_week_start_str = current_week_start.strftime("%Y-%m-%d")
@@ -401,7 +511,6 @@ class PandasDataStore(metaclass=Singleton):
 
         if period_type == "year":
             # Get years
-            now = pd.Timestamp.now()
             current_year = now.year
 
             # All years except current (incomplete) year
@@ -415,38 +524,37 @@ class PandasDataStore(metaclass=Singleton):
 
     def filter(
         self,
-        hostname,
-        start_date=None,
-        end_date=None,
-        partitions=None,
-        accounts=None,
-        users=None,
-        qos=None,
-        states=None,
-        complete_periods_only=False,
-        period_type="month",
-        format_accounts=True,
-        account_segments=None,
-    ):
-        """
-        Public method to filter data with enhanced options.
-
+        hostname: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        partitions: Optional[List[str]] = None,
+        accounts: Optional[List[str]] = None,
+        users: Optional[List[str]] = None,
+        qos: Optional[List[str]] = None,
+        states: Optional[List[str]] = None,
+        complete_periods_only: bool = False,
+        period_type: str = "month",
+        format_accounts: bool = True,
+        account_segments: Optional[int] = None,
+    ) -> pd.DataFrame:
+        """Public method to filter data with enhanced options.
+        
         Args:
-            hostname: The cluster hostname
-            start_date: Start date filter
-            end_date: End date filter
-            partitions: List of partitions to include
-            accounts: List of accounts to include
-            users: List of users to include
-            qos: List of QOS values to include
-            states: List of job states to include
-            complete_periods_only: Whether to include only complete time periods
-            period_type: Type of period when using complete_periods_only ('day', 'week', 'month', 'year')
-            format_accounts: Whether to apply account name formatting (default: True)
-            account_segments: Number of segments to keep (None = use global setting)
-
+            hostname: The cluster hostname.
+            start_date: Start date filter.
+            end_date: End date filter.
+            partitions: List of partitions to include.
+            accounts: List of accounts to include.
+            users: List of users to include.
+            qos: List of QOS values to include.
+            states: List of job states to include.
+            complete_periods_only: Whether to include only complete time periods.
+            period_type: Type of period when using complete_periods_only ('day', 'week', 'month', 'year').
+            format_accounts: Whether to apply account name formatting.
+            account_segments: Number of segments to keep.
+            
         Returns:
-            pandas.DataFrame: Filtered data
+            Filtered DataFrame.
         """
         if not hostname or hostname not in self.hosts or self.hosts[hostname]["data"] is None:
             # Return empty DataFrame if no data is available
@@ -465,7 +573,7 @@ class PandasDataStore(metaclass=Singleton):
         )
 
         # Apply complete periods filter if requested
-        if complete_periods_only and df_filtered.shape[0] > 0:
+        if complete_periods_only and not df_filtered.empty:
             now = pd.Timestamp.now()
 
             if period_type == "month":
@@ -474,11 +582,9 @@ class PandasDataStore(metaclass=Singleton):
                 df_filtered = df_filtered[df_filtered["SubmitYearMonth"] != current_year_month]
 
             elif period_type == "week":
-                # Calculate current week's start date
+                # Exclude current week based on SubmitYearWeek
                 current_week_start = now - pd.to_timedelta(now.dayofweek, unit="D")
                 current_week_start_str = current_week_start.strftime("%Y-%m-%d")
-
-                # Exclude current week
                 df_filtered = df_filtered[df_filtered["SubmitYearWeek"] != current_week_start_str]
 
             elif period_type == "year":
@@ -487,41 +593,41 @@ class PandasDataStore(metaclass=Singleton):
                 df_filtered = df_filtered[df_filtered["SubmitYear"] != current_year]
 
         # Apply account formatting if requested
-        if format_accounts and "Account" in df_filtered.columns and df_filtered.shape[0] > 0:
+        if format_accounts and "Account" in df_filtered.columns and not df_filtered.empty:
             # Create a copy to avoid modifying the cached data
             df_filtered = df_filtered.copy()
 
-            # Import our global formatter
-            global formatter
+            if self.account_formatter:
+                if account_segments is not None:
+                    # Temporarily store the current setting
+                    original_segments = self.account_formatter.max_segments
 
-            # Apply formatting with custom segments if specified
-            if account_segments is not None:
-                # Temporarily store the current setting
-                original_segments = formatter.max_segments
+                    # Apply custom segments just for this filter operation
+                    self.account_formatter.max_segments = account_segments
+                    df_filtered["Account"] = df_filtered["Account"].apply(self.account_formatter.format_account)
 
-                # Apply custom segments just for this filter operation
-                formatter.max_segments = account_segments
-                df_filtered["Account"] = df_filtered["Account"].apply(formatter.format_account)
-
-                # Restore original setting
-                formatter.max_segments = original_segments
-            else:
-                # Use current global setting
-                df_filtered["Account"] = df_filtered["Account"].apply(formatter.format_account)
+                    # Restore original setting
+                    self.account_formatter.max_segments = original_segments
+                else:
+                    # Use current global setting
+                    df_filtered["Account"] = df_filtered["Account"].apply(self.account_formatter.format_account)
 
         return df_filtered
 
 
-# Convenience function to get the singleton instance
-def get_datastore(directory=None, auto_refresh_interval=600):
-    """
-    Get the singleton instance of PandasDataStore.
+def get_datastore(
+    directory: Optional[Union[str, Path]] = None, 
+    auto_refresh_interval: int = 600,
+    account_formatter: Optional[Any] = None
+) -> PandasDataStore:
+    """Get the singleton instance of PandasDataStore.
     
     Args:
-        directory: Path to the data directory (only used if this is the first call)
-        auto_refresh_interval: Refresh interval in seconds (only used if this is the first call)
+        directory: Path to the data directory (only used if this is the first call).
+        auto_refresh_interval: Refresh interval in seconds (only used if this is the first call).
+        account_formatter: Formatter for account names (only used if this is the first call).
         
     Returns:
-        PandasDataStore: The singleton instance
+        The singleton instance of PandasDataStore.
     """
-    return PandasDataStore(directory, auto_refresh_interval)
+    return PandasDataStore(directory, auto_refresh_interval, account_formatter)

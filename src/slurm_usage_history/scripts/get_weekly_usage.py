@@ -12,7 +12,6 @@ import pandas as pd
 from tqdm import tqdm
 
 from ..tools import categorize_time, month_to_date, unpack_nodelist_string, week_to_date
-from .config import get_config
 
 
 def parse_iso_week(iso_week_str):
@@ -271,6 +270,7 @@ class UsageDataFormatter:
 
         df["State"] = df.State.apply(lambda x: x.split()[0])
 
+        df["StartDay"] = df.Start.dt.normalize()
         df["StartWeekDay"] = df.Start.dt.day_name()
         df["StartWeek"] = df.Start.dt.isocalendar().week
         df["StartMonth"] = df.Start.dt.month
@@ -339,6 +339,7 @@ class UsageDataFormatter:
             "SubmitWeekDay",
             "SubmitYearWeek",
             "SubmitYearMonth",
+            "StartDay",
             "StartWeekDay",
             "StartYearWeek",
             "StartYearMonth",
