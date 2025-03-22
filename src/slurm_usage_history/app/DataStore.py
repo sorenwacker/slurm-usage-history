@@ -1,6 +1,7 @@
 import functools
 import threading
 import time
+import logging
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
@@ -8,7 +9,10 @@ from typing import Dict, List, Optional, Set, Tuple, Union, FrozenSet, Any, Call
 
 import pandas as pd
 
-from .account_formatter import AccountFormatter
+try:
+    from .account_formatter import formatter
+except ImportError:
+    formatter = None
 from ..tools import timeit
 
 
@@ -58,7 +62,17 @@ class PandasDataStore(metaclass=Singleton):
         self._refresh_thread: Optional[threading.Thread] = None
         self._stop_refresh_flag: threading.Event = threading.Event()
         self._file_timestamps: Dict[str, Dict[Path, float]] = {}
-        self.account_formatter = account_formatter
+        
+        # Import the account formatter if not provided
+        if account_formatter is None:
+            try:
+                from .account_formatter import formatter as default_formatter
+                self.account_formatter = default_formatter
+            except ImportError:
+                self.account_formatter = None
+        else:
+            self.account_formatter = account_formatter
+            
         self._initialize_hosts()
 
     def _initialize_hosts(self) -> None:
@@ -344,6 +358,16 @@ class PandasDataStore(metaclass=Singleton):
         if "Submit" in raw_data.columns and "SubmitYear" not in raw_data.columns:
             raw_data["SubmitYear"] = raw_data["Submit"].dt.year
             
+        # Add StartDay if not present
+        if "StartDay" not in raw_data.columns and "Start" in raw_data.columns:
+            raw_data["StartDay"] = raw_data["Start"].dt.normalize()
+            logging.info("Added StartDay column")
+        
+        # Add SubmitDay if not present
+        if "SubmitDay" not in raw_data.columns and "Submit" in raw_data.columns:
+            raw_data["SubmitDay"] = raw_data["Submit"].dt.normalize()
+            logging.info("Added SubmitDay column")
+            
         return raw_data
 
     def check_for_updates(self) -> bool:
@@ -598,19 +622,22 @@ class PandasDataStore(metaclass=Singleton):
             df_filtered = df_filtered.copy()
 
             if self.account_formatter:
-                if account_segments is not None:
-                    # Temporarily store the current setting
-                    original_segments = self.account_formatter.max_segments
+                try:
+                    if account_segments is not None:
+                        # Temporarily store the current setting
+                        original_segments = self.account_formatter.max_segments
 
-                    # Apply custom segments just for this filter operation
-                    self.account_formatter.max_segments = account_segments
-                    df_filtered["Account"] = df_filtered["Account"].apply(self.account_formatter.format_account)
+                        # Apply custom segments just for this filter operation
+                        self.account_formatter.max_segments = account_segments
+                        df_filtered["Account"] = df_filtered["Account"].apply(self.account_formatter.format_account)
 
-                    # Restore original setting
-                    self.account_formatter.max_segments = original_segments
-                else:
-                    # Use current global setting
-                    df_filtered["Account"] = df_filtered["Account"].apply(self.account_formatter.format_account)
+                        # Restore original setting
+                        self.account_formatter.max_segments = original_segments
+                    else:
+                        # Use current global setting
+                        df_filtered["Account"] = df_filtered["Account"].apply(self.account_formatter.format_account)
+                except Exception as e:
+                    print(f"Error applying account formatting: {e}. Using original account names.")
 
         return df_filtered
 
@@ -618,14 +645,14 @@ class PandasDataStore(metaclass=Singleton):
 def get_datastore(
     directory: Optional[Union[str, Path]] = None, 
     auto_refresh_interval: int = 600,
-    account_formatter: Optional[Any] = None
+    account_formatter: Optional[Any] = formatter
 ) -> PandasDataStore:
     """Get the singleton instance of PandasDataStore.
     
     Args:
         directory: Path to the data directory (only used if this is the first call).
         auto_refresh_interval: Refresh interval in seconds (only used if this is the first call).
-        account_formatter: Formatter for account names (only used if this is the first call).
+        account_formatter: Formatter for account names. Defaults to the imported formatter.
         
     Returns:
         The singleton instance of PandasDataStore.

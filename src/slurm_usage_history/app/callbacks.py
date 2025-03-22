@@ -1638,9 +1638,10 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("color_by_dropdown", "value"),
     )
     def toggle_account_format_visibility(color_by):
+        # Just in case we want to hide the account format dropdown.
         if color_by == "Account":
             return {"display": "block"}
-        return {"display": "none"}
+        return {"display": "block"}
         
     @app.callback(
         Output("total-active-users", "children"),

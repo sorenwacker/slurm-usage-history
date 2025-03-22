@@ -6,7 +6,7 @@ import dash_bootstrap_components as dbc
 from dotenv import load_dotenv
 
 from .callbacks import add_callbacks
-from .DataStore import PandasDataStore as DataStore
+from .datastore import PandasDataStore as DataStore
 from .layout import layout
 
 from dash import DiskcacheManager
