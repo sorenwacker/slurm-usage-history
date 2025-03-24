@@ -1,11 +1,10 @@
-import functools
+import logging
 import threading
 import time
-import logging
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple, Union, FrozenSet, Any, Callable
+from typing import Any
 
 import pandas as pd
 
@@ -18,51 +17,51 @@ from ..tools import timeit
 
 class Singleton(type):
     """Metaclass to implement the Singleton pattern.
-    
+
     Ensures only one instance of a class exists.
     """
-    _instances: Dict[type, Any] = {}
+    _instances: dict[type, Any] = {}
     _lock: threading.Lock = threading.Lock()
-    
+
     def __call__(cls, *args, **kwargs):
         """Override the call method to implement singleton behavior.
-        
+
         Returns:
             The singleton instance of the class.
         """
         with cls._lock:
             if cls not in cls._instances:
-                cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+                cls._instances[cls] = super().__call__(*args, **kwargs)
             return cls._instances[cls]
 
 
 class PandasDataStore(metaclass=Singleton):
     """DataStore implementation using Pandas with enhanced filtering capabilities.
-    
-    Implemented as a Singleton to ensure only one instance exists throughout 
+
+    Implemented as a Singleton to ensure only one instance exists throughout
     the application lifecycle.
     """
 
     def __init__(
-        self, 
-        directory: Optional[Union[str, Path]] = None, 
+        self,
+        directory: str | Path | None = None,
         auto_refresh_interval: int = 600,
-        account_formatter: Optional[Any] = None
+        account_formatter: Any | None = None
     ):
         """Initialize the PandasDataStore.
-        
+
         Args:
             directory: Path to the data directory. Defaults to current working directory if None.
             auto_refresh_interval: Refresh interval in seconds. Defaults to 600 seconds (10 minutes).
             account_formatter: Formatter for account names. Defaults to None.
         """
         self.directory = Path(directory).expanduser() if directory else Path.cwd()
-        self.hosts: Dict[str, Dict[str, Any]] = {}
+        self.hosts: dict[str, dict[str, Any]] = {}
         self.auto_refresh_interval = auto_refresh_interval
-        self._refresh_thread: Optional[threading.Thread] = None
+        self._refresh_thread: threading.Thread | None = None
         self._stop_refresh_flag: threading.Event = threading.Event()
-        self._file_timestamps: Dict[str, Dict[Path, float]] = {}
-        
+        self._file_timestamps: dict[str, dict[Path, float]] = {}
+
         # Import the account formatter if not provided
         if account_formatter is None:
             try:
@@ -72,13 +71,13 @@ class PandasDataStore(metaclass=Singleton):
                 self.account_formatter = None
         else:
             self.account_formatter = account_formatter
-            
+
         self._initialize_hosts()
 
     def _initialize_hosts(self) -> None:
         """Populate the hosts dictionary with subdirectories.
-        
-        Scans the specified directory for subdirectories and initializes 
+
+        Scans the specified directory for subdirectories and initializes
         data structures for each detected host.
         """
         for entry in self.directory.iterdir():
@@ -94,20 +93,20 @@ class PandasDataStore(metaclass=Singleton):
                     "states": None,
                 }
 
-    def get_hostnames(self) -> List[str]:
+    def get_hostnames(self) -> list[str]:
         """Retrieve the list of hostnames.
-        
+
         Returns:
             List of available host names found in the data directory.
         """
         return list(self.hosts.keys())
 
-    def get_min_max_dates(self, hostname: str) -> Tuple[Optional[str], Optional[str]]:
+    def get_min_max_dates(self, hostname: str) -> tuple[str | None, str | None]:
         """Get minimum and maximum dates for the specified hostname.
-        
+
         Args:
             hostname: The cluster hostname.
-            
+
         Returns:
             A tuple containing (min_date, max_date) for the specified hostname.
         """
@@ -115,74 +114,75 @@ class PandasDataStore(metaclass=Singleton):
         max_date = self.hosts[hostname]["max_date"]
         return min_date, max_date
 
-    def get_partitions(self, hostname: str) -> List[str]:
+    def get_partitions(self, hostname: str) -> list[str]:
         """Get available partitions for the specified hostname.
-        
+
         Args:
             hostname: The cluster hostname.
-            
+
         Returns:
             List of available partitions for the specified hostname.
         """
         return self.hosts[hostname]["partitions"] or []
 
-    def get_accounts(self, hostname: str) -> List[str]:
+    def get_accounts(self, hostname: str) -> list[str]:
         """Get available accounts for the specified hostname.
-        
+
         Args:
             hostname: The cluster hostname.
-            
+
         Returns:
             List of available accounts for the specified hostname.
         """
         return self.hosts[hostname]["accounts"] or []
 
-    def get_users(self, hostname: str) -> List[str]:
+    def get_users(self, hostname: str) -> list[str]:
         """Get available users for the specified hostname.
-        
+
         Args:
             hostname: The cluster hostname.
-            
+
         Returns:
             List of available users for the specified hostname.
         """
         return self.hosts[hostname]["users"] or []
 
-    def get_qos(self, hostname: str) -> List[str]:
+    def get_qos(self, hostname: str) -> list[str]:
         """Get available QOS options for the specified hostname.
-        
+
         Args:
             hostname: The cluster hostname.
-            
+
         Returns:
             List of available QOS options for the specified hostname.
         """
         return self.hosts[hostname]["qos"] or []
 
-    def get_states(self, hostname: str) -> List[str]:
+    def get_states(self, hostname: str) -> list[str]:
         """Get available states for the specified hostname.
-        
+
         Args:
             hostname: The cluster hostname.
-            
+
         Returns:
             List of available states for the specified hostname.
         """
         return self.hosts[hostname]["states"] or []
 
-    def start_auto_refresh(self, interval: Optional[int] = None) -> None:
+    def start_auto_refresh(self, interval: int | None = None) -> None:
         """Start the background thread for automatic data refresh.
-        
+
         Args:
             interval: Optional refresh interval in seconds. If provided, overrides
                      the interval set during initialization.
-                     
+
         Raises:
             ValueError: If the provided interval is not a positive integer.
         """
         if interval is not None:
             if not isinstance(interval, int) or interval <= 0:
-                raise ValueError("Refresh interval must be a positive integer")
+                msg = "Refresh interval must be a positive integer"
+                raise ValueError(msg)
             self.auto_refresh_interval = interval
 
         if self._refresh_thread is not None and self._refresh_thread.is_alive():
@@ -191,8 +191,8 @@ class PandasDataStore(metaclass=Singleton):
 
         self._stop_refresh_flag.clear()
         self._refresh_thread = threading.Thread(
-            target=self._auto_refresh_worker, 
-            daemon=True, 
+            target=self._auto_refresh_worker,
+            daemon=True,
             name="DataStore-AutoRefresh"
         )
         self._refresh_thread.start()
@@ -200,7 +200,7 @@ class PandasDataStore(metaclass=Singleton):
 
     def stop_auto_refresh(self) -> None:
         """Stop the background thread for automatic data refresh.
-        
+
         Signals the auto-refresh thread to stop and waits for its termination.
         """
         if self._refresh_thread is None or not self._refresh_thread.is_alive():
@@ -217,7 +217,7 @@ class PandasDataStore(metaclass=Singleton):
 
     def _auto_refresh_worker(self) -> None:
         """Worker method for the auto-refresh thread.
-        
+
         Periodically checks for updates in the data and reloads if necessary.
         Runs in a background thread until signaled to stop.
         """
@@ -240,19 +240,20 @@ class PandasDataStore(metaclass=Singleton):
 
     def set_refresh_interval(self, interval: int) -> bool:
         """Change the auto-refresh interval.
-        
+
         Args:
             interval: New refresh interval in seconds.
-            
+
         Returns:
-            True if the interval was updated and auto-refresh is running, 
+            True if the interval was updated and auto-refresh is running,
             False if auto-refresh is not running.
-            
+
         Raises:
             ValueError: If the interval is not a positive integer.
         """
         if not isinstance(interval, int) or interval <= 0:
-            raise ValueError("Refresh interval must be a positive integer")
+            msg = "Refresh interval must be a positive integer"
+            raise ValueError(msg)
 
         self.auto_refresh_interval = interval
         print(f"Auto-refresh interval set to {interval} seconds")
@@ -263,7 +264,7 @@ class PandasDataStore(metaclass=Singleton):
     @timeit
     def load_data(self) -> None:
         """Load all data files into the hosts dictionary.
-        
+
         Iterates through all hostnames and loads their respective data.
         Performance is measured using the timeit decorator.
         """
@@ -273,10 +274,10 @@ class PandasDataStore(metaclass=Singleton):
 
     def _load_host_data(self, hostname: str) -> None:
         """Load data for a specific hostname and update metadata.
-        
+
         Args:
             hostname: The hostname to load data for.
-            
+
         Processes the raw data, applies transformations, and updates metadata
         for the specified hostname.
         """
@@ -309,38 +310,40 @@ class PandasDataStore(metaclass=Singleton):
 
     def _load_raw_data(self, hostname: str) -> pd.DataFrame:
         """Load all Parquet files in the directory for a specific hostname.
-        
+
         Args:
             hostname: The hostname to load data for.
-            
+
         Returns:
             DataFrame containing the concatenated data from all Parquet files.
-            
+
         Raises:
             FileNotFoundError: If the directory or Parquet files are not found.
         """
         host_dir = self.directory / hostname / "weekly-data"
         if not host_dir.exists() or not host_dir.is_dir():
-            raise FileNotFoundError(f"Directory not found for hostname: {hostname}")
+            msg = f"Directory not found for hostname: {hostname}"
+            raise FileNotFoundError(msg)
 
         parquet_files = list(host_dir.glob("*.parquet"))
         if not parquet_files:
-            raise FileNotFoundError(f"No Parquet files found in directory: {host_dir}")
+            msg = f"No Parquet files found in directory: {host_dir}"
+            raise FileNotFoundError(msg)
 
         return pd.concat([pd.read_parquet(file) for file in parquet_files], ignore_index=True)
 
     @timeit
     def _transform_data(self, raw_data: pd.DataFrame) -> pd.DataFrame:
         """Apply necessary transformations to the raw data.
-        
+
         Args:
             raw_data: The raw DataFrame to transform.
-            
+
         Returns:
             Transformed DataFrame with standardized formats.
-            
+
         Handles column renaming and data type conversions if needed.
-        The major time-based columns (SubmitYearMonth, SubmitYearWeek, etc.) 
+        The major time-based columns (SubmitYearMonth, SubmitYearWeek, etc.)
         are already present in the data.
         """
         # Ensure column existence and data types
@@ -357,22 +360,22 @@ class PandasDataStore(metaclass=Singleton):
         # This is needed for the get_complete_periods method
         if "Submit" in raw_data.columns and "SubmitYear" not in raw_data.columns:
             raw_data["SubmitYear"] = raw_data["Submit"].dt.year
-            
+
         # Add StartDay if not present
         if "StartDay" not in raw_data.columns and "Start" in raw_data.columns:
             raw_data["StartDay"] = raw_data["Start"].dt.normalize()
             logging.info("Added StartDay column")
-        
+
         # Add SubmitDay if not present
         if "SubmitDay" not in raw_data.columns and "Submit" in raw_data.columns:
             raw_data["SubmitDay"] = raw_data["Submit"].dt.normalize()
             logging.info("Added SubmitDay column")
-            
+
         return raw_data
 
     def check_for_updates(self) -> bool:
         """Check all hosts for new or changed files and reload if necessary.
-        
+
         Returns:
             True if any host was updated, False otherwise.
         """
@@ -394,10 +397,10 @@ class PandasDataStore(metaclass=Singleton):
 
     def _check_host_updates(self, hostname: str) -> bool:
         """Check if files for a specific host have been updated or new files added.
-        
+
         Args:
             hostname: The hostname to check for updates.
-            
+
         Returns:
             True if there are updates, False otherwise.
         """
@@ -440,17 +443,17 @@ class PandasDataStore(metaclass=Singleton):
     @lru_cache(maxsize=10)
     def _filter_data(
         self,
-        hostname: Optional[str] = None,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        partitions: Optional[FrozenSet[str]] = None,
-        accounts: Optional[FrozenSet[str]] = None,
-        users: Optional[FrozenSet[str]] = None,
-        qos: Optional[FrozenSet[str]] = None,
-        states: Optional[FrozenSet[str]] = None,
+        hostname: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        partitions: frozenset[str] | None = None,
+        accounts: frozenset[str] | None = None,
+        users: frozenset[str] | None = None,
+        qos: frozenset[str] | None = None,
+        states: frozenset[str] | None = None,
     ) -> pd.DataFrame:
         """Filter data based on multiple criteria.
-        
+
         Args:
             hostname: The cluster hostname.
             start_date: Start date filter.
@@ -460,10 +463,10 @@ class PandasDataStore(metaclass=Singleton):
             users: Set of users to include.
             qos: Set of QOS values to include.
             states: Set of job states to include.
-            
+
         Returns:
             Filtered DataFrame.
-            
+
         Uses caching to improve performance for repeated similar queries.
         """
         df_filtered = self.hosts[hostname]["data"]
@@ -493,13 +496,13 @@ class PandasDataStore(metaclass=Singleton):
 
         return df_filtered
 
-    def get_complete_periods(self, hostname: str, period_type: str = "month") -> List[str]:
+    def get_complete_periods(self, hostname: str, period_type: str = "month") -> list[str]:
         """Get list of complete time periods available in the data.
-        
+
         Args:
             hostname: The cluster hostname.
             period_type: Type of period ('day', 'week', 'month', 'year').
-            
+
         Returns:
             List of complete periods.
         """
@@ -549,20 +552,20 @@ class PandasDataStore(metaclass=Singleton):
     def filter(
         self,
         hostname: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        partitions: Optional[List[str]] = None,
-        accounts: Optional[List[str]] = None,
-        users: Optional[List[str]] = None,
-        qos: Optional[List[str]] = None,
-        states: Optional[List[str]] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        partitions: list[str] | None = None,
+        accounts: list[str] | None = None,
+        users: list[str] | None = None,
+        qos: list[str] | None = None,
+        states: list[str] | None = None,
         complete_periods_only: bool = False,
         period_type: str = "month",
         format_accounts: bool = True,
-        account_segments: Optional[int] = None,
+        account_segments: int | None = None,
     ) -> pd.DataFrame:
         """Public method to filter data with enhanced options.
-        
+
         Args:
             hostname: The cluster hostname.
             start_date: Start date filter.
@@ -576,7 +579,7 @@ class PandasDataStore(metaclass=Singleton):
             period_type: Type of period when using complete_periods_only ('day', 'week', 'month', 'year').
             format_accounts: Whether to apply account name formatting.
             account_segments: Number of segments to keep.
-            
+
         Returns:
             Filtered DataFrame.
         """
@@ -643,17 +646,17 @@ class PandasDataStore(metaclass=Singleton):
 
 
 def get_datastore(
-    directory: Optional[Union[str, Path]] = None, 
+    directory: str | Path | None = None,
     auto_refresh_interval: int = 600,
-    account_formatter: Optional[Any] = formatter
+    account_formatter: Any | None = formatter
 ) -> PandasDataStore:
     """Get the singleton instance of PandasDataStore.
-    
+
     Args:
         directory: Path to the data directory (only used if this is the first call).
         auto_refresh_interval: Refresh interval in seconds (only used if this is the first call).
         account_formatter: Formatter for account names. Defaults to the imported formatter.
-        
+
     Returns:
         The singleton instance of PandasDataStore.
     """

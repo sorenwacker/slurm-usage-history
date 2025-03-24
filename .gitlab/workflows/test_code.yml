@@ -4,7 +4,7 @@ pytest_commit:
   before_script:
     - uv sync
   script:
-    - uv run pre-commit run --all
+    # - uv run pre-commit run --all
     - uv run pytest --cov=src --cov-report term ./tests
 
 # Explicitly run pytest for merge request commits

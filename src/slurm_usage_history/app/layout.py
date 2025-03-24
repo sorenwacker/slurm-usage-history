@@ -23,10 +23,10 @@ with open(logo_path, "rb") as image_file:
 logo = html.Img(
     src=f"data:image/png;base64,{encoded_string}",
     height="40px",
-    className="bg-white rounded", 
+    className="bg-white rounded",
     style={
         "padding": "4px",
-        "border-radius": "6px" 
+        "border-radius": "6px"
     }
 )
 
@@ -314,7 +314,7 @@ header = html.Div(
                         dbc.Row(
                             [
                                 dbc.Col(
-                                    logo, 
+                                    logo,
                                     width="auto",
                                     className="me-2 d-flex align-items-center"
                                 ),
@@ -459,9 +459,9 @@ account_formatter_controls = html.Div(
         dbc.RadioItems(
             id="account-format-segments",
             options=[
-                {"label": "Full names", "value": 0}, 
-                {"label": "First segment", "value": 1}, 
-                {"label": "First two segments", "value": 2}, 
+                {"label": "Full names", "value": 0},
+                {"label": "First segment", "value": 1},
+                {"label": "First two segments", "value": 2},
                 {"label": "First three segments", "value": 3}
             ],
             value=2,
@@ -671,7 +671,7 @@ overview_section = create_section(
 
 job_timing_section = create_section(
     "Waiting Time and Job Duration",
-    [   
+    [
         html.H4("Job Waiting Times", className="mt-3 mb-2"),
         dbc.Row(
             [
@@ -693,7 +693,7 @@ job_timing_section = create_section(
             ],
             className="mb-4",
         ),
-        
+
         dbc.Row(
             [
                 dbc.Col(
@@ -741,7 +741,7 @@ job_timing_section = create_section(
             ],
             className="mb-5",
         ),
-        
+
         html.H4("Job Durations", className="mt-4 mb-2"),
         dbc.Row(
             [
@@ -763,7 +763,7 @@ job_timing_section = create_section(
             ],
             className="mb-4",
         ),
-        
+
         dbc.Row(
             [
                 dbc.Col(

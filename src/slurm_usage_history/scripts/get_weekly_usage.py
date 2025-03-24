@@ -17,43 +17,45 @@ from ..tools import categorize_time, month_to_date, unpack_nodelist_string, week
 def parse_iso_week(iso_week_str):
     """
     Parse an ISO week string in the format YYYY-Www (e.g., 2025-W01).
-    
+
     Args:
         iso_week_str: ISO week string in the format YYYY-Www
-        
+
     Returns:
         Tuple of (year, week_number)
     """
     match = re.match(r'(\d{4})-W(\d{1,2})', iso_week_str)
     if not match:
-        raise ValueError(f"Invalid ISO week format: {iso_week_str}. Expected format: YYYY-Www (e.g., 2025-W01)")
-    
+        msg = f"Invalid ISO week format: {iso_week_str}. Expected format: YYYY-Www (e.g., 2025-W01)"
+        raise ValueError(msg)
+
     year = int(match.group(1))
     week = int(match.group(2))
-    
+
     # Validate week number
     if week < 1 or week > 53:
-        raise ValueError(f"Invalid week number: {week}. Week number must be between 1 and 53.")
-    
+        msg = f"Invalid week number: {week}. Week number must be between 1 and 53."
+        raise ValueError(msg)
+
     return year, week
 
 
 def calculate_date_range(weeks_back=None, from_date=None, to_date=None):
     """
     Calculate date range for data extraction based on different inputs.
-    
+
     Args:
         weeks_back: Number of weeks to go back from today
         from_date: Starting date in ISO week format (YYYY-Www)
         to_date: Ending date in ISO week format (YYYY-Www)
-        
+
     Returns:
         Tuple of (from_year, from_week, until_year, until_week)
     """
     today = datetime.today()
     until_year = today.year
     until_week = today.isocalendar()[1]
-    
+
     if weeks_back is not None:
         # Calculate date range based on weeks_back
         weeks_ago = today - timedelta(weeks=weeks_back)
@@ -62,7 +64,7 @@ def calculate_date_range(weeks_back=None, from_date=None, to_date=None):
     elif from_date is not None:
         # Parse from_date in ISO week format
         from_year, from_week = parse_iso_week(from_date)
-        
+
         if to_date is not None:
             # Parse to_date in ISO week format
             until_year, until_week = parse_iso_week(to_date)
@@ -71,7 +73,7 @@ def calculate_date_range(weeks_back=None, from_date=None, to_date=None):
         four_weeks_ago = today - timedelta(weeks=4)
         from_year = four_weeks_ago.year
         from_week = four_weeks_ago.isocalendar()[1]
-    
+
     return from_year, from_week, until_year, until_week
 
 
@@ -89,7 +91,7 @@ class UsageDataFetcher:
             command_executor: Function to execute shell commands.
         """
         self.command_executor = command_executor or subprocess.run
-        
+
         # Try to get config if it's been initialized
         try:
             self.config = get_config()
@@ -101,14 +103,14 @@ class UsageDataFetcher:
     ):
         """
         Export usage data for the specified date range.
-        
+
         Args:
             from_year: Starting year
             from_week: Starting week
             until_year: Ending year (default: from_year)
             until_week: Ending week (default: from_week)
             verbose: Whether to print verbose output
-            
+
         Returns:
             DataFrame containing the combined usage data
         """
@@ -163,7 +165,7 @@ class UsageDataFetcher:
         format_string = "--format=JobID,User,QOS,Account,Partition,Submit,Start,End,State,Elapsed,AveDiskRead,AveDiskWrite,AveCPU,MaxRSS,AllocCPUS,TotalCPU,NodeList,AllocTRES,Cluster"
         if self.config and "sacct" in self.config.config:
             format_string = self.config.config["sacct"].get("format", format_string)
-        
+
         command = [
             "sacct",
             format_string,
@@ -172,7 +174,7 @@ class UsageDataFetcher:
             f"--starttime={sacct_start}",
             f"--endtime={sacct_end}",
         ]
-        
+
         # Add any additional options from config
         if self.config and "sacct" in self.config.config:
             for option, value in self.config.config["sacct"].get("options", {}).items():
@@ -180,7 +182,7 @@ class UsageDataFetcher:
                     command.append(f"--{option}")
                 elif value is not False and value is not None:
                     command.append(f"--{option}={value}")
-        
+
         if verbose:
             print(" ".join(command))
 
@@ -359,28 +361,27 @@ class UsageDataFormatter:
             "MaxRSS",
             "Cluster"
         ]
-        
-        if self.config and "data_formatting" in self.config.config:
-            if "columns" in self.config.config["data_formatting"]:
-                columns = self.config.config["data_formatting"]["columns"]
-        
+
+        if self.config and "data_formatting" in self.config.config and "columns" in self.config.config["data_formatting"]:
+            columns = self.config.config["data_formatting"]["columns"]
+
         return df[columns]
 
     @staticmethod
     def convert_mem_to_gb(mem_value):
         """
         Convert memory value to gigabytes.
-        
+
         Args:
             mem_value: Memory value with unit (e.g., "1000M" or "1G")
-            
+
         Returns:
             Float value in gigabytes
         """
         # Check if mem_value is already a float (used for numeric values directly)
         if isinstance(mem_value, float):
             return mem_value
-            
+
         # Handle None values
         if mem_value is None:
             return 0.0
@@ -409,14 +410,14 @@ class DataExporter:
     def __init__(self, data_fetcher, data_formatter):
         """
         Initialize the DataExporter.
-        
+
         Args:
             data_fetcher: UsageDataFetcher instance
             data_formatter: UsageDataFormatter instance
         """
         self.data_fetcher = data_fetcher
         self.data_formatter = data_formatter
-        
+
         # Try to get config if it's been initialized
         try:
             self.config = get_config()
@@ -435,7 +436,7 @@ class DataExporter:
     ):
         """
         Fetch data weekly and save to Parquet files.
-        
+
         Args:
             from_year: Starting year
             from_week: Starting week
@@ -444,7 +445,7 @@ class DataExporter:
             output_dir: Directory to save Parquet files
             overwrite: Whether to overwrite existing files
             verbose: Whether to print verbose output
-            
+
         Returns:
             List of paths to saved Parquet files
         """
@@ -491,7 +492,7 @@ class DataExporter:
 
                     # Save formatted data as Parquet file
                     formatted_data.to_parquet(file_path, index=False, engine="pyarrow")
-                    
+
                     # Get delay from config or use default
                     delay = 5
                     if self.config and "sacct" in self.config.config:
@@ -506,7 +507,7 @@ class DataExporter:
             except Exception as e:
                 msg = f"Error fetching data for week {current_year}-W{current_week:02.0f}: {e}"
                 print(msg)
-                
+
             # Move to the next week
             if current_week == 52:
                 current_week = 1
@@ -522,7 +523,7 @@ def main():
     """Main entry point for the data fetcher."""
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Fetch and export SLURM usage data.")
-    
+
     # Define mutually exclusive group for date selection
     date_group = parser.add_mutually_exclusive_group()
     date_group.add_argument(
@@ -536,7 +537,7 @@ def main():
         type=str,
         help="Starting date in ISO week format (e.g., 2025-W01)",
     )
-    
+
     # Other arguments
     parser.add_argument(
         "--to",
@@ -561,7 +562,7 @@ def main():
         help="Overwrite existing files if they are already present.",
     )
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
-    
+
     # Legacy support for older interface
     parser.add_argument(
         "--from-year",
@@ -583,14 +584,14 @@ def main():
         type=int,
         help=argparse.SUPPRESS,  # Hide from help
     )
-    
+
     args = parser.parse_args()
-    
+
     # Initialize config if provided
     if args.config:
         from .config import init_config
         init_config(args.config)
-    
+
     # Handle the different date specification options
     if args.from_year is not None and args.from_week is not None:
         # Legacy mode
@@ -605,7 +606,7 @@ def main():
             from_date=args.from_date,
             to_date=args.to_date
         )
-    
+
     # Create instances of fetcher and formatter
     data_fetcher = UsageDataFetcher()
     data_formatter = UsageDataFormatter()

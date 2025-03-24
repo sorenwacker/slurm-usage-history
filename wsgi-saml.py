@@ -1,10 +1,12 @@
 import os
-from flask import Flask, request, render_template, redirect, session, make_response
 from urllib.parse import urlparse
+
+from dotenv import load_dotenv
+from flask import Flask, make_response, redirect, render_template, request, session
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
 from onelogin.saml2.utils import OneLogin_Saml2_Utils
+
 from slurm_usage_history.app.app import create_dash_app
-from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -47,7 +49,6 @@ def index():
     error_reason = None
     not_auth_warn = False
     success_slo = False
-    attributes = False
     paint_logout = False
 
     if "sso" in request.args:
