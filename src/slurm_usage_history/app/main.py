@@ -36,7 +36,7 @@ def main():
     app = create_dash_app(args)
 
     # Run the server
-    app.run_server(debug=args.debug, port=args.port)
+    app.run(debug=args.debug, port=args.port)
 
 
 if __name__ == "__main__":
