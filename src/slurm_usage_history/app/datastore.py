@@ -23,8 +23,12 @@ class Singleton(type):
     _instances: dict[type, Any] = {}
     _lock: threading.Lock = threading.Lock()
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
         """Override the call method to implement singleton behavior.
+
+        Args:
+            *args: Variable positional arguments to pass to the class constructor.
+            **kwargs: Variable keyword arguments to pass to the class constructor.
 
         Returns:
             The singleton instance of the class.
