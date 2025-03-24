@@ -2,6 +2,7 @@ nohub.out
 
 data/
 cache/
+nohup.out
 
 .*
 
