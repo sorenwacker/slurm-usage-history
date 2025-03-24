@@ -1,10 +1,9 @@
-site_name: Documentation
 
+---
+site_name: Documentation
 nav:
   - Home: index.md
-
 theme: material
-
 plugins:
   - autorefs:
       resolve_closest: true
