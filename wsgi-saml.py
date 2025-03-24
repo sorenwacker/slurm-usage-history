@@ -22,8 +22,8 @@ app.config["SAML_PATH"] = os.path.join(
 )
 
 def init_saml_auth(req):
-    auth = OneLogin_Saml2_Auth(req, custom_base_path=app.config["SAML_PATH"])
-    return auth
+    # Fixed RET504 - Return directly without unnecessary assignment
+    return OneLogin_Saml2_Auth(req, custom_base_path=app.config["SAML_PATH"])
 
 
 def prepare_flask_request(request):
@@ -53,7 +53,8 @@ def index():
     if "sso" in request.args:
         return redirect(auth.login())
     elif "sso2" in request.args:
-        return_to = "%sattrs/" % request.host_url
+        # Fixed UP031 - Use f-string instead of percent format
+        return_to = f"{request.host_url}attrs/"
         return redirect(auth.login(return_to))
     elif "slo" in request.args:
         name_id = session.get("samlNameId")
@@ -91,7 +92,9 @@ def index():
             error_reason = auth.get_last_error_reason()
     elif "sls" in request.args:
         request_id = session.get("LogoutRequestID")
-        dscb = lambda: session.clear()
+        # Fixed E731 - Use def instead of lambda
+        def dscb():
+            session.clear()
         url = auth.process_slo(request_id=request_id, delete_session_cb=dscb)
         errors = auth.get_errors()
         if len(errors) == 0:
@@ -105,8 +108,11 @@ def index():
     if "samlUserdata" in session:
         paint_logout = True
         if len(session["samlUserdata"]) > 0:
-            attributes = session["samlUserdata"].items()
-        return_to = "%sdashboard/" % request.host_url
+            # Fixed F841 - Remove unused variable or use it
+            # We'll remove the assignment since it's commented out in the template rendering
+            pass
+        # Fixed UP031 - Use f-string instead of percent format
+        return_to = f"{request.host_url}dashboard/"
         return redirect(auth.login(return_to))
 
     return render_template(
@@ -166,6 +172,8 @@ def check_authentication():
     # Check if the request is for the Dash app
     if request.path.startswith("/dashboard/") and "samlUserdata" not in session:
         return redirect("/?sso")  # Redirect to login if not authenticated
+    # Fixed RET503 - Add explicit return
+    return None
 
 
 if __name__ == "__main__":
