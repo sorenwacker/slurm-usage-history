@@ -2,14 +2,15 @@ import functools
 import re
 import time
 from datetime import datetime, timedelta
-
+from typing import Any, Callable, List, TypeVar, Union, Optional
 import pandas as pd
 
+T = TypeVar('T')  # For generic function typing
 
-def timeit(func):
+def timeit(func: Callable[..., T]) -> Callable[..., T]:
     """Decorator to measure execution time of a function."""
     @functools.wraps(func)
-    def wrapper_timeit(*args, **kwargs):
+    def wrapper_timeit(*args: Any, **kwargs: Any) -> T:
         start_time = time.perf_counter()
         result = func(*args, **kwargs)
         elapsed_time = time.perf_counter() - start_time
@@ -18,7 +19,7 @@ def timeit(func):
     return wrapper_timeit
 
 
-def natural_sort_key(s):
+def natural_sort_key(s: Optional[Union[str, Any]]) -> Union[List[Union[int, str]], Any]:
     """
     Natural sorting function that handles numeric parts in strings properly.
     For example: "cpu2" will come before "cpu11" with natural sorting.
@@ -37,16 +38,16 @@ def natural_sort_key(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", s)]
 
 
-def get_time_column(date_str1, date_str2):
+def get_time_column(date_str1: str, date_str2: str) -> str:
     """
     Calculate the timespan in days between two dates provided in ISO format strings.
 
     Args:
-        date_str1 (str): The first date in ISO format (YYYY-MM-DD).
-        date_str2 (str): The second date in ISO format (YYYY-MM-DD).
+        date_str1: The first date in ISO format (YYYY-MM-DD).
+        date_str2: The second date in ISO format (YYYY-MM-DD).
 
     Returns:
-        int: The number of days between the two dates.
+        The column name to use based on the timespan between dates.
     """
     # Parse the input strings into datetime objects
     date1 = datetime.strptime(date_str1, "%Y-%m-%d")
@@ -62,7 +63,16 @@ def get_time_column(date_str1, date_str2):
     return "SubmitYearMonth"
 
 
-def week_to_date(year_week_str):
+def week_to_date(year_week_str: str) -> datetime:
+    """
+    Convert a year-week string to a datetime object.
+
+    Args:
+        year_week_str: String in format 'YYYY-WW' where YYYY is year and WW is week number
+
+    Returns:
+        First day (Monday) of the specified week
+    """
     # Parse the year and week from the input string
     year, week = map(int, year_week_str.split("-"))
 
@@ -76,7 +86,16 @@ def week_to_date(year_week_str):
     return first_week_start + timedelta(weeks=week - 1)
 
 
-def month_to_date(year_month_str):
+def month_to_date(year_month_str: str) -> datetime:
+    """
+    Convert a year-month string to a datetime object.
+
+    Args:
+        year_month_str: String in format 'YYYY-MM' where YYYY is year and MM is month
+
+    Returns:
+        First day of the specified month
+    """
     # Parse the year and month from the input string
     year, month = map(int, year_month_str.split("-"))
 
@@ -84,17 +103,16 @@ def month_to_date(year_month_str):
     return datetime(year, month, 1)
 
 
-def print_column_info_in_markdown(df: pd.DataFrame):
+def print_column_info_in_markdown(df: pd.DataFrame) -> None:
     """
     Prints the column data types and an example value for each
     column in markdown format.
 
-    Parameters:
-        df (pd.DataFrame): The dataframe to inspect.
+    Args:
+        df: The dataframe to inspect.
     """
-
     # Create a list to store the column data type and example value
-    column_info = []
+    column_info: List[List[Any]] = []
 
     for column in df.columns:
         dtype = df[column].dtype
@@ -108,15 +126,15 @@ def print_column_info_in_markdown(df: pd.DataFrame):
     print(column_info_df.to_markdown(index=False))
 
 
-def categorize_time(hours):
+def categorize_time(hours: Union[float, int]) -> str:
     """
     Categorize time in hours into predefined categories.
 
     Args:
-    - hours (float or int): Time in hours to categorize.
+        hours: Time in hours to categorize.
 
     Returns:
-    - str: The category corresponding to the given time.
+        The category corresponding to the given time.
     """
     if hours < (5 / 3600):
         return "<5s"
@@ -138,15 +156,15 @@ def categorize_time(hours):
     return ">=24h"
 
 
-def categorize_time_series(hours_series):
+def categorize_time_series(hours_series: pd.Series) -> pd.Series:
     """
     Categorize a Pandas Series of time in hours into predefined categories.
 
     Args:
-    - hours_series (pd.Series): A Pandas Series with time in hours.
+        hours_series: A Pandas Series with time in hours.
 
     Returns:
-    - pd.Series: A Pandas Series of categorical type with the corresponding categories.
+        A Pandas Series of categorical type with the corresponding categories.
     """
     categories = [
         "<5s",
@@ -167,17 +185,22 @@ def categorize_time_series(hours_series):
     return categorized_series.astype("category")
 
 
-def unpack_nodelist_string(nodelist_str):
+def unpack_nodelist_string(nodelist_str: Optional[str]) -> List[str]:
     """
     Unpacks a GPU string into a list of individual components.
     Handles ranges (e.g., gpu[08-09,11,14]) and single items (e.g., gpu16).
-    """
 
+    Args:
+        nodelist_str: String containing node list information
+
+    Returns:
+        List of individual node names
+    """
     if not nodelist_str or nodelist_str == "None assigned":
         return []
 
     # Initialize a list to collect unpacked values
-    unpacked_list = []
+    unpacked_list: List[str] = []
 
     # Match patterns for ranges and list items
     range_pattern = re.compile(r"(\d+)-(\d+)")
@@ -212,17 +235,3 @@ def unpack_nodelist_string(nodelist_str):
 
     # Ensure no invalid items like trailing ']'
     return [item.strip("]") for item in unpacked_list]
-
-
-def timeit(func):
-    """Measure execution time of a function."""
-
-    @functools.wraps(func)
-    def wrapper_timeit(*args, **kwargs):
-        start_time = time.perf_counter()
-        result = func(*args, **kwargs)
-        elapsed_time = time.perf_counter() - start_time
-        print(f"Function '{func.__name__}' executed in {elapsed_time:.4f} seconds")
-        return result
-
-    return wrapper_timeit
