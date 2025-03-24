@@ -7,6 +7,7 @@ import re
 import subprocess
 import time
 from datetime import datetime, timedelta
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 import pandas as pd
 from tqdm import tqdm
@@ -14,7 +15,7 @@ from tqdm import tqdm
 from ..tools import categorize_time, month_to_date, unpack_nodelist_string, week_to_date
 
 
-def parse_iso_week(iso_week_str):
+def parse_iso_week(iso_week_str: str) -> Tuple[int, int]:
     """
     Parse an ISO week string in the format YYYY-Www (e.g., 2025-W01).
 
@@ -40,7 +41,11 @@ def parse_iso_week(iso_week_str):
     return year, week
 
 
-def calculate_date_range(weeks_back=None, from_date=None, to_date=None):
+def calculate_date_range(
+    weeks_back: Optional[int] = None, 
+    from_date: Optional[str] = None, 
+    to_date: Optional[str] = None
+) -> Tuple[int, int, int, int]:
     """
     Calculate date range for data extraction based on different inputs.
 
@@ -82,7 +87,7 @@ class UsageDataFetcher:
     Fetches usage data from the SLURM database.
     """
 
-    def __init__(self, command_executor=None):
+    def __init__(self, command_executor: Optional[Callable] = None):
         """
         Initialize the UsageDataFetcher with an optional command executor.
         This allows dependency injection for better testing.
@@ -90,17 +95,23 @@ class UsageDataFetcher:
         Args:
             command_executor: Function to execute shell commands.
         """
-        self.command_executor = command_executor or subprocess.run
+        self.command_executor: Callable = command_executor or subprocess.run
 
         # Try to get config if it's been initialized
         try:
-            self.config = get_config()
+            from .config import get_config
+            self.config: Any = get_config()
         except RuntimeError:
             self.config = None
 
     def export_usage_data(
-        self, from_year, from_week, until_year=None, until_week=None, verbose=False
-    ):
+        self, 
+        from_year: int, 
+        from_week: int, 
+        until_year: Optional[int] = None, 
+        until_week: Optional[int] = None, 
+        verbose: bool = False
+    ) -> pd.DataFrame:
         """
         Export usage data for the specified date range.
 
@@ -149,7 +160,12 @@ class UsageDataFetcher:
 
         return combined_df
 
-    def run_sacct_command(self, sacct_start, sacct_end, verbose=False):
+    def run_sacct_command(
+        self, 
+        sacct_start: str, 
+        sacct_end: str, 
+        verbose: bool = False
+    ) -> pd.DataFrame:
         """
         Run the sacct command and return the output as a DataFrame.
 
@@ -166,7 +182,7 @@ class UsageDataFetcher:
         if self.config and "sacct" in self.config.config:
             format_string = self.config.config["sacct"].get("format", format_string)
 
-        command = [
+        command: List[str] = [
             "sacct",
             format_string,
             "--parsable2",
@@ -193,7 +209,7 @@ class UsageDataFetcher:
             encoding="latin-1",
             errors="ignore",
         )
-        output = result.stdout
+        output = cast(subprocess.CompletedProcess, result).stdout
 
         # Filter out any lines containing "RUNNING" or "Unknown" states
         filtered_output = "\n".join(
@@ -208,7 +224,11 @@ class UsageDataFetcher:
         return df
 
     @staticmethod
-    def get_week_dates(year, week, chunk_size=7):
+    def get_week_dates(
+        year: int, 
+        week: int, 
+        chunk_size: int = 7
+    ) -> Tuple[datetime, datetime]:
         """
         Calculate the start and end dates of a specific week.
 
@@ -234,11 +254,12 @@ class UsageDataFormatter:
         """Initialize the UsageDataFormatter."""
         # Try to get config if it's been initialized
         try:
-            self.config = get_config()
+            from .config import get_config
+            self.config: Any = get_config()
         except RuntimeError:
             self.config = None
 
-    def format_usage_data(self, df):
+    def format_usage_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Format the usage data DataFrame:
         - Convert Start, End, and Submit columns to datetime format.
@@ -329,7 +350,7 @@ class UsageDataFormatter:
         )
 
         # Get columns to return from config if available
-        columns = [
+        columns: List[str] = [
             "User",
             "QOS",
             "Account",
@@ -368,7 +389,7 @@ class UsageDataFormatter:
         return df[columns]
 
     @staticmethod
-    def convert_mem_to_gb(mem_value):
+    def convert_mem_to_gb(mem_value: Union[str, float, None]) -> float:
         """
         Convert memory value to gigabytes.
 
@@ -407,7 +428,7 @@ class DataExporter:
     Exports the fetched and formatted data.
     """
 
-    def __init__(self, data_fetcher, data_formatter):
+    def __init__(self, data_fetcher: UsageDataFetcher, data_formatter: UsageDataFormatter):
         """
         Initialize the DataExporter.
 
@@ -420,20 +441,21 @@ class DataExporter:
 
         # Try to get config if it's been initialized
         try:
-            self.config = get_config()
+            from .config import get_config
+            self.config: Any = get_config()
         except RuntimeError:
             self.config = None
 
     def fetch_data_weekly(
         self,
-        from_year,
-        from_week,
-        until_year=None,
-        until_week=None,
-        output_dir="slurmo_weekly_data",
-        overwrite=False,
-        verbose=False,
-    ):
+        from_year: int,
+        from_week: int,
+        until_year: Optional[int] = None,
+        until_week: Optional[int] = None,
+        output_dir: str = "slurmo_weekly_data",
+        overwrite: bool = False,
+        verbose: bool = False,
+    ) -> List[str]:
         """
         Fetch data weekly and save to Parquet files.
 
@@ -460,7 +482,7 @@ class DataExporter:
 
         current_year = from_year
         current_week = from_week
-        data_files = []
+        data_files: List[str] = []
 
         # Use tqdm for progress bar
         pbar = tqdm(
@@ -519,7 +541,7 @@ class DataExporter:
         return data_files
 
 
-def main():
+def main() -> None:
     """Main entry point for the data fetcher."""
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Fetch and export SLURM usage data.")

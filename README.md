@@ -12,10 +12,19 @@
 
 ## Installation
 
-To install the package, use the following command:
+To install the package, and since the package is private, you need to create a GitLab access token and use it to install the package. Follow [these steps](https://docs.gitlab.com/ee/user/project/deploy_tokens/#create-a-deploy-token) to create a deploy token in GitLab, then, you may use the command below to install the package:
 
 ```sh
-pip install slurm-usage-history
+git clone https://gitlab.ewi.tudelft.nl/reit/slurm-usage-history.git
+cd slurm-usage-history
+pip install .
+```
+
+Or, 
+
+```sh
+pip install git+https://${GITLAB_TOKEN_USER}:${GITLAB_TOKEN}@gitlab.ewi.tudelf
+t.nl/reit/slurm-usage-history.git[@{version}]
 ```
 
 ## Usage
