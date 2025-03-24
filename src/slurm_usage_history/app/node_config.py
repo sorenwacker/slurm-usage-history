@@ -3,22 +3,24 @@
 import json
 import os
 from pathlib import Path
+from typing import Dict, List, Optional, Union, Any, Pattern
 
 import yaml
+import re
 
 
 class NodeConfiguration:
     """Class to handle node configuration for resources normalization."""
 
-    def __init__(self, config_file=None):
+    def __init__(self, config_file: Optional[str] = None):
         """
         Initialize the Node Configuration.
 
         Args:
             config_file: Path to config file (YAML or JSON)
         """
-        self.config = {}
-        self.config_file = config_file
+        self.config: Dict[str, Any] = {}
+        self.config_file: Optional[str] = config_file
 
         if config_file:
             self.load_config(config_file)
@@ -26,10 +28,10 @@ class NodeConfiguration:
             # Look for config in default locations
             self._load_default_config()
 
-    def _load_default_config(self):
+    def _load_default_config(self) -> None:
         """Try to load configuration from default locations."""
         # Check for configs in common locations
-        possible_paths = [
+        possible_paths: List[str] = [
             os.path.expanduser("~/.config/slurm_usage/node_config.yaml"),
             os.path.expanduser("~/.config/slurm_usage/node_config.json"),
             "/etc/slurm_usage/node_config.yaml",
@@ -43,7 +45,7 @@ class NodeConfiguration:
                 self.load_config(path)
                 return
 
-    def load_config(self, config_file):
+    def load_config(self, config_file: str) -> bool:
         """
         Load configuration from a file.
 
@@ -78,7 +80,7 @@ class NodeConfiguration:
             print(f"Error loading config: {e!s}")
             return False
 
-    def get_node_cpu_count(self, node_name):
+    def get_node_cpu_count(self, node_name: str) -> int:
         """
         Get CPU count for a specific node.
 
@@ -103,7 +105,7 @@ class NodeConfiguration:
         # Return default
         return self.config.get("default_cpus", 1)
 
-    def get_node_gpu_count(self, node_name):
+    def get_node_gpu_count(self, node_name: str) -> int:
         """
         Get GPU count for a specific node.
 
@@ -128,7 +130,7 @@ class NodeConfiguration:
         # Return default
         return self.config.get("default_gpus", 0)
 
-    def _match_pattern(self, node_name, pattern):
+    def _match_pattern(self, node_name: str, pattern: str) -> bool:
         """
         Check if a node name matches a pattern.
 
@@ -140,12 +142,10 @@ class NodeConfiguration:
             bool: True if node name matches pattern
         """
         # Convert pattern to regex
-        import re
-
         regex_pattern = pattern.replace("*", ".*")
         return re.match(f"^{regex_pattern}$", node_name) is not None
 
-    def get_all_node_resources(self, node_names):
+    def get_all_node_resources(self, node_names: List[str]) -> Dict[str, Dict[str, int]]:
         """
         Get CPU and GPU counts for a list of nodes.
 
@@ -155,7 +155,7 @@ class NodeConfiguration:
         Returns:
             dict: Dictionary mapping node names to resource dictionaries
         """
-        resources = {}
+        resources: Dict[str, Dict[str, int]] = {}
 
         for node in node_names:
             resources[node] = {
