@@ -169,10 +169,8 @@ class UsageDataFetcher:
         Returns:
             DataFrame containing the command output.
         """
-        # Get format from config if available
+
         format_string = "--format=JobID,User,QOS,Account,Partition,Submit,Start,End,State,Elapsed,AveDiskRead,AveDiskWrite,AveCPU,MaxRSS,AllocCPUS,TotalCPU,NodeList,AllocTRES,Cluster"
-        if self.config and "sacct" in self.config.config:
-            format_string = self.config.config["sacct"].get("format", format_string)
 
         command: List[str] = [
             "sacct",
@@ -182,14 +180,6 @@ class UsageDataFetcher:
             f"--starttime={sacct_start}",
             f"--endtime={sacct_end}",
         ]
-
-        # Add any additional options from config
-        if self.config and "sacct" in self.config.config:
-            for option, value in self.config.config["sacct"].get("options", {}).items():
-                if value is True:
-                    command.append(f"--{option}")
-                elif value is not False and value is not None:
-                    command.append(f"--{option}={value}")
 
         if verbose:
             print(" ".join(command))
@@ -232,7 +222,7 @@ class UsageDataFetcher:
         Returns:
             Tuple containing the start and end dates of the week.
         """
-        start_date = datetime.strptime(f"{year}-W{week - 1}-1", "%Y-W%U-%w")
+        start_date = datetime.strptime(f"{year}-W{week:02d}-1", "%G-W%V-%u")
         end_date = start_date + timedelta(days=chunk_size - 1)
         return start_date, end_date
 
@@ -244,12 +234,7 @@ class UsageDataFormatter:
 
     def __init__(self):
         """Initialize the UsageDataFormatter."""
-        # Try to get config if it's been initialized
-        try:
-            from .config import get_config
-            self.config: Any = get_config()
-        except RuntimeError:
-            self.config = None
+        pass
 
     def format_usage_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -316,7 +301,7 @@ class UsageDataFormatter:
         )
 
         df = df.query("JobID == JobIDgroup")
-        df = df.drop(["AllocTRES", "AllocCPUS", "mem", "JobIDgroup"], axis=1)
+        df = df.drop(["AllocTRES", "mem", "JobIDgroup"], axis=1)
 
         df["WaitingTime [h]"] = (df.Start - df.Submit).dt.total_seconds() / 3600
         df["GPU-hours"] = df["Elapsed [h]"].fillna(0).astype(float) * df["GPUs"].fillna(
@@ -341,7 +326,6 @@ class UsageDataFormatter:
             ordered=True,
         )
 
-        # Get columns to return from config if available
         columns: List[str] = [
             "User",
             "QOS",
@@ -374,10 +358,7 @@ class UsageDataFormatter:
             "MaxRSS",
             "Cluster"
         ]
-
-        if self.config and "data_formatting" in self.config.config and "columns" in self.config.config["data_formatting"]:
-            columns = self.config.config["data_formatting"]["columns"]
-
+        
         return df[columns]
 
     @staticmethod
@@ -496,10 +477,7 @@ class DataExporter:
                     # Save formatted data as Parquet file
                     formatted_data.to_parquet(file_path, index=False, engine="pyarrow")
 
-                    # Get delay from config or use default
                     delay = 5
-                    if self.config and "sacct" in self.config.config:
-                        delay = self.config.config["sacct"].get("delay_between_calls", 5)
                     time.sleep(delay)
 
                 # Append file path to list of saved files
