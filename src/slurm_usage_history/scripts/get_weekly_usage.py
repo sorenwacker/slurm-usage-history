@@ -33,7 +33,6 @@ def parse_iso_week(iso_week_str: str) -> Tuple[int, int]:
     year = int(match.group(1))
     week = int(match.group(2))
 
-    # Validate week number
     if week < 1 or week > 53:
         msg = f"Invalid week number: {week}. Week number must be between 1 and 53."
         raise ValueError(msg)
@@ -96,13 +95,6 @@ class UsageDataFetcher:
             command_executor: Function to execute shell commands.
         """
         self.command_executor: Callable = command_executor or subprocess.run
-
-        # Try to get config if it's been initialized
-        try:
-            from .config import get_config
-            self.config: Any = get_config()
-        except RuntimeError:
-            self.config = None
 
     def export_usage_data(
         self, 
@@ -399,19 +391,15 @@ class UsageDataFormatter:
         Returns:
             Float value in gigabytes
         """
-        # Check if mem_value is already a float (used for numeric values directly)
         if isinstance(mem_value, float):
             return mem_value
 
-        # Handle None values
         if mem_value is None:
             return 0.0
 
-        # Extract numeric value and unit from mem_value
         numeric_part = float(mem_value[:-1])
         unit = mem_value[-1]
 
-        # Define multiplier based on unit (M for megabytes, G for gigabytes)
         if unit == "M":
             multiplier = 1 / 1024
         elif unit == "G":
@@ -438,13 +426,6 @@ class DataExporter:
         """
         self.data_fetcher = data_fetcher
         self.data_formatter = data_formatter
-
-        # Try to get config if it's been initialized
-        try:
-            from .config import get_config
-            self.config: Any = get_config()
-        except RuntimeError:
-            self.config = None
 
     def fetch_data_weekly(
         self,
@@ -567,11 +548,7 @@ def main() -> None:
         type=str,
         help="Ending date in ISO week format (e.g., 2025-W52). Only valid with --from",
     )
-    parser.add_argument(
-        "--config",
-        type=str,
-        help="Path to configuration file",
-    )
+    
     parser.add_argument(
         "--output-dir",
         type=str,
@@ -608,11 +585,6 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-
-    # Initialize config if provided
-    if args.config:
-        from .config import init_config
-        init_config(args.config)
 
     # Handle the different date specification options
     if args.from_year is not None and args.from_week is not None:
