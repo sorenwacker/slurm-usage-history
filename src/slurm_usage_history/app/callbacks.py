@@ -271,6 +271,62 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             return False
         return False
 
+
+    @app.callback(
+        Output("total-active-users", "children"),
+        Output("total-jobs", "children"),
+        Output("total-cpu-hours", "children"),
+        Output("total-gpu-hours", "children"),
+        Input("hostname_dropdown", "value"),
+        Input("data_range_picker", "start_date"),
+        Input("data_range_picker", "end_date"),
+        Input("states_dropdown", "value"),
+        Input("partitions_dropdown", "value"),
+        Input("users_dropdown", "value"),
+        Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
+        background=False,
+        manager=background_callback_manager,
+    )
+    def update_summary_stats(hostname, start_date, end_date, states, partitions, users, accounts, qos):
+        if not hostname:
+            return "N/A", "N/A", "N/A", "N/A"
+
+        # Get filtered data
+        df = datastore.filter(
+            hostname=hostname,
+            start_date=start_date,
+            end_date=end_date,
+            states=states,
+            partitions=partitions,
+            users=users,
+            accounts=accounts,
+            qos=qos,
+            format_accounts=True,
+        )
+
+        if df.empty:
+            return "0", "0", "0", "0"
+
+        # Calculate total unique active users
+        total_users = df["User"].nunique()
+
+        # Calculate total jobs
+        total_jobs = len(df)
+
+        # Calculate total CPU and GPU hours
+        total_cpu_hours = df["CPU-hours"].sum()
+        total_gpu_hours = df["GPU-hours"].sum()
+
+        # Format numbers for display
+        formatted_users = f"{total_users:,}"
+        formatted_jobs = f"{total_jobs:,}"
+        formatted_cpu = f"{total_cpu_hours:,.0f} h"
+        formatted_gpu = f"{total_gpu_hours:,.0f} h"
+
+        return formatted_users, formatted_jobs, formatted_cpu, formatted_gpu
+
+
     @app.callback(
         Output("plot_active_users", "figure"),
         Input("hostname_dropdown", "value"),
@@ -287,7 +343,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         if session_data is None:
             session_data = initialize_session_data()
 
-        formatter_segments = account_format.get("segments") if account_format else None
+        account_segments = account_format.get("segments") if account_format else None
 
         df = datastore.filter(
             hostname=hostname,
@@ -295,7 +351,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             end_date=end_date,
             accounts=accounts,
             format_accounts=True,
-            account_segments=formatter_segments,
+            account_segments=account_segments,
             complete_periods_only=complete_periods,
         )
         time_col = get_time_column(start_date, end_date)
@@ -345,7 +401,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
     )
     def plot_number_of_jobs(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data, account_format):
         
-        formatter_segments = account_format.get("segments") if account_format else None
+        account_segments = account_format.get("segments") if account_format else None
 
         df = datastore.filter(
             hostname=hostname,
@@ -357,7 +413,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             accounts=accounts,
             qos=qos,
             format_accounts=True,
-            formatter_segments=formatter_segments
+            account_segments=account_segments,
         )
         time_col = get_time_column(start_date, end_date)
         sorted_time_values = sorted(df[time_col].unique())
@@ -410,7 +466,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
     )
     def plot_fraction_accounts(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data, account_format):
 
-        formatter_segments = account_format.get("segments") if account_format else None
+        account_segments = account_format.get("segments") if account_format else None
 
         df = datastore.filter(
             hostname=hostname,
@@ -422,7 +478,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             accounts=accounts,
             qos=qos,
             format_accounts=True,
-            formatter_segments=formatter_segments
+            account_segments=account_segments,
         )
 
         if color_by == 'User':
@@ -466,8 +522,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         manager=background_callback_manager,
     )
     def plot_fraction_qos(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
-        if session_data is None:
-            session_data = initialize_session_data()
 
         df = datastore.filter(
             hostname=hostname,
@@ -478,7 +532,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             users=users,
             accounts=accounts,
             qos=qos,
-            format_accounts=True,
+            format_accounts=False,
         )
 
         category_order, color_map = ensure_consistent_categories_and_colors(
@@ -517,8 +571,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         manager=background_callback_manager,
     )
     def plot_fractions_states(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
-        if session_data is None:
-            session_data = initialize_session_data()
 
         df = datastore.filter(
             hostname=hostname,
@@ -529,7 +581,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             users=users,
             accounts=accounts,
             qos=qos,
-            format_accounts=True,
+            format_accounts=False,
         )
 
         category_order, color_map = ensure_consistent_categories_and_colors(
@@ -563,11 +615,11 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
-        Input("session-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_cpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
+    def plot_cpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos):
+        
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -577,7 +629,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             users=users,
             accounts=accounts,
             qos=qos,
-            format_accounts=True,
+            format_accounts=False,
         )
         cpus_per_job = df.CPUs.value_counts().sort_index().to_frame("Count").reset_index()
         cpus_per_job["CPUs"] = cpus_per_job["CPUs"].astype(str)
@@ -602,11 +654,11 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
-        Input("session-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_gpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
+    def plot_gpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos):
+        
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -616,8 +668,9 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             users=users,
             accounts=accounts,
             qos=qos,
-            format_accounts=True,
+            format_accounts=False,
         )
+        
         gpus_per_job = df.GPUs.value_counts().sort_index().to_frame("Count").reset_index()
         gpus_per_job["GPUs"] = gpus_per_job["GPUs"].astype(str)
         gpu_order = gpus_per_job["GPUs"].tolist()
@@ -641,11 +694,10 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
-        Input("session-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_nodes_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
+    def plot_nodes_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos):
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -655,7 +707,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             users=users,
             accounts=accounts,
             qos=qos,
-            format_accounts=True,
+            format_accounts=False,
         )
         nodes_per_job = df.Nodes.value_counts().sort_index().to_frame("Count").reset_index()
         nodes_per_job["Nodes"] = nodes_per_job["Nodes"].astype(str)
@@ -683,13 +735,14 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_waiting_times(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, qos, session_data):
-        if session_data is None:
-            session_data = initialize_session_data()
+    def plot_waiting_times(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, qos, session_data, account_format):  
 
+        account_segments = account_format.get("segments") if account_format else None
+        
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -700,6 +753,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             accounts=accounts,
             qos=qos,
             format_accounts=True,
+            account_segments=account_segments,
         )
 
         time_col = get_time_column(start_date, end_date)
@@ -758,12 +812,13 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_waiting_times_dist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, qos, session_data):
-        if session_data is None:
-            session_data = initialize_session_data()
+    def plot_waiting_times_dist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, qos, session_data, account_format):
+        
+        account_segments = account_format.get("segments") if account_format else None
 
         df = datastore.filter(
             hostname=hostname,
@@ -775,6 +830,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             accounts=accounts,
             qos=qos,
             format_accounts=True,
+            account_segments=account_segments,
         )
 
         df["Time Group"] = categorize_time_series(df["WaitingTime [h]"])
@@ -827,13 +883,14 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_job_duration(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, qos, session_data):
-        if session_data is None:
-            session_data = initialize_session_data()
+    def plot_job_duration(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, qos, session_data, account_format):
 
+        account_segments = account_format.get("segments") if account_format else None
+        
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -844,6 +901,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             accounts=accounts,
             qos=qos,
             format_accounts=True,
+            account_segments=account_segments,
         )
 
         time_col = get_time_column(start_date, end_date)
@@ -902,12 +960,13 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_job_duration_dist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, qos, session_data):
-        if session_data is None:
-            session_data = initialize_session_data()
+    def plot_job_duration_dist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, qos, session_data, account_format):
+        
+        account_segments = account_format.get("segments") if account_format else None
 
         df = datastore.filter(
             hostname=hostname,
@@ -919,6 +978,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             accounts=accounts,
             qos=qos,
             format_accounts=True,
+            account_segments=account_segments,
         )
 
         thresholds = [0, 1, 4, 12, 24, 72, 168, float('inf')]
@@ -995,12 +1055,13 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("color_by_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_cpu_hours(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data):
-        if session_data is None:
-            session_data = initialize_session_data()
+    def plot_cpu_hours(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data, account_format):
+
+        account_segments = account_format.get("segments") if account_format else None
 
         df = datastore.filter(
             hostname=hostname,
@@ -1013,6 +1074,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             complete_periods_only=False,
             qos=qos,
             format_accounts=True,
+            account_segments=account_segments,
         )
 
         time_col = get_time_column(start_date, end_date).replace("Submit", "Start")
@@ -1059,13 +1121,14 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("color_by_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_gpu_hours(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data):
-        if session_data is None:
-            session_data = initialize_session_data()
+    def plot_gpu_hours(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data, account_format):
 
+        account_segments = account_format.get("segments") if account_format else None
+        
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -1077,6 +1140,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             complete_periods_only=False,
             qos=qos,
             format_accounts=True,
+            account_segments=account_segments
         )
 
         time_col = get_time_column(start_date, end_date).replace("Submit", "Start")
@@ -1123,12 +1187,13 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("color_by_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_fraction_cpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos_selection, session_data):
-        if session_data is None:
-            session_data = initialize_session_data()
+    def plot_fraction_cpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos_selection, session_data, account_format):
+
+        account_segments = account_format.get("segments") if account_format else None
 
         df = datastore.filter(
             hostname=hostname,
@@ -1140,6 +1205,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             accounts=accounts,
             qos=qos_selection,
             format_accounts=True,
+            account_segments=account_segments,
         )
 
         category = color_by if color_by else "Account"
@@ -1179,13 +1245,14 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("color_by_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_fraction_gpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data):
-        if session_data is None:
-            session_data = initialize_session_data()
+    def plot_fraction_gpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data, account_format):
 
+        account_segments = account_format.get("segments") if account_format else None
+        
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -1196,6 +1263,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             accounts=accounts,
             qos=qos,
             format_accounts=True,
+            account_segments=account_segments,
         )
 
         category = color_by if color_by else "Account"
@@ -1237,12 +1305,13 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("sort_by_usage_switch", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_nodes_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, hide_unused, normalize, sort_by_usage, qos_selection, session_data):
-        if session_data is None:
-            session_data = initialize_session_data()
+    def plot_nodes_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, hide_unused, normalize, sort_by_usage, qos_selection, session_data, account_format):
+
+        account_segments = account_format.get("segments") if account_format else None
 
         df = datastore.filter(
             hostname=hostname,
@@ -1255,6 +1324,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             qos=qos_selection,
             complete_periods_only=False,
             format_accounts=True,
+            account_segments=account_segments
         )
 
         cols = ["NodeList", "GPU-hours", "CPU-hours"]
@@ -1651,57 +1721,3 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         if color_by == "Account":
             return {"display": "block"}
         return {"display": "block"}
-
-    @app.callback(
-        Output("total-active-users", "children"),
-        Output("total-jobs", "children"),
-        Output("total-cpu-hours", "children"),
-        Output("total-gpu-hours", "children"),
-        Input("hostname_dropdown", "value"),
-        Input("data_range_picker", "start_date"),
-        Input("data_range_picker", "end_date"),
-        Input("states_dropdown", "value"),
-        Input("partitions_dropdown", "value"),
-        Input("users_dropdown", "value"),
-        Input("accounts_dropdown", "value"),
-        Input("qos_selection_dropdown", "value"),
-        background=False,
-        manager=background_callback_manager,
-    )
-    def update_summary_stats(hostname, start_date, end_date, states, partitions, users, accounts, qos):
-        if not hostname:
-            return "N/A", "N/A", "N/A", "N/A"
-
-        # Get filtered data
-        df = datastore.filter(
-            hostname=hostname,
-            start_date=start_date,
-            end_date=end_date,
-            states=states,
-            partitions=partitions,
-            users=users,
-            accounts=accounts,
-            qos=qos,
-            format_accounts=True,
-        )
-
-        if df.empty:
-            return "0", "0", "0", "0"
-
-        # Calculate total unique active users
-        total_users = df["User"].nunique()
-
-        # Calculate total jobs
-        total_jobs = len(df)
-
-        # Calculate total CPU and GPU hours
-        total_cpu_hours = df["CPU-hours"].sum()
-        total_gpu_hours = df["GPU-hours"].sum()
-
-        # Format numbers for display
-        formatted_users = f"{total_users:,}"
-        formatted_jobs = f"{total_jobs:,}"
-        formatted_cpu = f"{total_cpu_hours:,.0f} h"
-        formatted_gpu = f"{total_gpu_hours:,.0f} h"
-
-        return formatted_users, formatted_jobs, formatted_cpu, formatted_gpu
