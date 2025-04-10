@@ -1,3 +1,4 @@
+import os
 import getpass
 import logging
 from datetime import date
@@ -43,13 +44,7 @@ def initialize_session_data(session_id=None):
 
 def init_app(app):
     server = app.server
-    server.secret_key = 'your_secret_key_here'
-
-def update_app_layout(app_layout):
-    if not any(getattr(component, 'id', None) == 'session-store' for component in app_layout.children):
-        session_store = dcc.Store(id='session-store', storage_type='session')
-        app_layout.children.append(session_store)
-    return app_layout
+    server.secret_key = os.getenv('FLASK_SECRET_KEY')
 
 def ensure_consistent_categories_and_colors(df, category_name, color_sequence, session_data):
     if category_name not in df.columns or session_data is None:
@@ -110,20 +105,37 @@ def list_to_options(list_of_strings):
     return [{"label": x, "value": x} for x in list_of_strings]
 
 def add_callbacks(app, datastore, cache, background_callback_manager):
+    
     @app.callback(
-        Output("session-store", "data"),
+        Output("account-formatter-store", "data"),
         Input("account-format-segments", "value"),
-        Input("interval", "n_intervals"),
-        State("session-store", "data")
+        prevent_initial_call=True
     )
-    def update_session_data(segments_to_keep, n_intervals, current_data):
-        if current_data is None:
-            current_data = initialize_session_data()
-
+    def update_account_format(segments_to_keep):
         if segments_to_keep is not None:
             from .account_formatter import formatter
             formatter.max_segments = segments_to_keep
-
+            
+            # Clear the datastore filter cache
+            datastore._filter_data.cache_clear()
+            
+            # Return a timestamp to indicate a change happened
+            import time
+            return {"updated_at": time.time(), "segments": segments_to_keep}
+        return dash.no_update
+    
+    @app.callback(
+        Output("session-store", "data"),
+        Input("interval", "n_intervals"),
+        Input("account-formatter-store", "data"),
+        State("session-store", "data")
+    )
+    def update_session_data(n_intervals, account_format, current_data):
+        if current_data is None:
+            current_data = initialize_session_data()
+        
+        # If account format has changed, reset the category data
+        if account_format is not None:
             current_data['category_orders'] = {
                 "User": None,
                 "Account": None,
@@ -138,10 +150,10 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
                 "State": {},
                 "QOS": {},
             }
-
-            datastore._filter_data.cache_clear()
-
-        current_data['formatter'] = {"segments": segments_to_keep or 3}
+            
+            # Only update the formatter if we have segments information
+            if "segments" in account_format:
+                current_data['formatter'] = {"segments": account_format.get("segments", 3)}
 
         return current_data
 
@@ -274,10 +286,11 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("accounts_dropdown", "value"),
         Input("complete_periods_switch", "value"),
         Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_active_users(hostname, start_date, end_date, accounts, complete_periods, session_data):
+    def plot_active_users(hostname, start_date, end_date, accounts, complete_periods, session_data, account_format):
         if session_data is None:
             session_data = initialize_session_data()
 
@@ -330,10 +343,11 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("color_by_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
+        Input("account-formatter-store", "data"), 
         background=False,
         manager=background_callback_manager,
     )
-    def plot_number_of_jobs(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data):
+    def plot_number_of_jobs(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data, account_format):
         if session_data is None:
             session_data = initialize_session_data()
 
@@ -1394,11 +1408,10 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
-        Input("session-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_job_duration_stacked(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
+    def plot_job_duration_stacked(hostname, start_date, end_date, states, partitions, users, accounts, qos):
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -1408,7 +1421,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             qos=qos,
             users=users,
             accounts=accounts,
-            format_accounts=True,
+            format_accounts=False,
         )
 
         if df.empty:
@@ -1519,11 +1532,10 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
-        Input("session-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_waiting_times_stacked(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
+    def plot_waiting_times_stacked(hostname, start_date, end_date, states, partitions, users, accounts, qos):
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -1533,7 +1545,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             users=users,
             qos=qos,
             accounts=accounts,
-            format_accounts=True,
+            format_accounts=False,
         )
 
         if df.empty:

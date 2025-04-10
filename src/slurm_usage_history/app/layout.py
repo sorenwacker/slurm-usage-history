@@ -455,6 +455,7 @@ account_formatter_store = dcc.Store(id="account-formatter-store", data={"segment
 
 account_formatter_controls = html.Div(
     [
+        account_formatter_store,
         html.Label("Account Name Format", className="font-weight-bold mb-2"),
         dbc.RadioItems(
             id="account-format-segments",
