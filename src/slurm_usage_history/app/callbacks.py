@@ -1,4 +1,5 @@
 import os
+import time
 import getpass
 import logging
 from datetime import date
@@ -113,14 +114,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
     )
     def update_account_format(segments_to_keep):
         if segments_to_keep is not None:
-            from .account_formatter import formatter
-            formatter.max_segments = segments_to_keep
-            
-            # Clear the datastore filter cache
-            datastore._filter_data.cache_clear()
-            
-            # Return a timestamp to indicate a change happened
-            import time
             return {"updated_at": time.time(), "segments": segments_to_keep}
         return dash.no_update
     
@@ -294,12 +287,15 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         if session_data is None:
             session_data = initialize_session_data()
 
+        formatter_segments = account_format.get("segments") if account_format else None
+
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
             end_date=end_date,
             accounts=accounts,
             format_accounts=True,
+            account_segments=formatter_segments,
             complete_periods_only=complete_periods,
         )
         time_col = get_time_column(start_date, end_date)
@@ -348,8 +344,8 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         manager=background_callback_manager,
     )
     def plot_number_of_jobs(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data, account_format):
-        if session_data is None:
-            session_data = initialize_session_data()
+        
+        formatter_segments = account_format.get("segments") if account_format else None
 
         df = datastore.filter(
             hostname=hostname,
@@ -361,6 +357,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             accounts=accounts,
             qos=qos,
             format_accounts=True,
+            formatter_segments=formatter_segments
         )
         time_col = get_time_column(start_date, end_date)
         sorted_time_values = sorted(df[time_col].unique())
@@ -407,12 +404,13 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("color_by_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
         Input("session-store", "data"),
+        Input("account-formatter-store", "data"), 
         background=False,
         manager=background_callback_manager,
     )
-    def plot_fraction_accounts(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data):
-        if session_data is None:
-            session_data = initialize_session_data()
+    def plot_fraction_accounts(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data, account_format):
+
+        formatter_segments = account_format.get("segments") if account_format else None
 
         df = datastore.filter(
             hostname=hostname,
@@ -424,8 +422,8 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             accounts=accounts,
             qos=qos,
             format_accounts=True,
+            formatter_segments=formatter_segments
         )
-
 
         if color_by == 'User':
             pass
