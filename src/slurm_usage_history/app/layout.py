@@ -346,12 +346,12 @@ header = html.Div(
                             ),
                             html.A(
                                 dbc.Button(
-                                    "Resources",
+                                    "Usage",
                                     outline=True,
                                     color="light",
                                     size="sm",
                                 ),
-                                href="#resources-section",
+                                href="#usage-section",
                                 **{"data-scroll": "true"},
                                 className="mx-1",
                             ),
@@ -368,12 +368,12 @@ header = html.Div(
                             ),
                             html.A(
                                 dbc.Button(
-                                    "Usage",
+                                    "Resources",
                                     outline=True,
                                     color="light",
                                     size="sm",
                                 ),
-                                href="#usage-section",
+                                href="#resources-section",
                                 **{"data-scroll": "true"},
                                 className="mx-1",
                             ),

@@ -504,7 +504,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         manager=background_callback_manager,
     )
     def plot_cpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos):
-        
+
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
