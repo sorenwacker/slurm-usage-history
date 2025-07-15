@@ -80,7 +80,7 @@ def create_account_formatter_controls():
             dbc.RadioItems(
                 id="account-format-segments",
                 options=[{"label": "Full names", "value": 0}, {"label": "First segment", "value": 1}, {"label": "First two segments", "value": 2}, {"label": "First three segments", "value": 3}],
-                value=formatter.max_segments,
+                value=3,
                 inline=False,
                 className="mb-2",
             ),
@@ -105,7 +105,6 @@ def create_account_formatter_controls():
         ],
         className="mb-3",
     )
-
 
 data_range_picker = dcc.DatePickerRange(
     id="data_range_picker",
@@ -464,7 +463,7 @@ account_formatter_controls = html.Div(
                 {"label": "First two segments", "value": 2},
                 {"label": "First three segments", "value": 3}
             ],
-            value=2,
+            value=3,
             inline=False,
             className="mb-2",
         ),
@@ -610,14 +609,53 @@ overview_section = create_section(
                     width=12,
                     lg=6,
                 ),
-            ]
+            ],
+            className="mb-4",
         ),
-        # Rest of the overview section stays the same
-
+        # Conditional pie charts row (only visible when color grouping is selected)
+        html.Div(
+            dbc.Row(
+                [
+                    dbc.Col(
+                        dbc.Card(
+                            [
+                                dbc.CardHeader("Active Users Distribution"),
+                                dbc.CardBody(
+                                    dcc.Loading(
+                                        dcc.Graph(id="pie_active_users"),
+                                        type="default",
+                                    )
+                                ),
+                            ],
+                            style=CARD_STYLE,
+                        ),
+                        width=12,
+                        lg=6,
+                    ),
+                    dbc.Col(
+                        dbc.Card(
+                            [
+                                dbc.CardHeader("Jobs Distribution"),
+                                dbc.CardBody(
+                                    dcc.Loading(
+                                        dcc.Graph(id="pie_number_of_jobs"),
+                                        type="default",
+                                    )
+                                ),
+                            ],
+                            style=CARD_STYLE,
+                        ),
+                        width=12,
+                        lg=6,
+                    ),
+                ]
+            ),
+            id="pie-charts-overview",
+            style={"display": "none"},  # Hidden by default
+        ),
     ],
     id="overview-section",
 )
-
 job_timing_section = create_section(
     "Waiting Time and Job Duration",
     [
@@ -897,14 +935,14 @@ resource_usage_section = create_section(
                                         dcc.Graph(id="plot_nodes_usage_cpu"),
                                         type="default",
                                     ),
-                                    label="CPU Nodes",
+                                    label="CPU Usage",
                                 ),
                                 dbc.Tab(
                                     dcc.Loading(
                                         dcc.Graph(id="plot_nodes_usage_gpu"),
                                         type="default",
                                     ),
-                                    label="GPU Nodes",
+                                    label="GPU Usage",
                                 ),
                             ]
                         ),
@@ -1091,7 +1129,6 @@ layout = html.Div(
                                     resource_usage_section,
                                     job_timing_section,
                                     resources_section,
-                                    usage_by_section
                                 ],
                                 width=13,
                                 lg=9,

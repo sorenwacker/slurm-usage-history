@@ -118,6 +118,17 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         return dash.no_update
     
     @app.callback(
+        Output("account-format-container", "style"),
+        Input("color_by_dropdown", "value")
+    )
+    def toggle_account_formatter_visibility(color_by):
+        """Show account formatter controls when Account grouping is relevant"""
+        if color_by == "Account":
+            return {"display": "block"}
+        return {"display": "none"}
+
+        
+    @app.callback(
         Output("session-store", "data"),
         Input("interval", "n_intervals"),
         Input("account-formatter-store", "data"),
@@ -477,163 +488,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
                     trace.marker.color = color_map.get(trace.name, trace.marker.color)
 
         fig.update_xaxes(categoryorder="array", categoryarray=sorted_time_values)
-        return fig
-
-    @app.callback(
-        Output("plot_fractions_accounts", "figure"),
-        Input("hostname_dropdown", "value"),
-        Input("data_range_picker", "start_date"),
-        Input("data_range_picker", "end_date"),
-        Input("states_dropdown", "value"),
-        Input("partitions_dropdown", "value"),
-        Input("users_dropdown", "value"),
-        Input("accounts_dropdown", "value"),
-        Input("color_by_dropdown", "value"),
-        Input("qos_selection_dropdown", "value"),
-        Input("session-store", "data"),
-        Input("account-formatter-store", "data"), 
-        background=False,
-        manager=background_callback_manager,
-    )
-    def plot_fraction_accounts(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data, account_format):
-
-        account_segments = account_format.get("segments") if account_format else None
-
-        df = datastore.filter(
-            hostname=hostname,
-            start_date=start_date,
-            end_date=end_date,
-            states=states,
-            partitions=partitions,
-            users=users,
-            accounts=accounts,
-            qos=qos,
-            format_accounts=True,
-            account_segments=account_segments,
-        )
-
-        if color_by == 'User':
-            pass
-        else:
-            color_by = 'Account'
-
-        category_order, color_map = ensure_consistent_categories_and_colors(
-            df, color_by, COLORS[color_by], session_data
-        )
-
-        counts = df[color_by].value_counts().to_frame("Counts").reset_index()
-        fig = px.pie(
-            counts,
-            values="Counts",
-            names=color_by,
-            title=f"Job submissions by {color_by.lower()}",
-            category_orders={color_by: category_order},
-        )
-
-        fig.update_traces(
-            marker={"colors": [color_map.get(cat, "#CCCCCC") for cat in counts[color_by]]},
-            textposition="inside",
-            textinfo="percent+label"
-        )
-
-        return fig
-
-    @app.callback(
-        Output("plot_fraction_qos", "figure"),
-        Input("hostname_dropdown", "value"),
-        Input("data_range_picker", "start_date"),
-        Input("data_range_picker", "end_date"),
-        Input("states_dropdown", "value"),
-        Input("partitions_dropdown", "value"),
-        Input("users_dropdown", "value"),
-        Input("accounts_dropdown", "value"),
-        Input("qos_selection_dropdown", "value"),
-        Input("session-store", "data"),
-        background=False,
-        manager=background_callback_manager,
-    )
-    def plot_fraction_qos(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
-
-        df = datastore.filter(
-            hostname=hostname,
-            start_date=start_date,
-            end_date=end_date,
-            states=states,
-            partitions=partitions,
-            users=users,
-            accounts=accounts,
-            qos=qos,
-            format_accounts=False,
-        )
-
-        category_order, color_map = ensure_consistent_categories_and_colors(
-            df, "QOS", COLORS["QOS"], session_data
-        )
-
-        counts = df.QOS.value_counts().to_frame("Counts").reset_index()
-        fig = px.pie(
-            counts,
-            values="Counts",
-            names="QOS",
-            title="Job submissions by quality of service (QoS)",
-            category_orders={"QOS": category_order},
-        )
-
-        fig.update_traces(
-            marker={"colors": [color_map.get(cat, "#CCCCCC") for cat in counts["QOS"]]},
-            textposition="inside",
-            textinfo="percent+label"
-        )
-
-        return fig
-
-    @app.callback(
-        Output("plot_fractions_states", "figure"),
-        Input("hostname_dropdown", "value"),
-        Input("data_range_picker", "start_date"),
-        Input("data_range_picker", "end_date"),
-        Input("states_dropdown", "value"),
-        Input("partitions_dropdown", "value"),
-        Input("users_dropdown", "value"),
-        Input("accounts_dropdown", "value"),
-        Input("qos_selection_dropdown", "value"),
-        Input("session-store", "data"),
-        background=False,
-        manager=background_callback_manager,
-    )
-    def plot_fractions_states(hostname, start_date, end_date, states, partitions, users, accounts, qos, session_data):
-
-        df = datastore.filter(
-            hostname=hostname,
-            start_date=start_date,
-            end_date=end_date,
-            states=states,
-            partitions=partitions,
-            users=users,
-            accounts=accounts,
-            qos=qos,
-            format_accounts=False,
-        )
-
-        category_order, color_map = ensure_consistent_categories_and_colors(
-            df, "State", COLORS["State"], session_data
-        )
-
-        counts = df.State.value_counts().to_frame("Counts").reset_index()
-        fig = px.pie(
-            counts,
-            values="Counts",
-            names="State",
-            title="Job state",
-            category_orders={"State": category_order},
-        )
-
-        fig.update_traces(
-            marker={"colors": [color_map.get(cat, "#CCCCCC") for cat in counts["State"]]},
-            textposition="inside",
-            textinfo="percent+label"
-        )
-
         return fig
 
     @app.callback(
@@ -1819,5 +1673,197 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
                         "Percentage: %{y:.1f}%<br>" +
                         "Total Jobs: %{customdata[1]}<extra></extra>"
         )
+
+        return fig
+
+
+
+
+    # Callback to show/hide pie charts based on color selection
+    @app.callback(
+        Output("pie-charts-overview", "style"),
+        Input("color_by_dropdown", "value"),  # Replace with your actual color-by dropdown ID
+    )
+    def toggle_pie_charts_visibility(color_by_selection):
+        """
+        Show or hide the pie charts based on whether color grouping is selected.
+        
+        Args:
+            color_by_selection: Selected color-by option
+            
+        Returns:
+            dict: CSS style to show or hide the pie charts
+        """
+        if color_by_selection and color_by_selection != "None":
+            return {"display": "block"}
+        else:
+            return {"display": "none"}
+
+    # Callback for active users pie chart
+    @app.callback(
+        Output("pie_active_users", "figure"),
+        Input("hostname_dropdown", "value"),
+        Input("data_range_picker", "start_date"),
+        Input("data_range_picker", "end_date"),
+        Input("accounts_dropdown", "value"),
+        Input("complete_periods_switch", "value"),
+        Input("color_by_dropdown", "value"),
+        Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
+        background=False,
+        manager=background_callback_manager,
+    )
+    def create_pie_active_users(hostname, start_date, end_date, accounts, complete_periods, color_by_selection, session_data, account_format):
+        """
+        Create a pie chart showing distribution of active users by selected grouping.
+        
+        Args:
+            hostname: Selected hostname
+            start_date: Start date for filtering
+            end_date: End date for filtering
+            accounts: Selected accounts
+            complete_periods: Whether to show only complete periods
+            color_by_selection: Selected color-by option
+            session_data: Session data for consistent colors
+            account_format: Account formatting configuration
+            
+        Returns:
+            plotly.graph_objects.Figure: Pie chart figure
+        """
+        if not color_by_selection or color_by_selection == "None":
+            return px.pie(title="No grouping selected")
+        
+        if session_data is None:
+            session_data = initialize_session_data()
+
+        account_segments = account_format.get("segments") if account_format else None
+
+        df = datastore.filter(
+            hostname=hostname,
+            start_date=start_date,
+            end_date=end_date,
+            accounts=accounts,
+            format_accounts=True,
+            account_segments=account_segments,
+            complete_periods_only=complete_periods,
+        )
+
+        if df.empty:
+            return px.pie(title="No data available")
+
+        # For active users, only Account grouping makes sense
+        if color_by_selection == "Account":
+            category = "Account"
+            
+            category_order, color_map = ensure_consistent_categories_and_colors(
+                df, category, COLORS[category], session_data
+            )
+
+            # Count unique users per account
+            user_counts = df.groupby(category)["User"].nunique().reset_index(name="Active Users")
+            user_counts = ensure_consistent_categories(user_counts, category, "Active Users", session_data)
+            
+            fig = px.pie(
+                user_counts,
+                values="Active Users",
+                names=category,
+                title=f"Active users by {category.lower()}",
+                color=category,
+                color_discrete_map=color_map,
+                category_orders={category: category_order}
+            )
+            
+            fig.update_traces(textposition="inside", textinfo="percent+label")
+        else:
+            # Return empty chart for other groupings since they don't make sense for users
+            return px.pie(title="Active users can only be grouped by Account")
+
+        return fig
+
+    # Callback for jobs pie chart
+    @app.callback(
+        Output("pie_number_of_jobs", "figure"),
+        Input("hostname_dropdown", "value"),
+        Input("data_range_picker", "start_date"),
+        Input("data_range_picker", "end_date"),
+        Input("states_dropdown", "value"),
+        Input("partitions_dropdown", "value"),
+        Input("users_dropdown", "value"),
+        Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
+        Input("complete_periods_switch", "value"),
+        Input("color_by_dropdown", "value"),
+        Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
+        background=False,
+        manager=background_callback_manager,
+    )
+    def create_pie_number_of_jobs(hostname, start_date, end_date, states, partitions, users, accounts, qos, complete_periods, color_by_selection, session_data, account_format):
+        """
+        Create a pie chart showing distribution of jobs by selected grouping.
+        
+        Args:
+            hostname: Selected hostname
+            start_date: Start date for filtering
+            end_date: End date for filtering
+            states: Selected job states
+            partitions: Selected partitions
+            users: Selected users
+            accounts: Selected accounts
+            qos: Selected QOS
+            complete_periods: Whether to show only complete periods
+            color_by_selection: Selected color-by option
+            session_data: Session data for consistent colors
+            account_format: Account formatting configuration
+            
+        Returns:
+            plotly.graph_objects.Figure: Pie chart figure
+        """
+        if not color_by_selection or color_by_selection == "None":
+            return px.pie(title="No grouping selected")
+        
+        if session_data is None:
+            session_data = initialize_session_data()
+
+        account_segments = account_format.get("segments") if account_format else None
+
+        df = datastore.filter(
+            hostname=hostname,
+            start_date=start_date,
+            end_date=end_date,
+            states=states,
+            partitions=partitions,
+            qos=qos,
+            users=users,
+            accounts=accounts,
+            format_accounts=True,
+            account_segments=account_segments,
+            complete_periods_only=complete_periods,
+        )
+
+        if df.empty:
+            return px.pie(title="No data available")
+
+        category = color_by_selection
+        
+        category_order, color_map = ensure_consistent_categories_and_colors(
+            df, category, COLORS[category], session_data
+        )
+
+        # Count jobs per category
+        job_counts = df.groupby(category).size().reset_index(name="Number of Jobs")
+        job_counts = ensure_consistent_categories(job_counts, category, "Number of Jobs", session_data)
+        
+        fig = px.pie(
+            job_counts,
+            values="Number of Jobs",
+            names=category,
+            title=f"Jobs by {category.lower()}",
+            color=category,
+            color_discrete_map=color_map,
+            category_orders={category: category_order}
+        )
+        
+        fig.update_traces(textposition="inside", textinfo="percent+label")
 
         return fig
