@@ -1128,7 +1128,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
     def plot_gpu_hours(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data, account_format):
 
         account_segments = account_format.get("segments") if account_format else None
-        
+
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -1252,7 +1252,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
     def plot_fraction_gpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data, account_format):
 
         account_segments = account_format.get("segments") if account_format else None
-        
+
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -1466,6 +1466,51 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
 
         return options
 
+    # Callback for toggling waiting time details
+    @app.callback(
+        Output("collapse-waiting", "is_open"),
+        [Input("collapse-button-waiting", "n_clicks")],
+        [State("collapse-waiting", "is_open")],
+    )
+    def toggle_waiting_collapse(n_clicks, is_open):
+        """
+        Toggle the collapse state of the waiting time details section.
+
+        Args:
+            n_clicks: Number of times the button has been clicked
+            is_open: Current state of the collapse
+
+        Returns:
+            bool: New state of the collapse
+        """
+        if n_clicks:
+            return not is_open
+        return is_open
+
+    # Callback for toggling job duration details
+    @app.callback(
+        Output("collapse-duration", "is_open"),
+        [Input("collapse-button-duration", "n_clicks")],
+        [State("collapse-duration", "is_open")],
+    )
+    def toggle_duration_collapse(n_clicks, is_open):
+        """
+        Toggle the collapse state of the job duration details section.
+
+        Args:
+            n_clicks: Number of times the button has been clicked
+            is_open: Current state of the collapse
+
+        Returns:
+            bool: New state of the collapse
+        """
+        if n_clicks:
+            return not is_open
+        return is_open
+
+
+
+
     @app.callback(
         Output("plot_job_duration_stacked", "figure"),
         Input("hostname_dropdown", "value"),
@@ -1480,6 +1525,22 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         manager=background_callback_manager,
     )
     def plot_job_duration_stacked(hostname, start_date, end_date, states, partitions, users, accounts, qos):
+        """
+        Create a stacked bar chart showing job duration distribution by time period.
+        
+        Args:
+            hostname: Selected hostname
+            start_date: Start date for filtering
+            end_date: End date for filtering
+            states: Selected job states
+            partitions: Selected partitions
+            users: Selected users
+            accounts: Selected accounts
+            qos: Selected QOS
+            
+        Returns:
+            plotly.graph_objects.Figure: Stacked bar chart figure
+        """
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -1583,9 +1644,10 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
 
         fig.update_traces(
             hovertemplate="<b>%{x}</b><br>" +
-                        "Job Duration: %{customdata[0]} jobs<br>" +
+                        "Job Duration: %{fullData.name}<br>" +
+                        "Jobs: %{customdata[0]}<br>" +
                         "Percentage: %{y:.1f}%<br>" +
-                        "Total Jobs: %{customdata[1]}<extra>%{fullData.name}</extra>"
+                        "Total Jobs: %{customdata[1]}<extra></extra>"
         )
 
         return fig
@@ -1604,6 +1666,22 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         manager=background_callback_manager,
     )
     def plot_waiting_times_stacked(hostname, start_date, end_date, states, partitions, users, accounts, qos):
+        """
+        Create a stacked bar chart showing waiting time distribution by time period.
+        
+        Args:
+            hostname: Selected hostname
+            start_date: Start date for filtering
+            end_date: End date for filtering
+            states: Selected job states
+            partitions: Selected partitions
+            users: Selected users
+            accounts: Selected accounts
+            qos: Selected QOS
+            
+        Returns:
+            plotly.graph_objects.Figure: Stacked bar chart figure
+        """
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -1705,19 +1783,10 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
 
         fig.update_traces(
             hovertemplate="<b>%{x}</b><br>" +
-                        "Waiting Time: %{customdata[0]} jobs<br>" +
+                        "Waiting Time: %{fullData.name}<br>" +
+                        "Jobs: %{customdata[0]}<br>" +
                         "Percentage: %{y:.1f}%<br>" +
-                        "Total Jobs: %{customdata[1]}<extra>%{fullData.name}</extra>"
+                        "Total Jobs: %{customdata[1]}<extra></extra>"
         )
 
         return fig
-
-    @app.callback(
-        Output("account-format-container", "style"),
-        Input("color_by_dropdown", "value"),
-    )
-    def toggle_account_format_visibility(color_by):
-        # Just in case we want to hide the account format dropdown.
-        if color_by == "Account":
-            return {"display": "block"}
-        return {"display": "block"}

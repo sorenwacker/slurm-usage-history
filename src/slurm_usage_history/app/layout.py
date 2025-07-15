@@ -246,7 +246,7 @@ interval = dcc.Interval(
 hide_unused_nodes_switch = dbc.Switch(
     id="hide_unused_nodes_switch",
     label="Hide unused nodes",
-    value=False,
+    value=True,
     className="ms-2 mb-2",
 )
 
@@ -320,7 +320,7 @@ header = html.Div(
                                 ),
                                 dbc.Col(
                                     html.H2(
-                                        "Slurm Usage History Dashboard",
+                                        "Slurm-Usage-History Dashboard",
                                         className="m-0",
                                         style={"color": COLORS["white"]},
                                     )
@@ -613,58 +613,7 @@ overview_section = create_section(
             ]
         ),
         # Rest of the overview section stays the same
-        dbc.Row(
-            [
-                dbc.Col(
-                    dbc.Card(
-                        [
-                            dbc.CardHeader("Usage by Account"),
-                            dbc.CardBody(
-                                dcc.Loading(
-                                    dcc.Graph(id="plot_fractions_accounts"),
-                                    type="default",
-                                )
-                            ),
-                        ],
-                        style=CARD_STYLE,
-                    ),
-                    width=12,
-                    lg=4,
-                ),
-                dbc.Col(
-                    dbc.Card(
-                        [
-                            dbc.CardHeader("Usage by QOS"),
-                            dbc.CardBody(
-                                dcc.Loading(
-                                    dcc.Graph(id="plot_fraction_qos"),
-                                    type="default",
-                                )
-                            ),
-                        ],
-                        style=CARD_STYLE,
-                    ),
-                    width=12,
-                    lg=4,
-                ),
-                dbc.Col(
-                    dbc.Card(
-                        [
-                            dbc.CardHeader("Job States"),
-                            dbc.CardBody(
-                                dcc.Loading(
-                                    dcc.Graph(id="plot_fractions_states"),
-                                    type="default",
-                                )
-                            ),
-                        ],
-                        style=CARD_STYLE,
-                    ),
-                    width=12,
-                    lg=4,
-                ),
-            ]
-        ),
+
     ],
     id="overview-section",
 )
@@ -693,53 +642,75 @@ job_timing_section = create_section(
             ],
             className="mb-4",
         ),
-
+        
+        # Toggle button for waiting time details
         dbc.Row(
             [
                 dbc.Col(
-                    dbc.Card(
-                        [
-                            dbc.CardHeader("Waiting Times Distribution"),
-                            dbc.CardBody(
-                                dcc.Loading(
-                                    dcc.Graph(id="plot_waiting_times_hist"),
-                                    type="default",
-                                )
-                            ),
-                        ],
-                        style=CARD_STYLE,
+                    dbc.Button(
+                        "Show/Hide Waiting Time Details",
+                        id="collapse-button-waiting",
+                        color="outline-primary",
+                        size="sm",
+                        n_clicks=0,
                     ),
                     width=12,
-                    lg=6,
+                    className="text-center mb-3",
                 ),
-                dbc.Col(
-                    dbc.Card(
-                        [
-                            dbc.CardHeader(
-                                dbc.Row(
-                                    [
-                                        dbc.Col("Waiting Times", width=8),
-                                        dbc.Col(
-                                            waiting_times_observable_dropdown,
-                                            width=4,
-                                        ),
-                                    ]
-                                )
-                            ),
-                            dbc.CardBody(
-                                dcc.Loading(
-                                    dcc.Graph(id="plot_waiting_times"),
-                                    type="default",
-                                )
-                            ),
-                        ],
-                        style=CARD_STYLE,
+            ]
+        ),
+
+        # Collapsible section for waiting time details
+        dbc.Collapse(
+            dbc.Row(
+                [
+                    dbc.Col(
+                        dbc.Card(
+                            [
+                                dbc.CardHeader("Waiting Times Distribution"),
+                                dbc.CardBody(
+                                    dcc.Loading(
+                                        dcc.Graph(id="plot_waiting_times_hist"),
+                                        type="default",
+                                    )
+                                ),
+                            ],
+                            style=CARD_STYLE,
+                        ),
+                        width=12,
+                        lg=6,
                     ),
-                    width=12,
-                    lg=6,
-                ),
-            ],
-            className="mb-5",
+                    dbc.Col(
+                        dbc.Card(
+                            [
+                                dbc.CardHeader(
+                                    dbc.Row(
+                                        [
+                                            dbc.Col("Waiting Times", width=8),
+                                            dbc.Col(
+                                                waiting_times_observable_dropdown,
+                                                width=4,
+                                            ),
+                                        ]
+                                    )
+                                ),
+                                dbc.CardBody(
+                                    dcc.Loading(
+                                        dcc.Graph(id="plot_waiting_times"),
+                                        type="default",
+                                    )
+                                ),
+                            ],
+                            style=CARD_STYLE,
+                        ),
+                        width=12,
+                        lg=6,
+                    ),
+                ],
+                className="mb-5",
+            ),
+            id="collapse-waiting",
+            is_open=False,
         ),
 
         html.H4("Job Durations", className="mt-4 mb-2"),
@@ -764,65 +735,87 @@ job_timing_section = create_section(
             className="mb-4",
         ),
 
+        # Toggle button for job duration details
         dbc.Row(
             [
                 dbc.Col(
-                    dbc.Card(
-                        [
-                            dbc.CardHeader("Job Duration Distribution"),
-                            dbc.CardBody(
-                                dcc.Loading(
-                                    dcc.Graph(id="plot_job_duration_hist"),
-                                    type="default",
-                                )
-                            ),
-                        ],
-                        style=CARD_STYLE,
+                    dbc.Button(
+                        "Show/Hide Job Duration Details",
+                        id="collapse-button-duration",
+                        color="outline-primary",
+                        size="sm",
+                        n_clicks=0,
                     ),
                     width=12,
-                    lg=6,
-                ),
-                dbc.Col(
-                    dbc.Card(
-                        [
-                            dbc.CardHeader(
-                                dbc.Row(
-                                    [
-                                        dbc.Col("Job Duration", width=8),
-                                        dbc.Col(
-                                            job_duration_observable_dropdown,
-                                            width=4,
-                                        ),
-                                    ]
-                                )
-                            ),
-                            dbc.CardBody(
-                                dcc.Loading(
-                                    dcc.Graph(id="plot_job_duration"),
-                                    type="default",
-                                )
-                            ),
-                        ],
-                        style=CARD_STYLE,
-                    ),
-                    width=12,
-                    lg=6,
+                    className="text-center mb-3",
                 ),
             ]
+        ),
+
+        # Collapsible section for job duration details
+        dbc.Collapse(
+            dbc.Row(
+                [
+                    dbc.Col(
+                        dbc.Card(
+                            [
+                                dbc.CardHeader("Job Duration Distribution"),
+                                dbc.CardBody(
+                                    dcc.Loading(
+                                        dcc.Graph(id="plot_job_duration_hist"),
+                                        type="default",
+                                    )
+                                ),
+                            ],
+                            style=CARD_STYLE,
+                        ),
+                        width=12,
+                        lg=6,
+                    ),
+                    dbc.Col(
+                        dbc.Card(
+                            [
+                                dbc.CardHeader(
+                                    dbc.Row(
+                                        [
+                                            dbc.Col("Job Duration", width=8),
+                                            dbc.Col(
+                                                job_duration_observable_dropdown,
+                                                width=4,
+                                            ),
+                                        ]
+                                    )
+                                ),
+                                dbc.CardBody(
+                                    dcc.Loading(
+                                        dcc.Graph(id="plot_job_duration"),
+                                        type="default",
+                                    )
+                                ),
+                            ],
+                            style=CARD_STYLE,
+                        ),
+                        width=12,
+                        lg=6,
+                    ),
+                ]
+            ),
+            id="collapse-duration",
+            is_open=False,
         ),
     ],
     id="timing-section",
 )
 
 resource_usage_section = create_section(
-    "Resource Usage",
+    "Usage",
     [
         dbc.Row(
             [
                 dbc.Col(
                     dbc.Card(
                         [
-                            dbc.CardHeader("CPU Hours"),
+                            dbc.CardHeader("CPU Usage"),
                             dbc.CardBody(dcc.Loading(dcc.Graph(id="plot_cpu_hours"), type="default")),
                         ],
                         style=CARD_STYLE,
@@ -833,7 +826,7 @@ resource_usage_section = create_section(
                 dbc.Col(
                     dbc.Card(
                         [
-                            dbc.CardHeader("GPU Hours"),
+                            dbc.CardHeader("GPU Usage"),
                             dbc.CardBody(dcc.Loading(dcc.Graph(id="plot_gpu_hours"), type="default")),
                         ],
                         style=CARD_STYLE,
@@ -886,7 +879,7 @@ resource_usage_section = create_section(
         # Node usage card with node display options included
         dbc.Card(
             [
-                dbc.CardHeader("Node Usage"),
+                dbc.CardHeader("CPU/GPU Usage by Node"),
                 dbc.CardBody(
                     [
                         dbc.Row(
@@ -924,9 +917,68 @@ resource_usage_section = create_section(
     id="usage-section",
 )
 
+usage_by_section = create_section(
+    "Job Submission by Category",  # Updated section title
+    [
+        dbc.Row(
+            [  # Added missing list brackets
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardHeader("Job Submission by Account"),
+                            dbc.CardBody(
+                                dcc.Loading(
+                                    dcc.Graph(id="plot_fractions_accounts"),
+                                    type="default",
+                                )
+                            ),
+                        ],
+                        style=CARD_STYLE,
+                    ),
+                    width=12,
+                    lg=4,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardHeader("Job Submission by QOS"),
+                            dbc.CardBody(
+                                dcc.Loading(
+                                    dcc.Graph(id="plot_fraction_qos"),
+                                    type="default",
+                                )
+                            ),
+                        ],
+                        style=CARD_STYLE,
+                    ),
+                    width=12,
+                    lg=4,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardHeader("Job States"),
+                            dbc.CardBody(
+                                dcc.Loading(
+                                    dcc.Graph(id="plot_fractions_states"),
+                                    type="default",
+                                )
+                            ),
+                        ],
+                        style=CARD_STYLE,
+                    ),
+                    width=12,
+                    lg=4,
+                ),
+            ]  # Added missing closing bracket
+        )
+    ],
+    id="usage-by-section",
+)
+
 resources_section = create_section(
     "Allocated Resources",
-    [
+    children=[
         dbc.Row(
             [
                 dbc.Col(
@@ -1036,9 +1088,10 @@ layout = html.Div(
                             dbc.Col(
                                 [
                                     overview_section,
-                                    resources_section,
-                                    job_timing_section,
                                     resource_usage_section,
+                                    job_timing_section,
+                                    resources_section,
+                                    usage_by_section
                                 ],
                                 width=13,
                                 lg=9,

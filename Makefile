@@ -7,3 +7,6 @@ getdata:
 devel:
 	uv run slushi-dashboard --debug
 
+gettestdata:
+	rsync -avz --progress --delete --exclude=".*" --include="*/" --include="**/*2025*" --exclude="*" daic:/tudelft.net/staff-umbrella/reit/slurm-usage-history/ ./data/
+
