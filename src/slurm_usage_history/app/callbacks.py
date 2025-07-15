@@ -334,12 +334,29 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("data_range_picker", "end_date"),
         Input("accounts_dropdown", "value"),
         Input("complete_periods_switch", "value"),
+        Input("color_by_dropdown", "value"),  # Add this input for color-by selection
         Input("session-store", "data"),
         Input("account-formatter-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_active_users(hostname, start_date, end_date, accounts, complete_periods, session_data, account_format):
+    def plot_active_users(hostname, start_date, end_date, accounts, complete_periods, color_by_selection, session_data, account_format):
+        """
+        Create an area plot showing number of active users over time.
+        
+        Args:
+            hostname: Selected hostname
+            start_date: Start date for filtering
+            end_date: End date for filtering
+            accounts: Selected accounts
+            complete_periods: Whether to show only complete periods
+            color_by_selection: Selected color-by option (None for no grouping)
+            session_data: Session data for consistent colors
+            account_format: Account formatting configuration
+            
+        Returns:
+            plotly.graph_objects.Figure: Area plot figure
+        """
         if session_data is None:
             session_data = initialize_session_data()
 
@@ -356,30 +373,44 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         )
         time_col = get_time_column(start_date, end_date)
 
-        color_by = "Account"
+        # Check if color-by account is selected (only logical option for active users)
+        if color_by_selection and color_by_selection == "Account":
+            # Create grouped plot colored by account
+            color_by = "Account"
 
-        category_order, color_map = ensure_consistent_categories_and_colors(
-            df, color_by, COLORS[color_by], session_data
-        )
+            category_order, color_map = ensure_consistent_categories_and_colors(
+                df, color_by, COLORS[color_by], session_data
+            )
 
-        active_users = df.groupby([time_col, color_by])["User"].nunique().reset_index(name="num_active_users")
+            active_users = df.groupby([time_col, color_by])["User"].nunique().reset_index(name="num_active_users")
 
-        fig = px.area(
-            active_users,
-            x=time_col,
-            y="num_active_users",
-            color=color_by,
-            title="Number of active users",
-            labels={"num_active_users": "Number of active users"},
-            category_orders={color_by: category_order},
-        )
+            fig = px.area(
+                active_users,
+                x=time_col,
+                y="num_active_users",
+                color=color_by,
+                title="Number of active users by account",
+                labels={"num_active_users": "Number of active users"},
+                category_orders={color_by: category_order},
+            )
 
-        for _i, trace in enumerate(fig.data):
-            if hasattr(trace, 'fillcolor') and hasattr(trace, 'name'):
-                color = color_map.get(trace.name, trace.fillcolor)
-                trace.fillcolor = color
-                if hasattr(trace, 'line') and hasattr(trace.line, 'color'):
-                    trace.line.color = color
+            for _i, trace in enumerate(fig.data):
+                if hasattr(trace, 'fillcolor') and hasattr(trace, 'name'):
+                    color = color_map.get(trace.name, trace.fillcolor)
+                    trace.fillcolor = color
+                    if hasattr(trace, 'line') and hasattr(trace.line, 'color'):
+                        trace.line.color = color
+        else:
+            # Create simple bar plot without color grouping (total active users)
+            active_users = df.groupby(time_col)["User"].nunique().reset_index(name="num_active_users")
+
+            fig = px.bar(
+                active_users,
+                x=time_col,
+                y="num_active_users",
+                title="Total number of active users",
+                labels={"num_active_users": "Number of active users"},
+            )
 
         return fig
 
@@ -400,7 +431,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         manager=background_callback_manager,
     )
     def plot_number_of_jobs(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data, account_format):
-        
+
         account_segments = account_format.get("segments") if account_format else None
 
         df = datastore.filter(
