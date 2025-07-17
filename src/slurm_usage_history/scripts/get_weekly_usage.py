@@ -357,7 +357,7 @@ class UsageDataFormatter:
             "AveDiskWrite",
             "MaxRSS",
             "Cluster"
-        ]``
+        ]
         
         return df[columns]
 
