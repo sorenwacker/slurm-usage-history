@@ -127,7 +127,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             return {"display": "block"}
         return {"display": "none"}
 
-        
     @app.callback(
         Output("session-store", "data"),
         Input("interval", "n_intervals"),
@@ -282,7 +281,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             return False
         return False
 
-
     @app.callback(
         Output("total-active-users", "children"),
         Output("total-jobs", "children"),
@@ -336,7 +334,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         formatted_gpu = f"{total_gpu_hours:,.0f} h"
 
         return formatted_users, formatted_jobs, formatted_cpu, formatted_gpu
-
 
     @app.callback(
         Output("plot_active_users", "figure"),
@@ -418,6 +415,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             fig = px.bar(
                 active_users,
                 x=time_col,
+                color_discrete_sequence=px.colors.qualitative.Set3,
                 y="num_active_users",
                 title="Total number of active users",
                 labels={"num_active_users": "Number of active users"},
@@ -485,6 +483,8 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
                 title="Distribution of Active Users per Period",
                 labels={"num_active_users": "Number of Active Users", "count": "Frequency"},
                 text_auto=True,
+                color_discrete_sequence=px.colors.qualitative.Set3,
+
             )
             
             # Add average line
@@ -526,7 +526,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             else:
                 # For other groupings, show a message
                 return px.pie(title="Active users can only be grouped by Account")
-
 
     @app.callback(
         Output("plot_number_of_jobs", "figure"),
@@ -570,6 +569,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
                 x=time_col,
                 y="Counts",
                 title="Job submissions",
+                color_discrete_sequence=px.colors.qualitative.Set3[2:],
             )
         else:
             category_order, color_map = ensure_consistent_categories_and_colors(
@@ -592,7 +592,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
 
         fig.update_xaxes(categoryorder="array", categoryarray=sorted_time_values)
         return fig
-
 
     @app.callback(
         Output("plot_jobs_distribution", "figure"),
@@ -667,6 +666,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
                 title="Distribution of Job Counts per Period",
                 labels={"job_count": "Number of Jobs", "count": "Frequency"},
                 text_auto=True,
+                color_discrete_sequence=px.colors.qualitative.Set3[2:],
             )
             
             # Add average line
@@ -704,7 +704,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             
             fig.update_traces(textposition="inside", textinfo="percent+label")
             return fig
-
 
     @app.callback(
         Output("plot_cpu_usage_distribution", "figure"),
@@ -777,6 +776,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
                 title="Distribution of CPU Usage per Period",
                 labels={"CPU-hours": "CPU Hours", "count": "Frequency"},
                 text_auto=True,
+                color_discrete_sequence=px.colors.qualitative.Set3[6:],
             )
             
             # Add average line
@@ -885,6 +885,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
                 title="Distribution of GPU Usage per Period",
                 labels={"GPU-hours": "GPU Hours", "count": "Frequency"},
                 text_auto=True,
+                color_discrete_sequence=px.colors.qualitative.Set3[9:],
             )
             
             # Add average line
@@ -921,328 +922,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
 
             fig.update_traces(textposition="inside", textinfo="percent+label")
             return fig
-
-
-    @app.callback(
-        Output("plot_waiting_times", "figure"),
-        Input("hostname_dropdown", "value"),
-        Input("data_range_picker", "start_date"),
-        Input("data_range_picker", "end_date"),
-        Input("waiting_times_observable_dropdown", "value"),
-        Input("color_by_dropdown", "value"),
-        Input("states_dropdown", "value"),
-        Input("partitions_dropdown", "value"),
-        Input("users_dropdown", "value"),
-        Input("accounts_dropdown", "value"),
-        Input("qos_selection_dropdown", "value"),
-        Input("session-store", "data"),
-        Input("account-formatter-store", "data"),
-        background=False,
-        manager=background_callback_manager,
-    )
-    def plot_waiting_times(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, qos, session_data, account_format):  
-
-        account_segments = account_format.get("segments") if account_format else None
-        
-        df = datastore.filter(
-            hostname=hostname,
-            start_date=start_date,
-            end_date=end_date,
-            states=states,
-            partitions=partitions,
-            users=users,
-            accounts=accounts,
-            qos=qos,
-            format_accounts=True,
-            account_segments=account_segments,
-        )
-
-        time_col = get_time_column(start_date, end_date)
-
-        observable_names = {
-            "75%": "75 percentile",
-            "50%": "Median",
-            "25%": "25 percentile",
-            "max": "Maximum",
-            "mean": "Mean",
-        }
-        name = observable_names.get(observable, observable)
-
-        if not color_by:
-            stats = df.groupby(time_col)["WaitingTime [h]"].describe().reset_index()
-            fig = px.scatter(
-                stats,
-                x=time_col,
-                y=observable,
-                title=f"{name} waiting time in hours",
-                log_y=False,
-            )
-        else:
-            category_order, color_map = ensure_consistent_categories_and_colors(
-                df, color_by, COLORS[color_by], session_data
-            )
-
-            stats = df[[color_by, time_col, "WaitingTime [h]"]].groupby([color_by, time_col]).describe().droplevel(0, axis=1).reset_index()
-            fig = px.scatter(
-                stats,
-                x=time_col,
-                y=observable,
-                title=f"{name} waiting time in hours",
-                color=color_by,
-                log_y=False,
-                category_orders={color_by: category_order},
-            )
-
-            for _i, trace in enumerate(fig.data):
-                if hasattr(trace, 'marker') and hasattr(trace, 'name'):
-                    trace.marker.color = color_map.get(trace.name, trace.marker.color)
-
-        fig.update_traces(marker={"size": 10})
-        fig.update_layout(yaxis_title=name)
-        return fig
-
-    @app.callback(
-        Output("plot_waiting_times_hist", "figure"),
-        Input("hostname_dropdown", "value"),
-        Input("data_range_picker", "start_date"),
-        Input("data_range_picker", "end_date"),
-        Input("color_by_dropdown", "value"),
-        Input("states_dropdown", "value"),
-        Input("partitions_dropdown", "value"),
-        Input("users_dropdown", "value"),
-        Input("accounts_dropdown", "value"),
-        Input("qos_selection_dropdown", "value"),
-        Input("session-store", "data"),
-        Input("account-formatter-store", "data"),
-        background=False,
-        manager=background_callback_manager,
-    )
-    def plot_waiting_times_dist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, qos, session_data, account_format):
-        
-        account_segments = account_format.get("segments") if account_format else None
-
-        df = datastore.filter(
-            hostname=hostname,
-            start_date=start_date,
-            end_date=end_date,
-            states=states,
-            partitions=partitions,
-            users=users,
-            accounts=accounts,
-            qos=qos,
-            format_accounts=True,
-            account_segments=account_segments,
-        )
-
-        df["Time Group"] = categorize_time_series(df["WaitingTime [h]"])
-        ordered_categories = df["Time Group"].cat.categories
-
-        if not color_by:
-            fig = px.histogram(
-                df,
-                x="Time Group",
-                title="Waiting Times",
-                histnorm="percent",
-                text_auto=True,
-            )
-        else:
-            category_order, color_map = ensure_consistent_categories_and_colors(
-                df, color_by, COLORS[color_by], session_data
-            )
-
-            fig = px.histogram(
-                df,
-                x="Time Group",
-                color=color_by,
-                title="Waiting Times",
-                histnorm="percent",
-                text_auto=True,
-                category_orders={color_by: category_order},
-            )
-
-            for _i, trace in enumerate(fig.data):
-                if hasattr(trace, 'marker') and hasattr(trace, 'name'):
-                    trace.marker.color = color_map.get(trace.name, trace.marker.color)
-
-        fig.update_traces(
-            hovertemplate="<br>Percent = %{y:.2f}<extra>%{x}</extra>",
-            texttemplate="%{y:.1f}%",
-        )
-        fig.update_xaxes(categoryorder="array", categoryarray=ordered_categories)
-        return fig
-
-    @app.callback(
-        Output("plot_job_duration", "figure"),
-        Input("hostname_dropdown", "value"),
-        Input("data_range_picker", "start_date"),
-        Input("data_range_picker", "end_date"),
-        Input("job_duration_observable_dropdown", "value"),
-        Input("color_by_dropdown", "value"),
-        Input("states_dropdown", "value"),
-        Input("partitions_dropdown", "value"),
-        Input("users_dropdown", "value"),
-        Input("accounts_dropdown", "value"),
-        Input("qos_selection_dropdown", "value"),
-        Input("session-store", "data"),
-        Input("account-formatter-store", "data"),
-        background=False,
-        manager=background_callback_manager,
-    )
-    def plot_job_duration(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, qos, session_data, account_format):
-
-        account_segments = account_format.get("segments") if account_format else None
-        
-        df = datastore.filter(
-            hostname=hostname,
-            start_date=start_date,
-            end_date=end_date,
-            states=states,
-            partitions=partitions,
-            users=users,
-            accounts=accounts,
-            qos=qos,
-            format_accounts=True,
-            account_segments=account_segments,
-        )
-
-        time_col = get_time_column(start_date, end_date)
-        observable_names = {
-            "75%": "75 percentile",
-            "50%": "Median",
-            "25%": "25 percentile",
-            "max": "Maximum",
-            "mean": "Mean",
-        }
-
-        name = observable_names.get(observable, observable)
-
-        if not color_by:
-            stats = df.groupby(time_col)["Elapsed [h]"].describe().reset_index()
-            fig = px.scatter(
-                stats,
-                x=time_col,
-                y=observable,
-                title=f"{name} job duration in hours",
-                log_y=False,
-            )
-        else:
-            category_order, color_map = ensure_consistent_categories_and_colors(
-                df, color_by, COLORS[color_by], session_data
-            )
-
-            stats = df[[color_by, time_col, "Elapsed [h]"]].groupby([color_by, time_col]).describe().droplevel(0, axis=1).reset_index()
-            fig = px.scatter(
-                stats,
-                x=time_col,
-                y=observable,
-                title=f"{name} job duration in hours",
-                color=color_by,
-                log_y=False,
-                category_orders={color_by: category_order},
-            )
-
-            for _i, trace in enumerate(fig.data):
-                if hasattr(trace, 'marker') and hasattr(trace, 'name'):
-                    trace.marker.color = color_map.get(trace.name, trace.marker.color)
-
-        fig.update_traces(marker={"size": 10})
-        fig.update_layout(yaxis_title=name)
-        return fig
-
-    @app.callback(
-        Output("plot_job_duration_hist", "figure"),
-        Input("hostname_dropdown", "value"),
-        Input("data_range_picker", "start_date"),
-        Input("data_range_picker", "end_date"),
-        Input("color_by_dropdown", "value"),
-        Input("states_dropdown", "value"),
-        Input("partitions_dropdown", "value"),
-        Input("users_dropdown", "value"),
-        Input("accounts_dropdown", "value"),
-        Input("qos_selection_dropdown", "value"),
-        Input("session-store", "data"),
-        Input("account-formatter-store", "data"),
-        background=False,
-        manager=background_callback_manager,
-    )
-    def plot_job_duration_dist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, qos, session_data, account_format):
-        
-        account_segments = account_format.get("segments") if account_format else None
-
-        df = datastore.filter(
-            hostname=hostname,
-            start_date=start_date,
-            end_date=end_date,
-            states=states,
-            partitions=partitions,
-            users=users,
-            accounts=accounts,
-            qos=qos,
-            format_accounts=True,
-            account_segments=account_segments,
-        )
-
-        thresholds = [0, 1, 4, 12, 24, 72, 168, float('inf')]
-
-        threshold_labels = [
-            "< 1h",
-            "1h - 4h",
-            "4h - 12h",
-            "12h - 24h",
-            "1d - 3d",
-            "3d - 7d",
-            "> 7d"
-        ]
-
-        df['Duration Category'] = pd.cut(
-            df['Elapsed [h]'],
-            bins=thresholds,
-            labels=threshold_labels,
-            right=False
-        )
-
-        ordered_categories = threshold_labels
-
-        if not color_by:
-            fig = px.histogram(
-                df,
-                x="Duration Category",
-                title="Job Duration",
-                histnorm="percent",
-                text_auto=True,
-                category_orders={"Duration Category": ordered_categories}
-            )
-        else:
-            category_order, color_map = ensure_consistent_categories_and_colors(
-                df, color_by, COLORS[color_by], session_data
-            )
-
-            fig = px.histogram(
-                df,
-                x="Duration Category",
-                color=color_by,
-                title="Job Duration",
-                histnorm="percent",
-                text_auto=True,
-                category_orders={
-                    "Duration Category": ordered_categories,
-                    color_by: category_order
-                }
-            )
-
-            for _i, trace in enumerate(fig.data):
-                if hasattr(trace, 'marker') and hasattr(trace, 'name'):
-                    trace.marker.color = color_map.get(trace.name, trace.marker.color)
-
-        fig.update_traces(
-            hovertemplate="<br>Percent = %{y:.2f}<extra>%{x}</extra>",
-            texttemplate="%{y:.1f}%",
-        )
-
-        fig.update_xaxes(categoryorder="array", categoryarray=ordered_categories)
-        fig.update_yaxes(title_text="Percentage of Jobs (%)")
-
-        return fig
 
     @app.callback(
         Output("plot_cpu_hours", "figure"),
@@ -1287,6 +966,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
                 x=time_col,
                 y="CPU-hours",
                 title="CPU-hours used",
+                color_discrete_sequence=px.colors.qualitative.Set3[6:],
             )
 
         category_order, color_map = ensure_consistent_categories_and_colors(
@@ -1302,6 +982,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             color=color_by,
             title="CPU-hours used",
             category_orders={color_by: category_order},
+
         )
 
         for _i, trace in enumerate(fig.data):
@@ -1353,6 +1034,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
                 x=time_col,
                 y="GPU-hours",
                 title="GPU-hours used",
+                color_discrete_sequence=px.colors.qualitative.Set3[9:],
             )
 
         category_order, color_map = ensure_consistent_categories_and_colors(
@@ -1474,6 +1156,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
                 y="CPU-hours",
                 height=400,
                 title="Total CPU-hours per node" + (" (normalized)" if normalize else "") + subtitle,
+                color_discrete_sequence=px.colors.qualitative.Set3[6:]
             )
         else:
             fig_nodes_usage_cpu = px.bar(
@@ -1497,6 +1180,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
                 y="GPU-hours",
                 height=400,
                 title="Total GPU-hours per node" + (" (normalized)" if normalize else "") + subtitle,
+                color_discrete_sequence=px.colors.qualitative.Set3[9:]
             )
         else:
             fig_nodes_usage_gpu = px.bar(
@@ -1547,7 +1231,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
 
         return options
 
-    # Callback for toggling waiting time details
     @app.callback(
         Output("collapse-waiting", "is_open"),
         [Input("collapse-button-waiting", "n_clicks")],
@@ -1568,7 +1251,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             return not is_open
         return is_open
 
-    # Callback for toggling job duration details
     @app.callback(
         Output("collapse-duration", "is_open"),
         [Input("collapse-button-duration", "n_clicks")],
@@ -1588,9 +1270,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         if n_clicks:
             return not is_open
         return is_open
-
-
-
 
     @app.callback(
         Output("plot_job_duration_stacked", "figure"),
@@ -1873,6 +1552,531 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         return fig
 
     @app.callback(
+        Output("plot_waiting_times", "figure"),
+        Input("hostname_dropdown", "value"),
+        Input("data_range_picker", "start_date"),
+        Input("data_range_picker", "end_date"),
+        Input("waiting_times_observable_dropdown", "value"),
+        Input("color_by_dropdown", "value"),
+        Input("states_dropdown", "value"),
+        Input("partitions_dropdown", "value"),
+        Input("users_dropdown", "value"),
+        Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
+        Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
+        background=False,
+        manager=background_callback_manager,
+    )
+    def plot_waiting_times(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, qos, session_data, account_format):  
+
+        account_segments = account_format.get("segments") if account_format else None
+        
+        df = datastore.filter(
+            hostname=hostname,
+            start_date=start_date,
+            end_date=end_date,
+            states=states,
+            partitions=partitions,
+            users=users,
+            accounts=accounts,
+            qos=qos,
+            format_accounts=True,
+            account_segments=account_segments,
+        )
+
+        if df.empty:
+            return px.line(title="No data available")
+
+        time_col = get_time_column(start_date, end_date)
+
+        observable_names = {
+            "75%": "75th percentile",
+            "50%": "Median",
+            "25%": "25th percentile",
+            "max": "Maximum",
+            "mean": "Mean",
+        }
+        name = observable_names.get(observable, observable)
+
+        if not color_by:
+            stats = df.groupby(time_col)["WaitingTime [h]"].describe().reset_index()
+            
+            # Use line plot instead of scatter for better trend visualization
+            fig = px.line(
+                stats,
+                x=time_col,
+                y=observable,
+                title=f"{name} waiting time",
+                markers=True,
+                line_shape="spline",
+                color_discrete_sequence=["#d62728"]  # Red color
+            )
+            
+            # Add hover information
+            fig.update_traces(
+                hovertemplate=f"<b>%{{x}}</b><br>{name}: %{{y:.2f}} hours<extra></extra>",
+                line=dict(width=3),
+                marker=dict(size=8)
+            )
+            
+            # Add range shading if showing median
+            if observable == "50%":
+                fig.add_scatter(
+                    x=stats[time_col],
+                    y=stats["25%"],
+                    mode="lines",
+                    line=dict(width=0),
+                    showlegend=False,
+                    hoverinfo="skip"
+                )
+                fig.add_scatter(
+                    x=stats[time_col],
+                    y=stats["75%"],
+                    mode="lines",
+                    fill="tonexty",
+                    fillcolor="rgba(214, 39, 40, 0.2)",  # Red fill
+                    line=dict(width=0),
+                    name="25th-75th percentile range",
+                    hovertemplate="25th-75th percentile range<extra></extra>"
+                )
+                
+        else:
+            category_order, color_map = ensure_consistent_categories_and_colors(
+                df, color_by, COLORS[color_by], session_data
+            )
+
+            stats = df[[color_by, time_col, "WaitingTime [h]"]].groupby([color_by, time_col])["WaitingTime [h]"].describe().reset_index()
+            
+            # Use line plot with markers
+            fig = px.line(
+                stats,
+                x=time_col,
+                y=observable,
+                title=f"{name} waiting time by {color_by.lower()}",
+                color=color_by,
+                markers=True,
+                line_shape="spline",
+                category_orders={color_by: category_order},
+            )
+
+            # Apply consistent colors and improve styling
+            for i, trace in enumerate(fig.data):
+                if hasattr(trace, 'line') and hasattr(trace, 'name'):
+                    color = color_map.get(trace.name, trace.line.color)
+                    trace.line.color = color
+                    trace.line.width = 3
+                    if hasattr(trace, 'marker'):
+                        trace.marker.color = color
+                        trace.marker.size = 8
+                    
+                    trace.hovertemplate = f"<b>%{{x}}</b><br>{trace.name}<br>{name}: %{{y:.2f}} hours<extra></extra>"
+
+        # Improve layout
+        fig.update_layout(
+            yaxis_title=f"{name} (hours)",
+            xaxis_title="Time Period",
+            hovermode="x unified",
+            plot_bgcolor="white",
+            font=dict(size=12),
+            title_font_size=14,
+            legend=dict(
+                x=0.1,
+                y=0.98,
+                bgcolor="rgba(255,255,255,0.8)",
+                bordercolor="rgba(0,0,0,0.2)",
+                borderwidth=1
+            ) if not color_by else dict()
+        )
+        
+        # Add grid
+        fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor="rgba(0,0,0,0.1)")
+        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor="rgba(0,0,0,0.1)")
+        
+        return fig
+
+    @app.callback(
+        Output("plot_waiting_times_hist", "figure"),
+        Input("hostname_dropdown", "value"),
+        Input("data_range_picker", "start_date"),
+        Input("data_range_picker", "end_date"),
+        Input("color_by_dropdown", "value"),
+        Input("states_dropdown", "value"),
+        Input("partitions_dropdown", "value"),
+        Input("users_dropdown", "value"),
+        Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
+        Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
+        background=False,
+        manager=background_callback_manager,
+    )
+    def plot_waiting_times_dist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, qos, session_data, account_format):
+        
+        account_segments = account_format.get("segments") if account_format else None
+
+        df = datastore.filter(
+            hostname=hostname,
+            start_date=start_date,
+            end_date=end_date,
+            states=states,
+            partitions=partitions,
+            users=users,
+            accounts=accounts,
+            qos=qos,
+            format_accounts=True,
+            account_segments=account_segments,
+        )
+
+        if df.empty:
+            return px.histogram(title="No data available")
+
+        # Improved time categorization with more granular bins
+        thresholds = [0, 0.25, 0.5, 1, 2, 4, 8, 12, 24, 48, float('inf')]
+        labels = ["< 15min", "15-30min", "30min-1h", "1-2h", "2-4h", "4-8h", "8-12h", "12-24h", "1-2 days", "> 2 days"]
+        
+        df['Time Group'] = pd.cut(df['WaitingTime [h]'], bins=thresholds, labels=labels, right=False)
+        ordered_categories = labels
+
+        if not color_by:
+            fig = px.histogram(
+                df,
+                x="Time Group",
+                title="Waiting Time Distribution",
+                histnorm="percent",
+                text_auto=True,
+                color_discrete_sequence=["#d62728", "#ff4500", "#dc143c", "#b22222", "#8b0000", "#cd5c5c", "#f08080", "#fa8072", "#ff6347", "#ffa07a"],
+                category_orders={"Time Group": ordered_categories}
+            )
+            
+            # Add statistics annotation
+            median_wait = df['WaitingTime [h]'].median()
+            mean_wait = df['WaitingTime [h]'].mean()
+            
+            fig.add_annotation(
+                x=0.1, y=0.98,
+                xref="paper", yref="paper",
+                text=f"Median: {median_wait:.1f}h<br>Mean: {mean_wait:.1f}h",
+                showarrow=False,
+                align="left",
+                bgcolor="rgba(255,255,255,0.8)",
+                bordercolor="rgba(0,0,0,0.2)",
+                borderwidth=1
+            )
+            
+        else:
+            category_order, color_map = ensure_consistent_categories_and_colors(
+                df, color_by, COLORS[color_by], session_data
+            )
+
+            fig = px.histogram(
+                df,
+                x="Time Group",
+                color=color_by,
+                title=f"Waiting Time Distribution by {color_by.lower()}",
+                histnorm="percent",
+                text_auto=True,
+                category_orders={"Time Group": ordered_categories, color_by: category_order},
+                barmode="group"  # Show bars side by side instead of stacked
+            )
+
+            for i, trace in enumerate(fig.data):
+                if hasattr(trace, 'marker') and hasattr(trace, 'name'):
+                    trace.marker.color = color_map.get(trace.name, trace.marker.color)
+
+        # Improve layout and styling
+        fig.update_traces(
+            hovertemplate="<b>%{x}</b><br>Jobs: %{y:.1f}%<extra></extra>",
+            texttemplate="%{y:.1f}%",
+            textposition="outside"
+        )
+        
+        fig.update_layout(
+            xaxis_title="Waiting Time",
+            yaxis_title="Percentage of Jobs (%)",
+            plot_bgcolor="white",
+            font=dict(size=12),
+            title_font_size=14,
+            legend=dict() if color_by else None
+        )
+        
+        # Add grid
+        fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor="rgba(0,0,0,0.1)")
+        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor="rgba(0,0,0,0.1)")
+        
+        return fig
+
+    @app.callback(
+        Output("plot_job_duration", "figure"),
+        Input("hostname_dropdown", "value"),
+        Input("data_range_picker", "start_date"),
+        Input("data_range_picker", "end_date"),
+        Input("job_duration_observable_dropdown", "value"),
+        Input("color_by_dropdown", "value"),
+        Input("states_dropdown", "value"),
+        Input("partitions_dropdown", "value"),
+        Input("users_dropdown", "value"),
+        Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
+        Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
+        background=False,
+        manager=background_callback_manager,
+    )
+    def plot_job_duration(hostname, start_date, end_date, observable, color_by, states, partitions, users, accounts, qos, session_data, account_format):
+
+        account_segments = account_format.get("segments") if account_format else None
+        
+        df = datastore.filter(
+            hostname=hostname,
+            start_date=start_date,
+            end_date=end_date,
+            states=states,
+            partitions=partitions,
+            users=users,
+            accounts=accounts,
+            qos=qos,
+            format_accounts=True,
+            account_segments=account_segments,
+        )
+
+        if df.empty:
+            return px.line(title="No data available")
+
+        time_col = get_time_column(start_date, end_date)
+        observable_names = {
+            "75%": "75th percentile",
+            "50%": "Median",
+            "25%": "25th percentile",
+            "max": "Maximum",
+            "mean": "Mean",
+        }
+
+        name = observable_names.get(observable, observable)
+
+        if not color_by:
+            stats = df.groupby(time_col)["Elapsed [h]"].describe().reset_index()
+            
+            # Use line plot with spline smoothing
+            fig = px.line(
+                stats,
+                x=time_col,
+                y=observable,
+                title=f"{name} job duration",
+                markers=True,
+                line_shape="spline",
+                color_discrete_sequence=["#2ca02c"]  # Green color
+            )
+            
+            # Enhanced styling
+            fig.update_traces(
+                hovertemplate=f"<b>%{{x}}</b><br>{name}: %{{y:.2f}} hours<extra></extra>",
+                line=dict(width=3),
+                marker=dict(size=8)
+            )
+            
+            # Add interquartile range if showing median
+            if observable == "50%":
+                fig.add_scatter(
+                    x=stats[time_col],
+                    y=stats["25%"],
+                    mode="lines",
+                    line=dict(width=0),
+                    showlegend=False,
+                    hoverinfo="skip"
+                )
+                fig.add_scatter(
+                    x=stats[time_col],
+                    y=stats["75%"],
+                    mode="lines",
+                    fill="tonexty",
+                    fillcolor="rgba(44, 160, 44, 0.2)",  # Green fill
+                    line=dict(width=0),
+                    name="25th-75th percentile range",
+                    hovertemplate="25th-75th percentile range<extra></extra>"
+                )
+                
+        else:
+            category_order, color_map = ensure_consistent_categories_and_colors(
+                df, color_by, COLORS[color_by], session_data
+            )
+
+            stats = df[[color_by, time_col, "Elapsed [h]"]].groupby([color_by, time_col])["Elapsed [h]"].describe().reset_index()
+            
+            fig = px.line(
+                stats,
+                x=time_col,
+                y=observable,
+                title=f"{name} job duration by {color_by.lower()}",
+                color=color_by,
+                markers=True,
+                line_shape="spline",
+                category_orders={color_by: category_order},
+            )
+
+            # Apply consistent colors and styling
+            for i, trace in enumerate(fig.data):
+                if hasattr(trace, 'line') and hasattr(trace, 'name'):
+                    color = color_map.get(trace.name, trace.line.color)
+                    trace.line.color = color
+                    trace.line.width = 3
+                    if hasattr(trace, 'marker'):
+                        trace.marker.color = color
+                        trace.marker.size = 8
+                    
+                    trace.hovertemplate = f"<b>%{{x}}</b><br>{trace.name}<br>{name}: %{{y:.2f}} hours<extra></extra>"
+
+        # Improved layout
+        fig.update_layout(
+            yaxis_title=f"{name} (hours)",
+            xaxis_title="Time Period",
+            hovermode="x unified",
+            plot_bgcolor="white",
+            font=dict(size=12),
+            title_font_size=14,
+            legend=dict(
+                x=0.1,
+                y=0.98,
+                bgcolor="rgba(255,255,255,0.8)",
+                bordercolor="rgba(0,0,0,0.2)",
+                borderwidth=1
+            ) if not color_by else dict()
+        )
+        
+        # Add grid
+        fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor="rgba(0,0,0,0.1)")
+        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor="rgba(0,0,0,0.1)")
+        
+        return fig
+
+    @app.callback(
+        Output("plot_job_duration_hist", "figure"),
+        Input("hostname_dropdown", "value"),
+        Input("data_range_picker", "start_date"),
+        Input("data_range_picker", "end_date"),
+        Input("color_by_dropdown", "value"),
+        Input("states_dropdown", "value"),
+        Input("partitions_dropdown", "value"),
+        Input("users_dropdown", "value"),
+        Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
+        Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
+        background=False,
+        manager=background_callback_manager,
+    )
+    def plot_job_duration_dist(hostname, start_date, end_date, color_by, states, partitions, users, accounts, qos, session_data, account_format):
+        
+        account_segments = account_format.get("segments") if account_format else None
+
+        df = datastore.filter(
+            hostname=hostname,
+            start_date=start_date,
+            end_date=end_date,
+            states=states,
+            partitions=partitions,
+            users=users,
+            accounts=accounts,
+            qos=qos,
+            format_accounts=True,
+            account_segments=account_segments,
+        )
+
+        if df.empty:
+            return px.histogram(title="No data available")
+
+        # More granular duration thresholds
+        thresholds = [0, 0.25, 0.5, 1, 2, 4, 8, 12, 24, 48, 72, 168, float('inf')]
+        threshold_labels = [
+            "< 15min", "15-30min", "30min-1h", "1-2h", "2-4h", "4-8h", 
+            "8-12h", "12-24h", "1-2 days", "2-3 days", "3-7 days", "> 7 days"
+        ]
+
+        df['Duration Category'] = pd.cut(
+            df['Elapsed [h]'],
+            bins=thresholds,
+            labels=threshold_labels,
+            right=False
+        )
+        ordered_categories = threshold_labels
+
+        if not color_by:
+            fig = px.histogram(
+                df,
+                x="Duration Category",
+                title="Job Duration Distribution",
+                histnorm="percent",
+                text_auto=True,
+                color_discrete_sequence=["#2ca02c", "#228b22", "#32cd32", "#00ff00", "#7cfc00", "#adff2f", "#9acd32", "#6b8e23", "#556b2f", "#8fbc8f", "#90ee90", "#98fb98"],
+                category_orders={"Duration Category": ordered_categories}
+            )
+            
+            # Add statistics annotation
+            median_duration = df['Elapsed [h]'].median()
+            mean_duration = df['Elapsed [h]'].mean()
+            
+            fig.add_annotation(
+                x=0.1, y=0.98,
+                xref="paper", yref="paper",
+                text=f"Median: {median_duration:.1f}h<br>Mean: {mean_duration:.1f}h",
+                showarrow=False,
+                align="left",
+                bgcolor="rgba(255,255,255,0.8)",
+                bordercolor="rgba(0,0,0,0.2)",
+                borderwidth=1
+            )
+            
+        else:
+            category_order, color_map = ensure_consistent_categories_and_colors(
+                df, color_by, COLORS[color_by], session_data
+            )
+
+            fig = px.histogram(
+                df,
+                x="Duration Category",
+                color=color_by,
+                title=f"Job Duration Distribution by {color_by.lower()}",
+                histnorm="percent",
+                text_auto=True,
+                category_orders={
+                    "Duration Category": ordered_categories,
+                    color_by: category_order
+                },
+                barmode="group"
+            )
+
+            for i, trace in enumerate(fig.data):
+                if hasattr(trace, 'marker') and hasattr(trace, 'name'):
+                    trace.marker.color = color_map.get(trace.name, trace.marker.color)
+
+        # Improved layout and styling
+        fig.update_traces(
+            hovertemplate="<b>%{x}</b><br>Jobs: %{y:.1f}%<extra></extra>",
+            texttemplate="%{y:.1f}%",
+            textposition="outside"
+        )
+
+        fig.update_layout(
+            xaxis_title="Job Duration",
+            yaxis_title="Percentage of Jobs (%)",
+            plot_bgcolor="white",
+            font=dict(size=12),
+            title_font_size=14,
+            legend=dict() if color_by else None
+        )
+        
+        # Rotate x-axis labels for better readability
+        fig.update_xaxes(
+            tickangle=45,
+            showgrid=True, 
+            gridwidth=1, 
+            gridcolor="rgba(0,0,0,0.1)"
+        )
+        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor="rgba(0,0,0,0.1)")
+
+        return fig
+    
+    @app.callback(
         Output("plot_cpus_per_job", "figure"),
         Input("hostname_dropdown", "value"),
         Input("data_range_picker", "start_date"),
@@ -1909,6 +2113,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             log_y=False,
             text_auto=True,
             category_orders={"CPUs": cpu_order},
+            color_discrete_sequence=px.colors.qualitative.Set3[8:]
         )
 
     @app.callback(
@@ -1949,6 +2154,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             log_y=False,
             text_auto=True,
             category_orders={"GPUs": gpu_order},
+            color_discrete_sequence=px.colors.qualitative.Set3[8:]
         )
 
     @app.callback(
@@ -1987,4 +2193,5 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             log_y=False,
             text_auto=True,
             category_orders={"Nodes": node_order},
+            color_discrete_sequence=px.colors.qualitative.Set3[8:]
         )
