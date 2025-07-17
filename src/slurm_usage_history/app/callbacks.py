@@ -426,6 +426,109 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         return fig
 
     @app.callback(
+        Output("plot_active_users_distribution", "figure"),
+        Input("hostname_dropdown", "value"),
+        Input("data_range_picker", "start_date"),
+        Input("data_range_picker", "end_date"),
+        Input("accounts_dropdown", "value"),
+        Input("complete_periods_switch", "value"),
+        Input("color_by_dropdown", "value"),
+        Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
+        background=False,
+        manager=background_callback_manager,
+    )
+    def plot_active_users_distribution(hostname, start_date, end_date, accounts, complete_periods, color_by_selection, session_data, account_format):
+        """
+        Create a histogram or pie chart showing active users distribution.
+        
+        Args:
+            hostname: Selected hostname
+            start_date: Start date for filtering
+            end_date: End date for filtering
+            accounts: Selected accounts
+            complete_periods: Whether to show only complete periods
+            color_by_selection: Selected color-by option
+            session_data: Session data for consistent colors
+            account_format: Account formatting configuration
+            
+        Returns:
+            plotly.graph_objects.Figure: Histogram or pie chart figure
+        """
+        if session_data is None:
+            session_data = initialize_session_data()
+
+        account_segments = account_format.get("segments") if account_format else None
+
+        df = datastore.filter(
+            hostname=hostname,
+            start_date=start_date,
+            end_date=end_date,
+            accounts=accounts,
+            format_accounts=True,
+            account_segments=account_segments,
+            complete_periods_only=complete_periods,
+        )
+
+        if df.empty:
+            return px.histogram(title="No data available")
+
+        if not color_by_selection or color_by_selection == "None":
+            # Create histogram showing distribution of active users over time
+            time_col = get_time_column(start_date, end_date)
+            active_users = df.groupby(time_col)["User"].nunique().reset_index(name="num_active_users")
+            
+            fig = px.histogram(
+                active_users,
+                x="num_active_users",
+                nbins=20,
+                title="Distribution of Active Users per Period",
+                labels={"num_active_users": "Number of Active Users", "count": "Frequency"},
+                text_auto=True,
+            )
+            
+            # Add average line
+            avg_users = active_users["num_active_users"].mean()
+            fig.add_vline(
+                x=avg_users,
+                line_dash="dash",
+                line_color="red",
+                annotation_text=f"Average: {avg_users:.1f}",
+                annotation_position="top right"
+            )
+            
+            return fig
+        else:
+            # Create pie chart for color grouping - only Account makes sense for users
+            if color_by_selection == "Account":
+                category = "Account"
+                
+                category_order, color_map = ensure_consistent_categories_and_colors(
+                    df, category, COLORS[category], session_data
+                )
+
+                # Count unique users per account
+                user_counts = df.groupby(category)["User"].nunique().reset_index(name="Active Users")
+                user_counts = ensure_consistent_categories(user_counts, category, "Active Users", session_data)
+                
+                fig = px.pie(
+                    user_counts,
+                    values="Active Users",
+                    names=category,
+                    title=f"Active users by {category.lower()}",
+                    color=category,
+                    color_discrete_map=color_map,
+                    category_orders={category: category_order}
+                )
+                
+                fig.update_traces(textposition="inside", textinfo="percent+label")
+                return fig
+            else:
+                # For other groupings, show a message
+                return px.pie(title="Active users can only be grouped by Account")
+
+
+    @app.callback(
         Output("plot_number_of_jobs", "figure"),
         Input("hostname_dropdown", "value"),
         Input("data_range_picker", "start_date"),
@@ -490,8 +593,9 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         fig.update_xaxes(categoryorder="array", categoryarray=sorted_time_values)
         return fig
 
+
     @app.callback(
-        Output("plot_cpus_per_job", "figure"),
+        Output("plot_jobs_distribution", "figure"),
         Input("hostname_dropdown", "value"),
         Input("data_range_picker", "start_date"),
         Input("data_range_picker", "end_date"),
@@ -500,77 +604,110 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
+        Input("complete_periods_switch", "value"),
+        Input("color_by_dropdown", "value"),
+        Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_cpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos):
-
-        df = datastore.filter(
-            hostname=hostname,
-            start_date=start_date,
-            end_date=end_date,
-            states=states,
-            partitions=partitions,
-            users=users,
-            accounts=accounts,
-            qos=qos,
-            format_accounts=False,
-        )
-        cpus_per_job = df.CPUs.value_counts().sort_index().to_frame("Count").reset_index()
-        cpus_per_job["CPUs"] = cpus_per_job["CPUs"].astype(str)
-        cpu_order = cpus_per_job["CPUs"].tolist()
-        return px.bar(
-            cpus_per_job,
-            x="CPUs",
-            y="Count",
-            title="Number of CPUs per job",
-            log_y=False,
-            text_auto=True,
-            category_orders={"CPUs": cpu_order},
-        )
-
-    @app.callback(
-        Output("plot_gpus_per_job", "figure"),
-        Input("hostname_dropdown", "value"),
-        Input("data_range_picker", "start_date"),
-        Input("data_range_picker", "end_date"),
-        Input("states_dropdown", "value"),
-        Input("partitions_dropdown", "value"),
-        Input("users_dropdown", "value"),
-        Input("accounts_dropdown", "value"),
-        Input("qos_selection_dropdown", "value"),
-        background=False,
-        manager=background_callback_manager,
-    )
-    def plot_gpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos):
+    def plot_jobs_distribution(hostname, start_date, end_date, states, partitions, users, accounts, qos, complete_periods, color_by_selection, session_data, account_format):
+        """
+        Create a histogram or pie chart showing jobs distribution.
         
+        Args:
+            hostname: Selected hostname
+            start_date: Start date for filtering
+            end_date: End date for filtering
+            states: Selected job states
+            partitions: Selected partitions
+            users: Selected users
+            accounts: Selected accounts
+            qos: Selected QOS
+            complete_periods: Whether to show only complete periods
+            color_by_selection: Selected color-by option
+            session_data: Session data for consistent colors
+            account_format: Account formatting configuration
+            
+        Returns:
+            plotly.graph_objects.Figure: Histogram or pie chart figure
+        """
+        if session_data is None:
+            session_data = initialize_session_data()
+
+        account_segments = account_format.get("segments") if account_format else None
+
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
             end_date=end_date,
             states=states,
             partitions=partitions,
+            qos=qos,
             users=users,
             accounts=accounts,
-            qos=qos,
-            format_accounts=False,
-        )
-        
-        gpus_per_job = df.GPUs.value_counts().sort_index().to_frame("Count").reset_index()
-        gpus_per_job["GPUs"] = gpus_per_job["GPUs"].astype(str)
-        gpu_order = gpus_per_job["GPUs"].tolist()
-        return px.bar(
-            gpus_per_job,
-            x="GPUs",
-            y="Count",
-            title="Number of GPUs per job",
-            log_y=False,
-            text_auto=True,
-            category_orders={"GPUs": gpu_order},
+            format_accounts=True,
+            account_segments=account_segments,
+            complete_periods_only=complete_periods,
         )
 
+        if df.empty:
+            return px.histogram(title="No data available")
+
+        if not color_by_selection or color_by_selection == "None":
+            # Create histogram showing distribution of job counts over time
+            time_col = get_time_column(start_date, end_date)
+            job_counts = df[time_col].value_counts().reset_index()
+            job_counts.columns = [time_col, "job_count"]
+            
+            fig = px.histogram(
+                job_counts,
+                x="job_count",
+                nbins=20,
+                title="Distribution of Job Counts per Period",
+                labels={"job_count": "Number of Jobs", "count": "Frequency"},
+                text_auto=True,
+            )
+            
+            # Add average line
+            avg_jobs = job_counts["job_count"].mean()
+            fig.add_vline(
+                x=avg_jobs,
+                line_dash="dash",
+                line_color="red",
+                annotation_text=f"Average: {avg_jobs:.1f}",
+                annotation_position="top right"
+            )
+            
+            return fig
+        else:
+            # Create pie chart for color grouping
+            category = color_by_selection
+            
+            category_order, color_map = ensure_consistent_categories_and_colors(
+                df, category, COLORS[category], session_data
+            )
+
+            # Count jobs per category
+            job_counts = df.groupby(category).size().reset_index(name="Number of Jobs")
+            job_counts = ensure_consistent_categories(job_counts, category, "Number of Jobs", session_data)
+            
+            fig = px.pie(
+                job_counts,
+                values="Number of Jobs",
+                names=category,
+                title=f"Jobs by {category.lower()}",
+                color=category,
+                color_discrete_map=color_map,
+                category_orders={category: category_order}
+            )
+            
+            fig.update_traces(textposition="inside", textinfo="percent+label")
+            return fig
+
+
     @app.callback(
-        Output("plot_nodes_per_job", "figure"),
+        Output("plot_cpu_usage_distribution", "figure"),
         Input("hostname_dropdown", "value"),
         Input("data_range_picker", "start_date"),
         Input("data_range_picker", "end_date"),
@@ -578,11 +715,38 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("partitions_dropdown", "value"),
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
+        Input("color_by_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
+        Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def plot_nodes_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos):
+    def plot_cpu_usage_distribution(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data, account_format):
+        """
+        Create a histogram or pie chart showing CPU usage distribution.
+        
+        Args:
+            hostname: Selected hostname
+            start_date: Start date for filtering
+            end_date: End date for filtering
+            states: Selected job states
+            partitions: Selected partitions
+            users: Selected users
+            accounts: Selected accounts
+            color_by: Selected color-by option
+            qos: Selected QOS
+            session_data: Session data for consistent colors
+            account_format: Account formatting configuration
+            
+        Returns:
+            plotly.graph_objects.Figure: Histogram or pie chart figure
+        """
+        if session_data is None:
+            session_data = initialize_session_data()
+
+        account_segments = account_format.get("segments") if account_format else None
+
         df = datastore.filter(
             hostname=hostname,
             start_date=start_date,
@@ -591,21 +755,173 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             partitions=partitions,
             users=users,
             accounts=accounts,
+            complete_periods_only=False,
             qos=qos,
-            format_accounts=False,
+            format_accounts=True,
+            account_segments=account_segments,
         )
-        nodes_per_job = df.Nodes.value_counts().sort_index().to_frame("Count").reset_index()
-        nodes_per_job["Nodes"] = nodes_per_job["Nodes"].astype(str)
-        node_order = nodes_per_job["Nodes"].tolist()
-        return px.bar(
-            nodes_per_job,
-            x="Nodes",
-            y="Count",
-            title="Number of nodes per job",
-            log_y=False,
-            text_auto=True,
-            category_orders={"Nodes": node_order},
+
+        if df.empty:
+            return px.histogram(title="No data available")
+
+        time_col = get_time_column(start_date, end_date).replace("Submit", "Start")
+
+        if not color_by or color_by == "None":
+            # Create histogram showing distribution of CPU usage over time
+            cpu_usage = df.groupby(time_col)[["CPU-hours"]].sum().reset_index()
+            
+            fig = px.histogram(
+                cpu_usage,
+                x="CPU-hours",
+                nbins=20,
+                title="Distribution of CPU Usage per Period",
+                labels={"CPU-hours": "CPU Hours", "count": "Frequency"},
+                text_auto=True,
+            )
+            
+            # Add average line
+            avg_cpu = cpu_usage["CPU-hours"].mean()
+            fig.add_vline(
+                x=avg_cpu,
+                line_dash="dash",
+                line_color="red",
+                annotation_text=f"Average: {avg_cpu:.0f}h",
+                annotation_position="top right"
+            )
+            
+            return fig
+        else:
+            # Create pie chart for color grouping
+            category = color_by
+            
+            category_order, color_map = ensure_consistent_categories_and_colors(
+                df, category, COLORS[category], session_data
+            )
+
+            usage_by_category = df.groupby(category)["CPU-hours"].sum().reset_index()
+            usage_by_category = ensure_consistent_categories(usage_by_category, category, "CPU-hours", session_data)
+
+            fig = px.pie(
+                usage_by_category,
+                values="CPU-hours",
+                names=category,
+                title=f"CPU-hours used by {category.lower()}",
+                color=category,
+                color_discrete_map=color_map,
+                category_orders={category: category_order}
+            )
+
+            fig.update_traces(textposition="inside", textinfo="percent+label")
+            return fig
+
+    @app.callback(
+        Output("plot_gpu_usage_distribution", "figure"),
+        Input("hostname_dropdown", "value"),
+        Input("data_range_picker", "start_date"),
+        Input("data_range_picker", "end_date"),
+        Input("states_dropdown", "value"),
+        Input("partitions_dropdown", "value"),
+        Input("users_dropdown", "value"),
+        Input("accounts_dropdown", "value"),
+        Input("color_by_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
+        Input("session-store", "data"),
+        Input("account-formatter-store", "data"),
+        background=False,
+        manager=background_callback_manager,
+    )
+    def plot_gpu_usage_distribution(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data, account_format):
+        """
+        Create a histogram or pie chart showing GPU usage distribution.
+        
+        Args:
+            hostname: Selected hostname
+            start_date: Start date for filtering
+            end_date: End date for filtering
+            states: Selected job states
+            partitions: Selected partitions
+            users: Selected users
+            accounts: Selected accounts
+            color_by: Selected color-by option
+            qos: Selected QOS
+            session_data: Session data for consistent colors
+            account_format: Account formatting configuration
+            
+        Returns:
+            plotly.graph_objects.Figure: Histogram or pie chart figure
+        """
+        if session_data is None:
+            session_data = initialize_session_data()
+
+        account_segments = account_format.get("segments") if account_format else None
+
+        df = datastore.filter(
+            hostname=hostname,
+            start_date=start_date,
+            end_date=end_date,
+            states=states,
+            partitions=partitions,
+            users=users,
+            accounts=accounts,
+            complete_periods_only=False,
+            qos=qos,
+            format_accounts=True,
+            account_segments=account_segments
         )
+
+        if df.empty:
+            return px.histogram(title="No data available")
+
+        time_col = get_time_column(start_date, end_date).replace("Submit", "Start")
+
+        if not color_by or color_by == "None":
+            # Create histogram showing distribution of GPU usage over time
+            gpu_usage = df.groupby(time_col)[["GPU-hours"]].sum().reset_index()
+            
+            fig = px.histogram(
+                gpu_usage,
+                x="GPU-hours",
+                nbins=20,
+                title="Distribution of GPU Usage per Period",
+                labels={"GPU-hours": "GPU Hours", "count": "Frequency"},
+                text_auto=True,
+            )
+            
+            # Add average line
+            avg_gpu = gpu_usage["GPU-hours"].mean()
+            fig.add_vline(
+                x=avg_gpu,
+                line_dash="dash",
+                line_color="red",
+                annotation_text=f"Average: {avg_gpu:.0f}h",
+                annotation_position="top right"
+            )
+            
+            return fig
+        else:
+            # Create pie chart for color grouping
+            category = color_by
+            
+            category_order, color_map = ensure_consistent_categories_and_colors(
+                df, category, COLORS[category], session_data
+            )
+
+            usage_by_category = df.groupby(category)["GPU-hours"].sum().reset_index()
+            usage_by_category = ensure_consistent_categories(usage_by_category, category, "GPU-hours", session_data)
+
+            fig = px.pie(
+                usage_by_category,
+                values="GPU-hours",
+                names=category,
+                title=f"GPU-hours used by {category.lower()}",
+                color=category,
+                color_discrete_map=color_map,
+                category_orders={category: category_order}
+            )
+
+            fig.update_traces(textposition="inside", textinfo="percent+label")
+            return fig
+
 
     @app.callback(
         Output("plot_waiting_times", "figure"),
@@ -1061,120 +1377,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         return fig
 
     @app.callback(
-        Output("plot_fraction_accounts_cpu_usage", "figure"),
-        Input("hostname_dropdown", "value"),
-        Input("data_range_picker", "start_date"),
-        Input("data_range_picker", "end_date"),
-        Input("states_dropdown", "value"),
-        Input("partitions_dropdown", "value"),
-        Input("users_dropdown", "value"),
-        Input("accounts_dropdown", "value"),
-        Input("color_by_dropdown", "value"),
-        Input("qos_selection_dropdown", "value"),
-        Input("session-store", "data"),
-        Input("account-formatter-store", "data"),
-        background=False,
-        manager=background_callback_manager,
-    )
-    def plot_fraction_cpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos_selection, session_data, account_format):
-
-        account_segments = account_format.get("segments") if account_format else None
-
-        df = datastore.filter(
-            hostname=hostname,
-            start_date=start_date,
-            end_date=end_date,
-            states=states,
-            partitions=partitions,
-            users=users,
-            accounts=accounts,
-            qos=qos_selection,
-            format_accounts=True,
-            account_segments=account_segments,
-        )
-
-        category = color_by if color_by else "Account"
-
-        category_order, color_map = ensure_consistent_categories_and_colors(
-            df, category, COLORS[category], session_data
-        )
-
-        usage_by_category = df.groupby(category)["CPU-hours"].sum().reset_index()
-        usage_by_category = ensure_consistent_categories(usage_by_category, category, "CPU-hours", session_data)
-
-        [color_map.get(cat, "#CCCCCC") for cat in usage_by_category[category]]
-
-        fig = px.pie(
-            usage_by_category,
-            values="CPU-hours",
-            names=category,
-            title=f"CPU-hours used by {category.lower()}",
-            color=category,
-            color_discrete_map=color_map,
-            category_orders={category: category_order}
-        )
-
-        fig.update_traces(textposition="inside", textinfo="percent+label")
-
-        return fig
-
-    @app.callback(
-        Output("plot_fraction_accounts_gpu_usage", "figure"),
-        Input("hostname_dropdown", "value"),
-        Input("data_range_picker", "start_date"),
-        Input("data_range_picker", "end_date"),
-        Input("states_dropdown", "value"),
-        Input("partitions_dropdown", "value"),
-        Input("users_dropdown", "value"),
-        Input("accounts_dropdown", "value"),
-        Input("color_by_dropdown", "value"),
-        Input("qos_selection_dropdown", "value"),
-        Input("session-store", "data"),
-        Input("account-formatter-store", "data"),
-        background=False,
-        manager=background_callback_manager,
-    )
-    def plot_fraction_gpu_usage(hostname, start_date, end_date, states, partitions, users, accounts, color_by, qos, session_data, account_format):
-
-        account_segments = account_format.get("segments") if account_format else None
-
-        df = datastore.filter(
-            hostname=hostname,
-            start_date=start_date,
-            end_date=end_date,
-            states=states,
-            partitions=partitions,
-            users=users,
-            accounts=accounts,
-            qos=qos,
-            format_accounts=True,
-            account_segments=account_segments,
-        )
-
-        category = color_by if color_by else "Account"
-
-        category_order, color_map = ensure_consistent_categories_and_colors(
-            df, category, COLORS[category], session_data
-        )
-
-        usage_by_category = df.groupby(category)["GPU-hours"].sum().reset_index()
-        usage_by_category = ensure_consistent_categories(usage_by_category, category, "GPU-hours", session_data)
-
-        fig = px.pie(
-            usage_by_category,
-            values="GPU-hours",
-            names=category,
-            title=f"GPU-hours used by {category.lower()}",
-            color=category,
-            color_discrete_map=color_map,
-            category_orders={category: category_order}
-        )
-
-        fig.update_traces(textposition="inside", textinfo="percent+label")
-
-        return fig
-
-    @app.callback(
         Output("plot_nodes_usage_cpu", "figure"),
         Output("plot_nodes_usage_gpu", "figure"),
         Input("hostname_dropdown", "value"),
@@ -1327,12 +1529,6 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             fig_nodes_usage_gpu.update_traces(hovertemplate=hover_template)
 
         return fig_nodes_usage_cpu, fig_nodes_usage_gpu
-
-    @app.callback(Output("pie-charts-row", "style"), Input("color_by_dropdown", "value"))
-    def toggle_pie_charts_visibility(color_by):
-        if color_by:
-            return {"display": "block"}
-        return {"display": "none"}
 
     @app.callback(
         Output("qos_selection_dropdown", "options"),
@@ -1676,113 +1872,8 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
 
         return fig
 
-
-
-
-    # Callback to show/hide pie charts based on color selection
     @app.callback(
-        Output("pie-charts-overview", "style"),
-        Input("color_by_dropdown", "value"),  # Replace with your actual color-by dropdown ID
-    )
-    def toggle_pie_charts_visibility(color_by_selection):
-        """
-        Show or hide the pie charts based on whether color grouping is selected.
-        
-        Args:
-            color_by_selection: Selected color-by option
-            
-        Returns:
-            dict: CSS style to show or hide the pie charts
-        """
-        if color_by_selection and color_by_selection != "None":
-            return {"display": "block"}
-        else:
-            return {"display": "none"}
-
-    # Callback for active users pie chart
-    @app.callback(
-        Output("pie_active_users", "figure"),
-        Input("hostname_dropdown", "value"),
-        Input("data_range_picker", "start_date"),
-        Input("data_range_picker", "end_date"),
-        Input("accounts_dropdown", "value"),
-        Input("complete_periods_switch", "value"),
-        Input("color_by_dropdown", "value"),
-        Input("session-store", "data"),
-        Input("account-formatter-store", "data"),
-        background=False,
-        manager=background_callback_manager,
-    )
-    def create_pie_active_users(hostname, start_date, end_date, accounts, complete_periods, color_by_selection, session_data, account_format):
-        """
-        Create a pie chart showing distribution of active users by selected grouping.
-        
-        Args:
-            hostname: Selected hostname
-            start_date: Start date for filtering
-            end_date: End date for filtering
-            accounts: Selected accounts
-            complete_periods: Whether to show only complete periods
-            color_by_selection: Selected color-by option
-            session_data: Session data for consistent colors
-            account_format: Account formatting configuration
-            
-        Returns:
-            plotly.graph_objects.Figure: Pie chart figure
-        """
-        if not color_by_selection or color_by_selection == "None":
-            return px.pie(title="No grouping selected")
-        
-        if session_data is None:
-            session_data = initialize_session_data()
-
-        account_segments = account_format.get("segments") if account_format else None
-
-        df = datastore.filter(
-            hostname=hostname,
-            start_date=start_date,
-            end_date=end_date,
-            accounts=accounts,
-            format_accounts=True,
-            account_segments=account_segments,
-            complete_periods_only=complete_periods,
-        )
-
-        if df.empty:
-            return px.pie(title="No data available")
-
-        # For active users, only Account grouping makes sense
-        if color_by_selection == "Account":
-            category = "Account"
-            
-            category_order, color_map = ensure_consistent_categories_and_colors(
-                df, category, COLORS[category], session_data
-            )
-
-            # Count unique users per account
-            user_counts = df.groupby(category)["User"].nunique().reset_index(name="Active Users")
-            user_counts = ensure_consistent_categories(user_counts, category, "Active Users", session_data)
-            
-            fig = px.pie(
-                user_counts,
-                values="Active Users",
-                names=category,
-                title=f"Active users by {category.lower()}",
-                color=category,
-                color_discrete_map=color_map,
-                category_orders={category: category_order}
-            )
-            
-            fig.update_traces(textposition="inside", textinfo="percent+label")
-        else:
-            # Return empty chart for other groupings since they don't make sense for users
-            return px.pie(title="Active users can only be grouped by Account")
-
-        return fig
-
-    # Callback for jobs pie chart
-    @app.callback(
-        Output("pie_number_of_jobs", "figure"),
+        Output("plot_cpus_per_job", "figure"),
         Input("hostname_dropdown", "value"),
         Input("data_range_picker", "start_date"),
         Input("data_range_picker", "end_date"),
@@ -1791,41 +1882,10 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
         Input("users_dropdown", "value"),
         Input("accounts_dropdown", "value"),
         Input("qos_selection_dropdown", "value"),
-        Input("complete_periods_switch", "value"),
-        Input("color_by_dropdown", "value"),
-        Input("session-store", "data"),
-        Input("account-formatter-store", "data"),
         background=False,
         manager=background_callback_manager,
     )
-    def create_pie_number_of_jobs(hostname, start_date, end_date, states, partitions, users, accounts, qos, complete_periods, color_by_selection, session_data, account_format):
-        """
-        Create a pie chart showing distribution of jobs by selected grouping.
-        
-        Args:
-            hostname: Selected hostname
-            start_date: Start date for filtering
-            end_date: End date for filtering
-            states: Selected job states
-            partitions: Selected partitions
-            users: Selected users
-            accounts: Selected accounts
-            qos: Selected QOS
-            complete_periods: Whether to show only complete periods
-            color_by_selection: Selected color-by option
-            session_data: Session data for consistent colors
-            account_format: Account formatting configuration
-            
-        Returns:
-            plotly.graph_objects.Figure: Pie chart figure
-        """
-        if not color_by_selection or color_by_selection == "None":
-            return px.pie(title="No grouping selected")
-        
-        if session_data is None:
-            session_data = initialize_session_data()
-
-        account_segments = account_format.get("segments") if account_format else None
+    def plot_cpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos):
 
         df = datastore.filter(
             hostname=hostname,
@@ -1833,37 +1893,98 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             end_date=end_date,
             states=states,
             partitions=partitions,
-            qos=qos,
             users=users,
             accounts=accounts,
-            format_accounts=True,
-            account_segments=account_segments,
-            complete_periods_only=complete_periods,
+            qos=qos,
+            format_accounts=False,
+        )
+        cpus_per_job = df.CPUs.value_counts().sort_index().to_frame("Count").reset_index()
+        cpus_per_job["CPUs"] = cpus_per_job["CPUs"].astype(str)
+        cpu_order = cpus_per_job["CPUs"].tolist()
+        return px.bar(
+            cpus_per_job,
+            x="CPUs",
+            y="Count",
+            title="Number of CPUs per job",
+            log_y=False,
+            text_auto=True,
+            category_orders={"CPUs": cpu_order},
         )
 
-        if df.empty:
-            return px.pie(title="No data available")
-
-        category = color_by_selection
+    @app.callback(
+        Output("plot_gpus_per_job", "figure"),
+        Input("hostname_dropdown", "value"),
+        Input("data_range_picker", "start_date"),
+        Input("data_range_picker", "end_date"),
+        Input("states_dropdown", "value"),
+        Input("partitions_dropdown", "value"),
+        Input("users_dropdown", "value"),
+        Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
+        background=False,
+        manager=background_callback_manager,
+    )
+    def plot_gpus_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos):
         
-        category_order, color_map = ensure_consistent_categories_and_colors(
-            df, category, COLORS[category], session_data
+        df = datastore.filter(
+            hostname=hostname,
+            start_date=start_date,
+            end_date=end_date,
+            states=states,
+            partitions=partitions,
+            users=users,
+            accounts=accounts,
+            qos=qos,
+            format_accounts=False,
+        )
+        
+        gpus_per_job = df.GPUs.value_counts().sort_index().to_frame("Count").reset_index()
+        gpus_per_job["GPUs"] = gpus_per_job["GPUs"].astype(str)
+        gpu_order = gpus_per_job["GPUs"].tolist()
+        return px.bar(
+            gpus_per_job,
+            x="GPUs",
+            y="Count",
+            title="Number of GPUs per job",
+            log_y=False,
+            text_auto=True,
+            category_orders={"GPUs": gpu_order},
         )
 
-        # Count jobs per category
-        job_counts = df.groupby(category).size().reset_index(name="Number of Jobs")
-        job_counts = ensure_consistent_categories(job_counts, category, "Number of Jobs", session_data)
-        
-        fig = px.pie(
-            job_counts,
-            values="Number of Jobs",
-            names=category,
-            title=f"Jobs by {category.lower()}",
-            color=category,
-            color_discrete_map=color_map,
-            category_orders={category: category_order}
+    @app.callback(
+        Output("plot_nodes_per_job", "figure"),
+        Input("hostname_dropdown", "value"),
+        Input("data_range_picker", "start_date"),
+        Input("data_range_picker", "end_date"),
+        Input("states_dropdown", "value"),
+        Input("partitions_dropdown", "value"),
+        Input("users_dropdown", "value"),
+        Input("accounts_dropdown", "value"),
+        Input("qos_selection_dropdown", "value"),
+        background=False,
+        manager=background_callback_manager,
+    )
+    def plot_nodes_per_job(hostname, start_date, end_date, states, partitions, users, accounts, qos):
+        df = datastore.filter(
+            hostname=hostname,
+            start_date=start_date,
+            end_date=end_date,
+            states=states,
+            partitions=partitions,
+            users=users,
+            accounts=accounts,
+            qos=qos,
+            format_accounts=False,
         )
-        
-        fig.update_traces(textposition="inside", textinfo="percent+label")
-
-        return fig
+        nodes_per_job = df.Nodes.value_counts().sort_index().to_frame("Count").reset_index()
+        nodes_per_job["Nodes"] = nodes_per_job["Nodes"].astype(str)
+        node_order = nodes_per_job["Nodes"].tolist()
+        return px.bar(
+            nodes_per_job,
+            x="Nodes",
+            y="Count",
+            title="Number of nodes per job",
+            log_y=False,
+            text_auto=True,
+            category_orders={"Nodes": node_order},
+        )

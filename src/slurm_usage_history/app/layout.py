@@ -513,10 +513,11 @@ filters_sidebar = html.Div(
     className="mb-4 mt-4",
 )
 
+# Modified overview section in the layout file
 overview_section = create_section(
     "Overview",
     [
-        # New summary statistics cards
+        # Summary statistics cards
         dbc.Row(
             [
                 dbc.Col(
@@ -574,7 +575,8 @@ overview_section = create_section(
             ],
             className="mb-4",
         ),
-        # Original charts
+        
+        # Active Users Row - Always visible, changes based on color selection
         dbc.Row(
             [
                 dbc.Col(
@@ -591,8 +593,31 @@ overview_section = create_section(
                         style=CARD_STYLE,
                     ),
                     width=12,
-                    lg=6,
+                    lg=8,  # 8/12 = 2/3
                 ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardHeader("Active Users Distribution"),
+                            dbc.CardBody(
+                                dcc.Loading(
+                                    dcc.Graph(id="plot_active_users_distribution"),
+                                    type="default",
+                                )
+                            ),
+                        ],
+                        style=CARD_STYLE,
+                    ),
+                    width=12,
+                    lg=4,  # 4/12 = 1/3
+                ),
+            ],
+            className="mb-4",
+        ),
+        
+        # Jobs Row - Always visible, changes based on color selection
+        dbc.Row(
+            [
                 dbc.Col(
                     dbc.Card(
                         [
@@ -607,55 +632,31 @@ overview_section = create_section(
                         style=CARD_STYLE,
                     ),
                     width=12,
-                    lg=6,
+                    lg=8,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardHeader("Jobs Distribution"),
+                            dbc.CardBody(
+                                dcc.Loading(
+                                    dcc.Graph(id="plot_jobs_distribution"),
+                                    type="default",
+                                )
+                            ),
+                        ],
+                        style=CARD_STYLE,
+                    ),
+                    width=12,
+                    lg=4,
                 ),
             ],
             className="mb-4",
         ),
-        # Conditional pie charts row (only visible when color grouping is selected)
-        html.Div(
-            dbc.Row(
-                [
-                    dbc.Col(
-                        dbc.Card(
-                            [
-                                dbc.CardHeader("Active Users Distribution"),
-                                dbc.CardBody(
-                                    dcc.Loading(
-                                        dcc.Graph(id="pie_active_users"),
-                                        type="default",
-                                    )
-                                ),
-                            ],
-                            style=CARD_STYLE,
-                        ),
-                        width=12,
-                        lg=6,
-                    ),
-                    dbc.Col(
-                        dbc.Card(
-                            [
-                                dbc.CardHeader("Jobs Distribution"),
-                                dbc.CardBody(
-                                    dcc.Loading(
-                                        dcc.Graph(id="pie_number_of_jobs"),
-                                        type="default",
-                                    )
-                                ),
-                            ],
-                            style=CARD_STYLE,
-                        ),
-                        width=12,
-                        lg=6,
-                    ),
-                ]
-            ),
-            id="pie-charts-overview",
-            style={"display": "none"},  # Hidden by default
-        ),
     ],
     id="overview-section",
 )
+
 job_timing_section = create_section(
     "Waiting Time and Job Duration",
     [
@@ -848,72 +849,84 @@ job_timing_section = create_section(
 resource_usage_section = create_section(
     "Usage",
     [
+        # CPU Usage Row - Time series + Distribution
         dbc.Row(
             [
                 dbc.Col(
                     dbc.Card(
                         [
                             dbc.CardHeader("CPU Usage"),
-                            dbc.CardBody(dcc.Loading(dcc.Graph(id="plot_cpu_hours"), type="default")),
+                            dbc.CardBody(
+                                dcc.Loading(
+                                    dcc.Graph(id="plot_cpu_hours"),
+                                    type="default",
+                                )
+                            ),
                         ],
                         style=CARD_STYLE,
                     ),
                     width=12,
-                    lg=6,
+                    lg=8,  # 8/12 = 2/3
                 ),
                 dbc.Col(
                     dbc.Card(
                         [
-                            dbc.CardHeader("GPU Usage"),
-                            dbc.CardBody(dcc.Loading(dcc.Graph(id="plot_gpu_hours"), type="default")),
+                            dbc.CardHeader("CPU Usage Distribution"),
+                            dbc.CardBody(
+                                dcc.Loading(
+                                    dcc.Graph(id="plot_cpu_usage_distribution"),
+                                    type="default",
+                                )
+                            ),
                         ],
                         style=CARD_STYLE,
                     ),
                     width=12,
-                    lg=6,
+                    lg=4,  # 4/12 = 1/3
                 ),
-            ]
+            ],
+            className="mb-4",
         ),
-        # Pie charts row
-        html.Div(
-            dbc.Row(
-                [
-                    dbc.Col(
-                        dbc.Card(
-                            [
-                                dbc.CardHeader("CPU Resource Usage Distribution"),
-                                dbc.CardBody(
-                                    dcc.Loading(
-                                        dcc.Graph(id="plot_fraction_accounts_cpu_usage"),
-                                        type="default",
-                                    )
-                                ),
-                            ],
-                            style=CARD_STYLE,
-                        ),
-                        width=12,
-                        lg=6,
+        
+        # GPU Usage Row - Time series + Distribution
+        dbc.Row(
+            [
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardHeader("GPU Usage"),
+                            dbc.CardBody(
+                                dcc.Loading(
+                                    dcc.Graph(id="plot_gpu_hours"),
+                                    type="default",
+                                )
+                            ),
+                        ],
+                        style=CARD_STYLE,
                     ),
-                    dbc.Col(
-                        dbc.Card(
-                            [
-                                dbc.CardHeader("GPU Resource Usage Distribution"),
-                                dbc.CardBody(
-                                    dcc.Loading(
-                                        dcc.Graph(id="plot_fraction_accounts_gpu_usage"),
-                                        type="default",
-                                    )
-                                ),
-                            ],
-                            style=CARD_STYLE,
-                        ),
-                        width=12,
-                        lg=6,
+                    width=12,
+                    lg=8,  # 8/12 = 2/3
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        [
+                            dbc.CardHeader("GPU Usage Distribution"),
+                            dbc.CardBody(
+                                dcc.Loading(
+                                    dcc.Graph(id="plot_gpu_usage_distribution"),
+                                    type="default",
+                                )
+                            ),
+                        ],
+                        style=CARD_STYLE,
                     ),
-                ]
-            ),
-            id="pie-charts-row",
+                    width=12,
+                    lg=4,  # 4/12 = 1/3
+                ),
+            ],
+            className="mb-4",
         ),
+        
         # Node usage card with node display options included
         dbc.Card(
             [
@@ -954,7 +967,6 @@ resource_usage_section = create_section(
     ],
     id="usage-section",
 )
-
 usage_by_section = create_section(
     "Job Submission by Category",  # Updated section title
     [
