@@ -1,0 +1,36 @@
+[Unit]
+Description=Slurm Usage History Backend API
+After=network.target
+
+[Service]
+Type=simple
+User={{ app_user }}
+Group={{ app_user }}
+WorkingDirectory={{ app_base_dir }}
+Environment="PATH={{ app_base_dir }}/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONUNBUFFERED=1"
+EnvironmentFile={{ app_base_dir }}/.env
+ExecStart={{ app_base_dir }}/.venv/bin/gunicorn backend.app.main:app \
+    --workers {{ gunicorn_workers | default(4) }} \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --bind 127.0.0.1:8100 \
+    --timeout 120 \
+    --access-logfile /var/log/slurm-usage-backend-access.log \
+    --error-logfile /var/log/slurm-usage-backend-error.log
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitInterval=5min
+StartLimitBurst=5
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths={{ app_data_dir }}
+ReadWritePaths=/var/log
+
+[Install]
+WantedBy=multi-user.target

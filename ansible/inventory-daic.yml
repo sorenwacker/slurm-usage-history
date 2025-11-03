@@ -1,0 +1,19 @@
+---
+# Ansible Inventory for DAIC Dashboard Deployment
+
+all:
+  children:
+    workstations:
+      hosts:
+        daic-dashboard:
+          ansible_host: dashboard.daic.tudelft.nl
+          ansible_user: sdrwacker  # Change to your actual username
+          ansible_python_interpreter: /usr/bin/python3
+
+          # You can override variables per host if needed
+          # ansible_port: 22
+          # ansible_ssh_private_key_file: ~/.ssh/id_rsa
+
+      vars:
+        # Load DAIC-specific variables
+        # This will use group_vars/daic.yml

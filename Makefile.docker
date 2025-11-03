@@ -1,0 +1,47 @@
+.PHONY: help build up down logs restart clean rebuild
+
+help:
+	@echo "Slurm Usage History - Docker Commands"
+	@echo ""
+	@echo "Usage:"
+	@echo "  make -f Makefile.docker build      Build Docker images"
+	@echo "  make -f Makefile.docker up         Start containers"
+	@echo "  make -f Makefile.docker down       Stop containers"
+	@echo "  make -f Makefile.docker logs       View logs"
+	@echo "  make -f Makefile.docker restart    Restart containers"
+	@echo "  make -f Makefile.docker rebuild    Rebuild and restart"
+	@echo "  make -f Makefile.docker clean      Stop and remove volumes"
+	@echo ""
+
+build:
+	docker-compose build
+
+up:
+	docker-compose up -d
+	@echo ""
+	@echo "✅ Application started!"
+	@echo "   Dashboard: http://localhost:3100"
+	@echo "   API: http://localhost:8100"
+	@echo "   API Docs: http://localhost:8100/docs"
+	@echo ""
+
+down:
+	docker-compose down
+
+logs:
+	docker-compose logs -f
+
+restart:
+	docker-compose restart
+
+rebuild:
+	docker-compose up -d --build
+	@echo ""
+	@echo "✅ Application rebuilt and started!"
+	@echo "   Dashboard: http://localhost:3100"
+	@echo "   API: http://localhost:8100"
+	@echo ""
+
+clean:
+	docker-compose down -v
+	@echo "✅ Containers and volumes removed"

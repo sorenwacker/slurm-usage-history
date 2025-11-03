@@ -1,0 +1,29 @@
+SLURM Usage History Exporter - File Manifest
+
+cluster-agent/
+├── slurm-usage-history-exporter.py     - Main Python script (15KB, executable)
+├── slurm-usage-history-exporter.service - Systemd service unit
+├── slurm-usage-history-exporter.timer  - Systemd timer unit
+├── install.sh                          - Installation script (executable)
+├── config.json.example                 - Configuration template
+├── requirements.txt                    - Python dependencies
+├── README.md                           - Complete documentation (15KB)
+├── QUICKSTART.md                       - 5-minute setup guide
+└── .gitignore                          - Git ignore rules
+
+Installation Paths (after running install.sh):
+- Binary: /usr/local/bin/slurm-usage-history-exporter
+- Installation: /opt/slurm-usage-history-exporter/
+- Configuration: /etc/slurm-usage-history-exporter/config.json
+- Service: /etc/systemd/system/slurm-usage-history-exporter.service
+- Timer: /etc/systemd/system/slurm-usage-history-exporter.timer
+
+Key Commands:
+- Install: sudo ./install.sh
+- Configure: sudo nano /etc/slurm-usage-history-exporter/config.json
+- Test: sudo slurm-usage-history-exporter --dry-run --verbose
+- Run: sudo slurm-usage-history-exporter
+- Enable timer: sudo systemctl enable slurm-usage-history-exporter.timer
+- Start timer: sudo systemctl start slurm-usage-history-exporter.timer
+- Check status: systemctl status slurm-usage-history-exporter.timer
+- View logs: journalctl -u slurm-usage-history-exporter.service -f

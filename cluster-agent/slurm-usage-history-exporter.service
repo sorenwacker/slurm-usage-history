@@ -1,0 +1,21 @@
+[Unit]
+Description=SLURM Usage History Exporter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/slurm-usage-history-exporter --config /etc/slurm-usage-history-exporter/config.json
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=slurm-usage-history-exporter
+
+# Security hardening
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/log
+
+[Install]
+WantedBy=multi-user.target

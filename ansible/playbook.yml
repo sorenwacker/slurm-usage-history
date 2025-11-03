@@ -1,0 +1,259 @@
+---
+- name: Deploy Slurm Usage History Application with SAML
+  hosts: workstations
+  become: yes
+  vars:
+    app_name: slurm-usage-history
+    app_user: "{{ ansible_user }}"
+    app_base_dir: "/opt/{{ app_name }}"
+    app_data_dir: "{{ app_base_dir }}/data"
+    frontend_build_dir: "{{ app_base_dir }}/frontend/dist"
+    venv_dir: "{{ app_base_dir }}/venv"
+
+  tasks:
+    - name: Install system dependencies
+      ansible.builtin.package:
+        name:
+          - python3.10
+          - python3.10-dev
+          - python3-pip
+          - git
+          - nginx
+          - curl
+          - build-essential
+          - libssl-dev
+          - libxml2-dev
+          - libxmlsec1-dev
+          - libxmlsec1-openssl
+          - pkg-config
+        state: present
+      tags: [dependencies]
+
+    - name: Install uv (Python package manager)
+      ansible.builtin.shell: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+      args:
+        creates: /root/.cargo/bin/uv
+      tags: [dependencies]
+
+    - name: Add uv to PATH for current session
+      ansible.builtin.lineinfile:
+        path: /root/.bashrc
+        line: 'export PATH="$HOME/.cargo/bin:$PATH"'
+        create: yes
+      tags: [dependencies]
+
+    - name: Install Node.js 18.x
+      block:
+        - name: Add NodeSource repository
+          ansible.builtin.shell: |
+            curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+          args:
+            creates: /etc/apt/sources.list.d/nodesource.list
+          when: ansible_os_family == "Debian"
+
+        - name: Install Node.js
+          ansible.builtin.package:
+            name: nodejs
+            state: present
+      tags: [dependencies]
+
+    - name: Create application directory
+      ansible.builtin.file:
+        path: "{{ app_base_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+      tags: [setup]
+
+    - name: Clone or update application repository
+      ansible.builtin.git:
+        repo: "{{ git_repo_url }}"
+        dest: "{{ app_base_dir }}"
+        version: "{{ git_branch | default('main') }}"
+        force: yes
+      become_user: "{{ app_user }}"
+      when: git_repo_url is defined
+      tags: [deploy]
+
+    - name: Copy application files (if not using git)
+      ansible.builtin.synchronize:
+        src: "{{ local_app_path }}/"
+        dest: "{{ app_base_dir }}/"
+        delete: yes
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=node_modules"
+          - "--exclude=venv"
+          - "--exclude=__pycache__"
+          - "--exclude=.env"
+      when: git_repo_url is not defined and local_app_path is defined
+      tags: [deploy]
+
+    - name: Create data directory
+      ansible.builtin.file:
+        path: "{{ app_data_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+      tags: [setup]
+
+    - name: Install Python dependencies with uv
+      ansible.builtin.shell: |
+        /root/.cargo/bin/uv sync
+      args:
+        chdir: "{{ app_base_dir }}"
+      become_user: "{{ app_user }}"
+      environment:
+        PATH: "/root/.cargo/bin:{{ ansible_env.PATH }}"
+      tags: [deploy]
+
+    - name: Install python3-saml for SAML support
+      ansible.builtin.pip:
+        name:
+          - python3-saml
+          - PyJWT
+        virtualenv: "{{ app_base_dir }}/.venv"
+        virtualenv_command: python3.10 -m venv
+      tags: [deploy]
+
+    - name: Install frontend dependencies
+      community.general.npm:
+        path: "{{ app_base_dir }}/frontend"
+        state: present
+      become_user: "{{ app_user }}"
+      tags: [deploy]
+
+    - name: Build frontend for production
+      ansible.builtin.command:
+        cmd: npm run build
+        chdir: "{{ app_base_dir }}/frontend"
+      become_user: "{{ app_user }}"
+      environment:
+        VITE_API_URL: "{{ vite_api_url }}"
+      tags: [deploy]
+
+    - name: Create SAML certificates directory
+      ansible.builtin.file:
+        path: "{{ app_base_dir }}/saml/certs"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0700'
+      tags: [saml]
+
+    - name: Copy SAML SP certificate
+      ansible.builtin.copy:
+        src: "{{ saml_sp_cert_file }}"
+        dest: "{{ app_base_dir }}/saml/certs/sp.crt"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0600'
+      when: saml_sp_cert_file is defined
+      tags: [saml]
+
+    - name: Copy SAML SP private key
+      ansible.builtin.copy:
+        src: "{{ saml_sp_key_file }}"
+        dest: "{{ app_base_dir }}/saml/certs/sp.key"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0600'
+      when: saml_sp_key_file is defined
+      tags: [saml]
+
+    - name: Generate SAML SP certificate if not provided
+      ansible.builtin.shell: |
+        openssl req -new -x509 -days 3650 -nodes -out sp.crt -keyout sp.key \
+          -subj "/CN={{ ansible_fqdn }}"
+      args:
+        chdir: "{{ app_base_dir }}/saml/certs"
+        creates: "{{ app_base_dir }}/saml/certs/sp.crt"
+      become_user: "{{ app_user }}"
+      when: saml_sp_cert_file is not defined
+      tags: [saml]
+
+    - name: Create SAML settings configuration
+      ansible.builtin.template:
+        src: saml_settings.json.j2
+        dest: "{{ app_base_dir }}/saml/settings.json"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0600'
+      tags: [saml]
+
+    - name: Create environment file
+      ansible.builtin.template:
+        src: env.j2
+        dest: "{{ app_base_dir }}/.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0600'
+      tags: [config]
+
+    - name: Create systemd service for backend
+      ansible.builtin.template:
+        src: slurm-usage-backend.service.j2
+        dest: /etc/systemd/system/slurm-usage-backend.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+      tags: [systemd]
+
+    - name: Configure nginx
+      ansible.builtin.template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/sites-available/slurm-usage-history
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart nginx
+      tags: [nginx]
+
+    - name: Enable nginx site
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/slurm-usage-history
+        dest: /etc/nginx/sites-enabled/slurm-usage-history
+        state: link
+      notify: Restart nginx
+      tags: [nginx]
+
+    - name: Remove default nginx site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Restart nginx
+      tags: [nginx]
+
+    - name: Enable and start backend service
+      ansible.builtin.systemd:
+        name: slurm-usage-backend
+        enabled: yes
+        state: started
+        daemon_reload: yes
+      tags: [service]
+
+    - name: Enable and start nginx
+      ansible.builtin.systemd:
+        name: nginx
+        enabled: yes
+        state: started
+      tags: [service]
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Restart backend
+      ansible.builtin.systemd:
+        name: slurm-usage-backend
+        state: restarted
+
+    - name: Restart nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: restarted

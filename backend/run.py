@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+"""Development server runner for the FastAPI backend."""
+
+import uvicorn
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8100,
+        reload=True,
+        log_level="info",
+    )

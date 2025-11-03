@@ -1,0 +1,108 @@
+---
+# Ansible Variables for Slurm Usage History Application
+#
+# Copy this file and customize for your environment
+
+# ============================================================================
+# Application Deployment
+# ============================================================================
+
+# Option 1: Deploy from Git repository
+git_repo_url: "https://github.com/your-org/slurm-usage-history.git"
+git_branch: "main"
+
+# Option 2: Deploy from local directory (comment out git_repo_url to use this)
+# local_app_path: "/path/to/local/slurm-usage-history"
+
+# ============================================================================
+# Application Configuration
+# ============================================================================
+
+# API keys for data ingestion (comma-separated)
+api_keys: "secret-key-1,secret-key-2,secret-key-3"
+
+# Base URL of the application (used for SAML and redirects)
+base_url: "https://slurm-dashboard.example.com"
+
+# Alternative for HTTP (development/testing only):
+# base_url: "http://192.168.1.100"
+
+# CORS origins (comma-separated, usually same as base_url)
+cors_origins: "https://slurm-dashboard.example.com"
+
+# Auto-refresh interval for data (seconds)
+auto_refresh_interval: 600
+
+# Secret key for session management (generate with: openssl rand -hex 32)
+secret_key: "change-this-to-a-random-secret-key-generated-with-openssl"
+
+# Frontend API URL (for Vite build)
+vite_api_url: "{{ base_url }}/api"
+
+# Number of gunicorn workers (default: 4)
+gunicorn_workers: 4
+
+# ============================================================================
+# SAML Configuration
+# ============================================================================
+
+enable_saml: true
+
+# SAML Identity Provider (IdP) Configuration
+saml_idp_entity_id: "https://idp.example.com/saml/metadata"
+saml_idp_sso_url: "https://idp.example.com/saml/sso"
+saml_idp_slo_url: "https://idp.example.com/saml/slo"
+
+# SAML IdP Certificate (X.509 cert without headers/footers, single line or multiline)
+# Get this from your IdP metadata XML
+saml_idp_cert: |
+  MIIDXTCCAkWgAwIBAgIJAKHd...
+  (paste your IdP certificate here)
+
+# SAML Service Provider (SP) Certificates
+# If you have existing certificates, specify the paths:
+# saml_sp_cert_file: "/path/to/sp.crt"
+# saml_sp_key_file: "/path/to/sp.key"
+# Otherwise, they will be auto-generated
+
+# SAML Security Settings
+saml_strict: true
+saml_debug: false
+saml_sign_requests: false  # Set to true if your IdP requires signed requests
+saml_sign_metadata: false
+saml_want_messages_signed: false
+saml_want_assertions_signed: true
+
+# SAML Contact Information
+technical_contact_name: "Technical Support"
+technical_contact_email: "support@example.com"
+support_contact_name: "Support Team"
+support_contact_email: "support@example.com"
+
+# Organization Information
+organization_name: "Your Organization"
+organization_display_name: "Your Organization"
+organization_url: "https://www.example.com"
+
+# ============================================================================
+# SSL/TLS Configuration
+# ============================================================================
+
+enable_https: true
+
+# SSL certificate paths (for nginx)
+ssl_cert_path: "/etc/ssl/certs/slurm-dashboard.crt"
+ssl_key_path: "/etc/ssl/private/slurm-dashboard.key"
+
+# For Let's Encrypt:
+# ssl_cert_path: "/etc/letsencrypt/live/slurm-dashboard.example.com/fullchain.pem"
+# ssl_key_path: "/etc/letsencrypt/live/slurm-dashboard.example.com/privkey.pem"
+
+# ============================================================================
+# Web Server Configuration
+# ============================================================================
+
+server_name: "slurm-dashboard.example.com"
+
+# For development/testing without DNS:
+# server_name: "_"
