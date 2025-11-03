@@ -78,10 +78,11 @@ body {
 
 /* Main Container */
 .container {
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 2rem;
   flex: 1;
+  width: 100%;
 }
 
 /* Filters */
@@ -100,8 +101,14 @@ body {
 
 .filter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .filter-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .filter-group {
@@ -148,6 +155,12 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
+}
+
+@media (min-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .stat-card {
@@ -225,6 +238,68 @@ body {
   animation: spin 1s linear infinite;
 }
 
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: 3rem;
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 6px solid var(--light);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 2rem;
+}
+
+.loading-screen h2 {
+  color: var(--secondary);
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+.loading-screen p {
+  color: #666;
+  font-size: 1rem;
+  margin: 0.5rem 0;
+}
+
+.loading-detail {
+  font-family: monospace;
+  background: var(--light);
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  margin-top: 1rem !important;
+  font-size: 0.9rem !important;
+}
+
+.error-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: 3rem;
+}
+
+.error-screen h2 {
+  color: #c33;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+.error-screen p {
+  color: #666;
+  font-size: 1rem;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -243,8 +318,25 @@ body {
 
 /* Charts */
 .chart-container {
-  min-height: 400px;
+  min-height: 500px;
   width: 100%;
+}
+
+/* Charts Grid Layout */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 1200px) {
+  .charts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .chart-full-width {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Responsive */

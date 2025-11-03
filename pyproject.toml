@@ -38,6 +38,7 @@ dependencies = [
   "PyJWT>=2.8.0",
   "python-jose[cryptography]>=3.3.0",
   "passlib[bcrypt]>=1.7.4",
+  "email-validator>=2.0.0",
 ]
 
 [tool.uv]

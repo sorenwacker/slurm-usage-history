@@ -1,9 +1,17 @@
 """Models for admin functionality - cluster and API key management."""
 
 from datetime import datetime
+from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
+
+
+class AdminRole(str, Enum):
+    """Admin role levels."""
+
+    ADMIN = "admin"  # Can ONLY access user data (color by user, analytics, exports)
+    SUPERADMIN = "superadmin"  # Full access: cluster management + user data
 
 
 class ClusterCreate(BaseModel):
@@ -75,12 +83,15 @@ class AdminLoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int
+    role: AdminRole
+    email: Optional[str] = None
 
 
 class AdminUser(BaseModel):
-    """Admin user model."""
+    """Admin user model with role."""
 
     username: str
-    email: Optional[str] = None
+    email: EmailStr
+    role: AdminRole
     full_name: Optional[str] = None
     is_active: bool = True

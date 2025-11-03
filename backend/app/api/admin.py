@@ -12,6 +12,7 @@ from ..core.admin_auth import (
 )
 from ..db.clusters import get_cluster_db
 from ..models.admin_models import (
+    AdminRole,
     APIKeyRotateRequest,
     APIKeyRotateResponse,
     AdminLoginRequest,
@@ -45,10 +46,13 @@ async def admin_login(request: AdminLoginRequest):
         data={"sub": username}, expires_delta=access_token_expires
     )
 
+    # For password-based auth, default to superadmin role
     return AdminLoginResponse(
         access_token=access_token,
         token_type="bearer",
         expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        role=AdminRole.SUPERADMIN,
+        email=None,
     )
 
 

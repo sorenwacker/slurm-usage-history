@@ -1,8 +1,9 @@
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
+import numpy as np
 from fastapi import APIRouter, HTTPException, Query
 
 from ..core.config import get_settings
@@ -33,6 +34,24 @@ def get_datastore() -> PandasDataStore:
         _datastore.load_data()
         _datastore.start_auto_refresh(interval=settings.auto_refresh_interval)
     return _datastore
+
+
+def convert_numpy_to_native(obj: Any) -> Any:
+    """Convert numpy/pandas types to Python native types for JSON serialization."""
+    if isinstance(obj, (np.integer, np.floating)):
+        return obj.item()
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: convert_numpy_to_native(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_to_native(item) for item in obj]
+    elif isinstance(obj, (np.bool_, bool)):
+        return bool(obj)
+    elif obj is None or isinstance(obj, (str, int, float)):
+        return obj
+    else:
+        return str(obj)
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -125,12 +144,15 @@ async def filter_data(request: FilterRequest) -> dict:
         # Convert to records for JSON serialization
         records = df.to_dict(orient="records")
 
+        # Convert numpy types to native Python types
+        records = [convert_numpy_to_native(record) for record in records]
+
         # Calculate summary statistics
         summary = {
-            "total_jobs": len(df),
+            "total_jobs": int(len(df)),
             "total_cpu_hours": float(df["CPUHours"].sum()) if "CPUHours" in df.columns else 0.0,
             "total_gpu_hours": float(df["GPUHours"].sum()) if "GPUHours" in df.columns else 0.0,
-            "total_users": df["User"].nunique() if "User" in df.columns else 0,
+            "total_users": int(df["User"].nunique()) if "User" in df.columns else 0,
             "data": records,
         }
 
