@@ -1,0 +1,244 @@
+"""Configuration management for cluster labels and node synonyms."""
+import os
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import yaml
+
+
+class ClusterConfig:
+    """Manages cluster configuration from YAML file."""
+
+    def __init__(self, config_path: Optional[str] = None):
+        """Initialize cluster configuration.
+
+        Args:
+            config_path: Path to clusters.yaml file. If None, uses default location.
+        """
+        if config_path is None:
+            # Try to find config file in project root
+            current_dir = Path(__file__).parent.parent.parent
+            config_path = current_dir / "config" / "clusters.yaml"
+
+        self.config_path = Path(config_path)
+        self.config: Dict[str, Any] = {}
+        self._node_synonym_map: Dict[str, Dict[str, str]] = {}
+        self._account_labels: Dict[str, Dict[str, Any]] = {}
+        self._partition_labels: Dict[str, Dict[str, Any]] = {}
+
+        if self.config_path.exists():
+            self.load_config()
+        else:
+            print(f"Warning: Config file not found at {self.config_path}")
+            print("Using default configuration (no label mapping)")
+
+    def load_config(self) -> None:
+        """Load configuration from YAML file."""
+        try:
+            with open(self.config_path, "r") as f:
+                self.config = yaml.safe_load(f)
+
+            # Build synonym maps for fast lookup
+            self._build_synonym_maps()
+
+            print(f"✅ Loaded cluster configuration from {self.config_path}")
+        except Exception as e:
+            print(f"Error loading config: {e}")
+            self.config = {}
+
+    def _build_synonym_maps(self) -> None:
+        """Build reverse lookup maps for node synonyms."""
+        clusters = self.config.get("clusters", {})
+
+        for cluster_name, cluster_config in clusters.items():
+            # Build node synonym map
+            node_map = {}
+            node_labels = cluster_config.get("node_labels", {})
+
+            for canonical_name, node_info in node_labels.items():
+                # Map canonical name to itself
+                node_map[canonical_name] = canonical_name
+
+                # Map each synonym to canonical name
+                synonyms = node_info.get("synonyms", [])
+                for synonym in synonyms:
+                    node_map[synonym] = canonical_name
+
+                    # If case insensitive, also add lowercase version
+                    if not self._is_case_sensitive():
+                        node_map[synonym.lower()] = canonical_name
+
+                # If case insensitive, add lowercase canonical name
+                if not self._is_case_sensitive():
+                    node_map[canonical_name.lower()] = canonical_name
+
+            self._node_synonym_map[cluster_name] = node_map
+
+            # Store account labels
+            self._account_labels[cluster_name] = cluster_config.get("account_labels", {})
+
+            # Store partition labels
+            self._partition_labels[cluster_name] = cluster_config.get("partition_labels", {})
+
+    def _is_case_sensitive(self) -> bool:
+        """Check if node name matching should be case sensitive."""
+        return self.config.get("settings", {}).get("case_sensitive", False)
+
+    def normalize_node_name(self, cluster: str, node_name: str) -> str:
+        """Normalize a node name to its canonical form.
+
+        Args:
+            cluster: Cluster name (e.g., "DAIC")
+            node_name: Raw node name from SLURM (e.g., "gpu5", "Gpu05")
+
+        Returns:
+            Canonical node name (e.g., "gpu05")
+        """
+        if cluster not in self._node_synonym_map:
+            return node_name
+
+        node_map = self._node_synonym_map[cluster]
+
+        # Try exact match first
+        if node_name in node_map:
+            return node_map[node_name]
+
+        # Try case-insensitive match if enabled
+        if not self._is_case_sensitive():
+            lower_name = node_name.lower()
+            if lower_name in node_map:
+                return node_map[lower_name]
+
+        # No mapping found, return original
+        return node_name
+
+    def get_node_info(self, cluster: str, node_name: str) -> Dict[str, Any]:
+        """Get detailed information about a node.
+
+        Args:
+            cluster: Cluster name
+            node_name: Node name (will be normalized)
+
+        Returns:
+            Dictionary with node information (type, description, etc.)
+        """
+        normalized = self.normalize_node_name(cluster, node_name)
+
+        cluster_config = self.config.get("clusters", {}).get(cluster, {})
+        node_labels = cluster_config.get("node_labels", {})
+
+        if normalized in node_labels:
+            return node_labels[normalized]
+
+        # Return default info
+        return {
+            "type": self.config.get("settings", {}).get("default_node_type", "cpu"),
+            "description": f"Node {normalized}",
+        }
+
+    def get_account_label(self, cluster: str, account_name: str) -> Dict[str, Any]:
+        """Get display information for an account.
+
+        Args:
+            cluster: Cluster name
+            account_name: Account name
+
+        Returns:
+            Dictionary with account display information
+        """
+        if cluster in self._account_labels:
+            return self._account_labels[cluster].get(
+                account_name,
+                {
+                    "display_name": account_name,
+                    "short_name": account_name,
+                },
+            )
+
+        return {
+            "display_name": account_name,
+            "short_name": account_name,
+        }
+
+    def get_partition_label(self, cluster: str, partition_name: str) -> Dict[str, Any]:
+        """Get display information for a partition.
+
+        Args:
+            cluster: Cluster name
+            partition_name: Partition name
+
+        Returns:
+            Dictionary with partition display information
+        """
+        if cluster in self._partition_labels:
+            return self._partition_labels[cluster].get(
+                partition_name,
+                {
+                    "display_name": partition_name,
+                    "description": f"{partition_name} partition",
+                },
+            )
+
+        return {
+            "display_name": partition_name,
+            "description": f"{partition_name} partition",
+        }
+
+    def get_cluster_display_name(self, cluster: str) -> str:
+        """Get display name for a cluster.
+
+        Args:
+            cluster: Cluster name
+
+        Returns:
+            Display name or original cluster name if not configured
+        """
+        cluster_config = self.config.get("clusters", {}).get(cluster, {})
+        return cluster_config.get("display_name", cluster)
+
+    def get_cluster_metadata(self, cluster: str) -> Dict[str, Any]:
+        """Get metadata for a cluster.
+
+        Args:
+            cluster: Cluster name
+
+        Returns:
+            Dictionary with cluster metadata
+        """
+        cluster_config = self.config.get("clusters", {}).get(cluster, {})
+        return cluster_config.get("metadata", {})
+
+    def get_all_clusters(self) -> List[str]:
+        """Get list of all configured cluster names.
+
+        Returns:
+            List of cluster names
+        """
+        return list(self.config.get("clusters", {}).keys())
+
+
+# Global instance
+_cluster_config: Optional[ClusterConfig] = None
+
+
+def get_cluster_config() -> ClusterConfig:
+    """Get global cluster configuration instance.
+
+    Returns:
+        ClusterConfig instance
+    """
+    global _cluster_config
+    if _cluster_config is None:
+        _cluster_config = ClusterConfig()
+    return _cluster_config
+
+
+def reload_cluster_config() -> ClusterConfig:
+    """Reload cluster configuration from file.
+
+    Returns:
+        Reloaded ClusterConfig instance
+    """
+    global _cluster_config
+    _cluster_config = ClusterConfig()
+    return _cluster_config
