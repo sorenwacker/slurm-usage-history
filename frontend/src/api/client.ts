@@ -5,6 +5,7 @@ import type {
   MetadataResponse,
   HealthResponse,
   ClusterStats,
+  AggregatedChartsResponse,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8100';
@@ -32,6 +33,11 @@ export const dashboardApi = {
     return response.data;
   },
 
+  getAggregatedCharts: async (request: FilterRequest): Promise<AggregatedChartsResponse> => {
+    const response = await apiClient.post<AggregatedChartsResponse>('/dashboard/charts', request);
+    return response.data;
+  },
+
   getClusterStats: async (
     hostname: string,
     startDate?: string,
@@ -45,6 +51,53 @@ export const dashboardApi = {
       `/dashboard/stats/${hostname}?${params.toString()}`
     );
     return response.data;
+  },
+};
+
+export const reportsApi = {
+  previewReport: async (
+    hostname: string,
+    type: 'monthly' | 'quarterly' | 'annual',
+    year: number,
+    month?: number,
+    quarter?: number
+  ) => {
+    const params = new URLSearchParams();
+    params.append('hostname', hostname);
+    params.append('type', type);
+    params.append('year', year.toString());
+    if (month !== undefined) {
+      params.append('month', month.toString());
+    }
+    if (quarter !== undefined) {
+      params.append('quarter', quarter.toString());
+    }
+
+    const response = await apiClient.get(`/reports/preview?${params.toString()}`);
+    return response.data;
+  },
+
+  downloadReport: (
+    hostname: string,
+    type: 'monthly' | 'quarterly' | 'annual',
+    year: number,
+    month: number | undefined,
+    quarter: number | undefined,
+    format: 'json' | 'csv' | 'pdf'
+  ) => {
+    const params = new URLSearchParams();
+    params.append('hostname', hostname);
+    params.append('type', type);
+    params.append('year', year.toString());
+    params.append('format', format);
+    if (month !== undefined) {
+      params.append('month', month.toString());
+    }
+    if (quarter !== undefined) {
+      params.append('quarter', quarter.toString());
+    }
+
+    window.open(`${API_BASE_URL}/api/reports/generate?${params.toString()}`, '_blank');
   },
 };
 

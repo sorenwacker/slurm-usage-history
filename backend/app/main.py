@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import admin, dashboard, data, saml
+from .api import admin, charts, config_admin, dashboard, data, reports, saml
 from .core.config import get_settings
 
 settings = get_settings()
@@ -24,7 +24,10 @@ app.add_middleware(
 # Include routers
 app.include_router(data.router, prefix=f"{settings.api_prefix}/data", tags=["Data Ingestion"])
 app.include_router(dashboard.router, prefix=f"{settings.api_prefix}/dashboard", tags=["Dashboard"])
+app.include_router(charts.router, prefix=f"{settings.api_prefix}/dashboard", tags=["Charts"])
+app.include_router(reports.router, prefix=f"{settings.api_prefix}/reports", tags=["Reports"])
 app.include_router(admin.router, prefix=f"{settings.api_prefix}/admin", tags=["Admin"])
+app.include_router(config_admin.router, prefix=f"{settings.api_prefix}/admin", tags=["Config Admin"])
 app.include_router(saml.router, prefix="/saml", tags=["SAML Authentication"])
 
 

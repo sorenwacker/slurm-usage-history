@@ -1,0 +1,171 @@
+# SLURM Cluster Configuration
+#
+# This file defines configuration for each SLURM cluster monitored by the dashboard.
+# You can customize display names, labels, and node synonyms for better data aggregation.
+
+clusters:
+  # Example cluster configuration
+  DAIC:
+    # Display name shown in the dashboard
+    display_name: "DAIC Cluster"
+
+    # Description (optional)
+    description: "TU Delft AI Cluster"
+
+    # Cluster-level metadata
+    metadata:
+      location: "TU Delft"
+      owner: "REIT"
+      contact: "reit@tudelft.nl"
+
+    # Node label mapping and synonyms
+    # This allows you to normalize node names that may appear in different formats
+    # Format: canonical_name -> list of synonyms
+    node_labels:
+      # GPU nodes
+      gpu05:
+        synonyms: ["gpu5", "Gpu05", "GPU05", "gpu-05"]
+        type: "gpu"
+        description: "GPU Node 05"
+        hardware:
+          cpu:
+            model: "Intel Xeon Gold 6248R"
+            cores: 48
+            threads: 96
+          ram:
+            total_gb: 384
+            type: "DDR4"
+          gpus:
+            - model: "NVIDIA A100"
+              count: 4
+              memory_gb: 40
+              nvlink: true
+              nvlink_topology: "4x NVLink"
+
+      gpu06:
+        synonyms: ["gpu6", "Gpu06", "GPU06", "gpu-06"]
+        type: "gpu"
+        description: "GPU Node 06"
+
+      gpu07:
+        synonyms: ["gpu7", "Gpu07", "GPU07", "gpu-07"]
+        type: "gpu"
+        description: "GPU Node 07"
+
+      gpu08:
+        synonyms: ["gpu8", "Gpu08", "GPU08", "gpu-08"]
+        type: "gpu"
+        description: "GPU Node 08"
+
+      gpu09:
+        synonyms: ["gpu9", "Gpu09", "GPU09", "gpu-09"]
+        type: "gpu"
+        description: "GPU Node 09"
+
+      gpu10:
+        synonyms: ["Gpu10", "GPU10", "gpu-10"]
+        type: "gpu"
+        description: "GPU Node 10"
+        hardware:
+          cpu:
+            model: "Intel Xeon Gold 6248R"
+            cores: 48
+            threads: 96
+          ram:
+            total_gb: 384
+            type: "DDR4"
+          gpus:
+            - model: "NVIDIA A100"
+              count: 4
+              memory_gb: 40
+              nvlink: true
+              nvlink_topology: "4x NVLink"
+
+      # CPU compute nodes
+      compute01:
+        synonyms: ["compute1", "Compute01", "comp01", "comp-01"]
+        type: "cpu"
+        description: "Compute Node 01"
+        hardware:
+          cpu:
+            model: "Intel Xeon Silver 4214R"
+            cores: 24
+            threads: 48
+          ram:
+            total_gb: 192
+            type: "DDR4"
+
+      compute02:
+        synonyms: ["compute2", "Compute02", "comp02", "comp-02"]
+        type: "cpu"
+        description: "Compute Node 02"
+
+      # Login nodes
+      login01:
+        synonyms: ["login1", "Login01", "LOGIN01"]
+        type: "login"
+        description: "Login Node 01"
+
+    # Account label mapping (optional)
+    # Normalize account names for better display
+    account_labels:
+      "ewi-insy-prb":
+        display_name: "INSY - Pattern Recognition & Bioinformatics"
+        short_name: "PRB"
+        faculty: "EWI"
+        department: "INSY"
+
+      "ewi-insy-cys":
+        display_name: "INSY - Cybersecurity"
+        short_name: "CYS"
+        faculty: "EWI"
+        department: "INSY"
+
+      "ewi-insy-wis":
+        display_name: "INSY - Web Information Systems"
+        short_name: "WIS"
+        faculty: "EWI"
+        department: "INSY"
+
+    # Partition display names (optional)
+    partition_labels:
+      compute:
+        display_name: "Compute Partition"
+        description: "General purpose compute nodes"
+
+      gpu:
+        display_name: "GPU Partition"
+        description: "GPU-enabled compute nodes"
+
+      interactive:
+        display_name: "Interactive Partition"
+        description: "Interactive job partition"
+
+      long:
+        display_name: "Long Jobs Partition"
+        description: "Extended runtime jobs"
+
+  # Additional clusters can be added here
+  # Example of a second cluster:
+  # CLUSTER2:
+  #   display_name: "Production Cluster"
+  #   description: "Main production HPC cluster"
+  #   node_labels:
+  #     node001:
+  #       synonyms: ["node1", "Node001"]
+  #       type: "cpu"
+  #   account_labels:
+  #     research-group-1:
+  #       display_name: "Research Group 1"
+  #       short_name: "RG1"
+
+# Global settings (optional)
+settings:
+  # Default node type if not specified
+  default_node_type: "cpu"
+
+  # Case sensitivity for node name matching
+  case_sensitive: false
+
+  # Auto-generate missing labels
+  auto_generate_labels: true

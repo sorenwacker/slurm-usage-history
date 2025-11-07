@@ -53,6 +53,10 @@ class FilterRequest(BaseModel):
     states: list[str] | None = None
     complete_periods_only: bool = False
     period_type: str = "month"
+    color_by: str | None = None  # Group/color charts by: Account, Partition, State, QoS, User
+    account_segments: int | None = None  # Number of segments to keep in account names (0 = all)
+    hide_unused_nodes: bool = True  # Hide nodes with 0 usage
+    sort_by_usage: bool = False  # Sort nodes by usage (default: alphabetical)
 
 
 class MetadataResponse(BaseModel):

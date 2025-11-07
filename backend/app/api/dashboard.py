@@ -112,6 +112,62 @@ async def get_metadata() -> MetadataResponse:
         raise HTTPException(status_code=500, detail=f"Error fetching metadata: {str(e)}")
 
 
+@router.post("/reload-data")
+async def reload_data(hostname: Optional[str] = None) -> dict:
+    """Reload data from disk, checking for new/updated files.
+
+    Args:
+        hostname: Optional cluster hostname to reload. If not provided, checks all clusters.
+
+    Returns:
+        Status message with information about updated clusters.
+    """
+    try:
+        # Clear chart cache since we're reloading data
+        from .charts import clear_chart_cache
+        clear_chart_cache()
+
+        datastore = get_datastore()
+
+        if hostname:
+            # Reload specific cluster
+            if hostname not in datastore.get_hostnames():
+                raise HTTPException(status_code=404, detail=f"Cluster '{hostname}' not found")
+
+            # Force reload by checking for updates
+            updated = datastore.check_for_updates()
+
+            return {
+                "status": "success",
+                "message": f"Data reload completed for {hostname}",
+                "updated": updated,
+                "hostname": hostname
+            }
+        else:
+            # Check all clusters for updates
+            updated = datastore.check_for_updates()
+
+            # Re-initialize hosts to pick up any new cluster directories
+            datastore._initialize_hosts()
+            hostnames = datastore.get_hostnames()
+
+            # Load data for any newly discovered clusters
+            for host in hostnames:
+                if datastore.hosts[host]["data"] is None:
+                    datastore._load_host_data(host)
+
+            return {
+                "status": "success",
+                "message": "Data reload completed for all clusters",
+                "updated": updated,
+                "clusters": hostnames
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reloading data: {str(e)}")
+
+
 @router.post("/filter")
 async def filter_data(request: FilterRequest) -> dict:
     """Filter data based on provided criteria and return aggregated results."""

@@ -6,7 +6,11 @@
 
 - Fetch SLURM usage data from remote servers
 - Process and analyze SLURM job data
-- Visualize usage history with interactive dashboards
+- Visualize usage history with interactive dashboards (React + FastAPI)
+- **Generate monthly and annual usage reports** (JSON/CSV formats)
+- Interactive charts with zoom, pan, and export capabilities
+- Advanced filtering and data aggregation
+- Color-coded analytics by account, partition, user, QoS, and state
 - Integrate with Flask for web-based visualization
 - Support for SAML2 authentication
 
@@ -134,6 +138,50 @@ Here is an example of what the `.env` file should look like:
 SLURM_USAGE_HISTORY_DATA_PATH=/path/to/slurm-usage-history/data
 FLASK_SECRET_KEY=...
 ```
+
+## Documentation
+
+For detailed documentation on specific features:
+
+- **[FEATURES.md](FEATURES.md)** - Comprehensive guide to all dashboard features
+- **[REPORT_GENERATION.md](REPORT_GENERATION.md)** - Guide to generating usage reports
+- **API Documentation** - Available at http://localhost:8100/docs (when backend is running)
+
+## Quick Start
+
+### Modern Dashboard (React + FastAPI)
+
+1. **Start the backend:**
+   ```bash
+   cd backend
+   uv run uvicorn app.main:app --reload --port 8100
+   ```
+
+2. **Start the frontend:**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+3. **Access the dashboard:**
+   - Frontend: http://localhost:3100
+   - Backend API: http://localhost:8100
+   - API Docs: http://localhost:8100/docs
+
+### Generating Reports
+
+Generate usage reports via the dashboard UI or API:
+
+```bash
+# Monthly report (JSON)
+curl -O "http://localhost:8100/api/reports/generate?hostname=DAIC&format=json&type=monthly&year=2025&month=1"
+
+# Annual report (CSV)
+curl -O "http://localhost:8100/api/reports/generate?hostname=DAIC&format=csv&type=annual&year=2025"
+```
+
+See [REPORT_GENERATION.md](REPORT_GENERATION.md) for complete documentation.
 
 ## Contributing
 

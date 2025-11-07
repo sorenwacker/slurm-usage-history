@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminClient, type Cluster } from '../api/adminClient';
+import './AdminClusters.css';
 
 export function AdminClusters() {
   const [clusters, setClusters] = useState<Cluster[]>([]);
@@ -88,83 +89,61 @@ export function AdminClusters() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-lg text-gray-600">Loading...</div>
+      <div className="clusters-container">
+        <div className="clusters-loading">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="clusters-container">
       {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Cluster Management</h1>
-              <p className="text-sm text-gray-600">Manage SLURM clusters and API keys</p>
-            </div>
-            <div className="flex space-x-4">
-              <a
-                href="/"
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Dashboard
-              </a>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Logout
-              </button>
-            </div>
+      <div className="clusters-header">
+        <div className="clusters-header-content">
+          <div className="clusters-header-title">
+            <h1>Cluster Management</h1>
+            <p className="clusters-header-subtitle">Manage SLURM clusters and API keys</p>
+          </div>
+          <div className="clusters-header-nav">
+            <a href="/">Dashboard</a>
+            <a href="/admin/config">YAML Config</a>
+            <button onClick={handleLogout}>Logout</button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="clusters-content">
         {/* Error Message */}
         {error && (
-          <div className="mb-4 rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">{error}</h3>
-              </div>
-              <div className="ml-auto pl-3">
-                <button
-                  onClick={() => setError('')}
-                  className="text-red-800 hover:text-red-600"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
+          <div className="clusters-error">
+            <div className="clusters-error-text">{error}</div>
+            <button onClick={() => setError('')} className="clusters-error-close">
+              ×
+            </button>
           </div>
         )}
 
         {/* New API Key Modal */}
         {newAPIKey && (
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 max-w-lg w-full">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                New API Key Generated
-              </h3>
-              <p className="text-sm text-gray-600 mb-4">
+          <div className="clusters-modal-overlay">
+            <div className="clusters-modal">
+              <h3 className="clusters-modal-title">New API Key Generated</h3>
+              <p className="clusters-modal-text">
                 This is the only time the full key will be shown. Copy it now and update your cluster configuration.
               </p>
-              <div className="bg-gray-50 p-3 rounded border border-gray-200 mb-4">
-                <code className="text-sm break-all">{newAPIKey}</code>
+              <div className="clusters-modal-code">
+                <code>{newAPIKey}</code>
               </div>
-              <div className="flex space-x-3">
+              <div className="clusters-modal-actions">
                 <button
                   onClick={() => copyToClipboard(newAPIKey)}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  className="clusters-form-submit"
                 >
                   Copy to Clipboard
                 </button>
                 <button
                   onClick={() => setNewAPIKey(null)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="clusters-form-cancel"
                 >
                   Close
                 </button>
@@ -174,10 +153,10 @@ export function AdminClusters() {
         )}
 
         {/* Actions */}
-        <div className="mb-6">
+        <div className="clusters-actions">
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="clusters-btn-primary"
           >
             {showCreateForm ? 'Cancel' : '+ Add Cluster'}
           </button>
@@ -196,94 +175,78 @@ export function AdminClusters() {
         )}
 
         {/* Clusters List */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="clusters-table-container">
+          <table className="clusters-table">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cluster
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Statistics
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  API Key
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th>Cluster</th>
+                <th>Status</th>
+                <th>Statistics</th>
+                <th>API Key</th>
+                <th>Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody>
               {clusters.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={5} className="clusters-table-empty">
                     No clusters yet. Click "Add Cluster" to get started.
                   </td>
                 </tr>
               ) : (
                 clusters.map((cluster) => (
                   <tr key={cluster.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{cluster.name}</div>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{cluster.name}</div>
                       {cluster.description && (
-                        <div className="text-sm text-gray-500">{cluster.description}</div>
+                        <div style={{ fontSize: '0.8125rem', color: '#6c757d' }}>{cluster.description}</div>
                       )}
                       {cluster.contact_email && (
-                        <div className="text-xs text-gray-400">{cluster.contact_email}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#adb5bd' }}>{cluster.contact_email}</div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          cluster.active
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
+                    <td>
+                      <span className={`clusters-badge ${cluster.active ? 'clusters-badge-active' : 'clusters-badge-inactive'}`}>
                         {cluster.active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td>
                       <div>Jobs: {cluster.total_jobs_submitted.toLocaleString()}</div>
-                      <div className="text-xs">Last: {formatDate(cluster.last_submission)}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#6c757d' }}>Last: {formatDate(cluster.last_submission)}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center space-x-2">
-                        <code className="text-xs">{cluster.api_key.substring(0, 16)}...</code>
+                    <td>
+                      <div className="clusters-api-key">
+                        <code>{cluster.api_key.substring(0, 16)}...</code>
                         <button
                           onClick={() => copyToClipboard(cluster.api_key)}
-                          className="text-blue-600 hover:text-blue-800"
+                          className="clusters-copy-btn"
                           title="Copy full API key"
                         >
                           📋
                         </button>
                       </div>
-                      <div className="text-xs text-gray-400">
+                      <div style={{ fontSize: '0.75rem', color: '#adb5bd', marginTop: '0.25rem' }}>
                         Created: {new Date(cluster.api_key_created).toLocaleDateString()}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex flex-col space-y-1">
+                    <td>
+                      <div className="clusters-actions-menu">
                         <button
                           onClick={() => handleToggleActive(cluster)}
-                          className="text-blue-600 hover:text-blue-900 text-left"
+                          className="clusters-action-btn action-primary"
                         >
                           {cluster.active ? 'Deactivate' : 'Activate'}
                         </button>
                         <button
                           onClick={() => handleRotateKey(cluster.id)}
                           disabled={rotatingKey === cluster.id}
-                          className="text-yellow-600 hover:text-yellow-900 text-left disabled:opacity-50"
+                          className="clusters-action-btn action-warning"
                         >
                           {rotatingKey === cluster.id ? 'Rotating...' : 'Rotate Key'}
                         </button>
                         <button
                           onClick={() => handleDelete(cluster.id, cluster.name)}
-                          className="text-red-600 hover:text-red-900 text-left"
+                          className="clusters-action-btn action-danger"
                         >
                           Delete
                         </button>
@@ -337,18 +300,18 @@ function CreateClusterForm({ onSuccess, onCancel, onAPIKeyGenerated }: CreateClu
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-6 mb-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Cluster</h3>
+    <div className="clusters-form">
+      <h3 className="clusters-form-title">Add New Cluster</h3>
 
       {error && (
-        <div className="mb-4 rounded-md bg-red-50 p-3">
-          <div className="text-sm text-red-800">{error}</div>
+        <div className="clusters-error" style={{ marginBottom: '1rem' }}>
+          <div className="clusters-error-text">{error}</div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
+      <form onSubmit={handleSubmit}>
+        <div className="clusters-form-group">
+          <label className="clusters-form-label">
             Cluster Name *
           </label>
           <input
@@ -356,65 +319,65 @@ function CreateClusterForm({ onSuccess, onCancel, onAPIKeyGenerated }: CreateClu
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="clusters-form-input"
             placeholder="hpc-cluster-01"
           />
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="clusters-form-hint">
             Hostname or identifier for the cluster
           </p>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
+        <div className="clusters-form-group">
+          <label className="clusters-form-label">
             Description
           </label>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="clusters-form-input"
             placeholder="Main HPC cluster for physics department"
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
+        <div className="clusters-form-group">
+          <label className="clusters-form-label">
             Contact Email
           </label>
           <input
             type="email"
             value={contactEmail}
             onChange={(e) => setContactEmail(e.target.value)}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="clusters-form-input"
             placeholder="admin@example.com"
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
+        <div className="clusters-form-group">
+          <label className="clusters-form-label">
             Location
           </label>
           <input
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="clusters-form-input"
             placeholder="Building A, Room 101"
           />
         </div>
 
-        <div className="flex space-x-3">
+        <div className="clusters-form-actions">
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="clusters-form-submit"
           >
             {loading ? 'Creating...' : 'Create Cluster'}
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            className="clusters-form-cancel"
           >
             Cancel
           </button>

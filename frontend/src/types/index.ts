@@ -30,6 +30,10 @@ export interface FilterRequest {
   states?: string[];
   complete_periods_only?: boolean;
   period_type?: string;
+  color_by?: string;
+  account_segments?: number;
+  hide_unused_nodes?: boolean;
+  sort_by_usage?: boolean;
 }
 
 export interface FilterResponse {
@@ -64,4 +68,76 @@ export interface ClusterStats {
   total_gpu_hours: number;
   total_users: number;
   partitions: string[];
+}
+
+export interface SeriesData {
+  name: string;
+  data: number[];
+}
+
+export interface ChartData {
+  x: (string | number)[];
+  y?: (string | number)[];  // Optional for backward compatibility
+  series?: SeriesData[];    // For multi-series stacked charts
+  mean?: number;            // For histogram mode (when no color_by filter)
+  median?: number;          // For histogram mode (when no color_by filter)
+  average?: number;         // Alternative to mean (some charts use this)
+  type?: string;            // Chart type indicator (e.g., 'histogram', 'pie', 'bar')
+  bin_labels?: string[];    // For histogram hover text
+  labels?: string[];        // For pie charts
+  values?: number[];        // For pie charts
+}
+
+export interface TrendData {
+  x: (string | number)[];
+  series?: SeriesData[];  // Optional for grouped trend data
+  stats: {
+    mean: number[];
+    median: number[];
+    max: number[];
+    p25: number[];
+    p50: number[];
+    p75: number[];
+    p90: number[];
+    p95: number[];
+    p99: number[];
+  };
+}
+
+export interface PieChartData {
+  labels: string[];
+  values: number[];
+}
+
+export interface AggregatedChartsResponse {
+  summary: {
+    total_jobs: number;
+    total_cpu_hours: number;
+    total_gpu_hours: number;
+    total_users: number;
+  };
+  cpu_usage_over_time: ChartData;
+  gpu_usage_over_time: ChartData;
+  active_users_over_time: ChartData;
+  active_users_distribution: ChartData;
+  jobs_over_time: ChartData;
+  jobs_distribution: ChartData;
+  jobs_by_account: ChartData;
+  jobs_by_partition: ChartData;
+  jobs_by_state: PieChartData;
+  waiting_times_hist: ChartData;
+  waiting_times_stacked: ChartData;
+  job_duration_hist: ChartData;
+  job_duration_stacked: ChartData;
+  waiting_times_over_time: ChartData;
+  job_duration_over_time: ChartData;
+  waiting_times_trends: TrendData;
+  job_duration_trends: TrendData;
+  cpus_per_job: ChartData;
+  gpus_per_job: ChartData;
+  nodes_per_job: ChartData;
+  cpu_hours_by_account: ChartData;
+  gpu_hours_by_account: ChartData;
+  node_cpu_usage: ChartData;
+  node_gpu_usage: ChartData;
 }

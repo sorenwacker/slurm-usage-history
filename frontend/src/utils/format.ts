@@ -28,3 +28,23 @@ export const formatDateTime = (dateString: string): string => {
     minute: '2-digit',
   });
 };
+
+export const formatHours = (hours: number): string => {
+  if (hours < 1) {
+    return `${formatDecimal(hours * 60, 1)} min`;
+  } else if (hours < 24) {
+    return `${formatDecimal(hours, 1)} hours`;
+  } else {
+    const days = hours / 24;
+    return `${formatDecimal(days, 1)} days`;
+  }
+};
+
+export const formatCompact = (num: number): string => {
+  if (num >= 1000000) {
+    return `${formatDecimal(num / 1000000, 1)}M`;
+  } else if (num >= 1000) {
+    return `${formatDecimal(num / 1000, 1)}K`;
+  }
+  return formatNumber(num);
+};

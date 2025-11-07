@@ -39,6 +39,9 @@ dependencies = [
   "python-jose[cryptography]>=3.3.0",
   "passlib[bcrypt]>=1.7.4",
   "email-validator>=2.0.0",
+  "pyyaml>=6.0.2",
+  "reportlab>=4.4.4",
+  "matplotlib>=3.10.7",
 ]
 
 [tool.uv]

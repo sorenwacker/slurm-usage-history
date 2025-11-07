@@ -1,19 +1,65 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { dashboardApi } from '../api/client';
+import { dashboardApi, reportsApi } from '../api/client';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 import Filters from '../components/Filters';
 import StatsCards from '../components/StatsCards';
 import Charts from '../components/Charts';
+import ReportControls from '../components/ReportControls';
+import ReportPreview from '../components/ReportPreview';
 import type { FilterRequest } from '../types';
+import type { ReportData } from '../components/ReportPreview';
 
 const Dashboard: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'reports'>('overview');
   const [selectedHostname, setSelectedHostname] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [selectedPartitions, setSelectedPartitions] = useState<string[]>([]);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [selectedQos, setSelectedQos] = useState<string[]>([]);
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [colorBy, setColorBy] = useState<string>(''); // Color/group by dimension
+  const [accountSegments, setAccountSegments] = useState<number>(3); // Account name formatting (0=full, 1-3=segments)
+  const [periodType, setPeriodType] = useState<string>('auto'); // Time aggregation: auto, day, week, month, year
+  const [hideUnusedNodes, setHideUnusedNodes] = useState<boolean>(true); // Hide nodes with 0 usage
+  const [sortByUsage, setSortByUsage] = useState<boolean>(false); // Sort nodes by usage
+
+  // Report state
+  const [reportHostname, setReportHostname] = useState<string>('');
+  const [reportType, setReportType] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedQuarter, setSelectedQuarter] = useState<number>(Math.ceil((new Date().getMonth() + 1) / 3));
+  const [downloadFormat, setDownloadFormat] = useState<'pdf' | 'csv' | 'json'>('pdf');
+
+  // Helper function to automatically determine period type based on date range
+  const calculatePeriodType = (start: string, end: string): string => {
+    if (!start || !end) return 'month';
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    // Automatic period selection based on date range
+    if (diffDays <= 60) {
+      return 'day';  // Up to 2 months: daily granularity
+    } else if (diffDays <= 180) {
+      return 'week';  // 2-6 months: weekly granularity
+    } else if (diffDays <= 730) {
+      return 'month';  // 6-24 months: monthly granularity
+    } else {
+      return 'year';  // More than 24 months: yearly granularity
+    }
+  };
+
+  // Determine actual period type to use (auto or manual selection)
+  const actualPeriodType = periodType === 'auto'
+    ? calculatePeriodType(startDate, endDate)
+    : periodType;
 
   // Fetch metadata
   const { data: metadata, isLoading: metadataLoading } = useQuery({
@@ -58,27 +104,99 @@ const Dashboard: React.FC = () => {
       // Reset filters when changing hostname
       setSelectedPartitions([]);
       setSelectedAccounts([]);
+      setSelectedUsers([]);
+      setSelectedQos([]);
       setSelectedStates([]);
     }
   }, [selectedHostname, metadata]);
 
-  // Fetch filtered data
+  // Report-related logic
+  const reportDateRange = metadata && reportHostname ? metadata.date_ranges[reportHostname] : null;
+
+  const defaultReportYearMonth = useMemo(() => {
+    if (reportDateRange?.max_date) {
+      const maxDate = new Date(reportDateRange.max_date);
+      return {
+        year: maxDate.getFullYear(),
+        month: maxDate.getMonth() + 1,
+      };
+    }
+    return {
+      year: new Date().getFullYear(),
+      month: new Date().getMonth() + 1,
+    };
+  }, [reportDateRange?.max_date]);
+
+  const reportMinYear = reportDateRange?.min_date ? new Date(reportDateRange.min_date).getFullYear() : 2020;
+  const reportMaxYear = reportDateRange?.max_date ? new Date(reportDateRange.max_date).getFullYear() : new Date().getFullYear();
+  const availableYears = Array.from({ length: reportMaxYear - reportMinYear + 1 }, (_, i) => reportMinYear + i);
+
+  // Initialize report hostname from dashboard hostname when reports tab is opened
+  useEffect(() => {
+    if (activeTab === 'reports' && selectedHostname && !reportHostname) {
+      setReportHostname(selectedHostname);
+    }
+  }, [activeTab, selectedHostname, reportHostname]);
+
+  // Update year/month when report hostname changes
+  useEffect(() => {
+    setSelectedYear(defaultReportYearMonth.year);
+    setSelectedMonth(defaultReportYearMonth.month);
+    setSelectedQuarter(Math.ceil(defaultReportYearMonth.month / 3));
+  }, [defaultReportYearMonth.year, defaultReportYearMonth.month]);
+
+  // Fetch report preview
+  const {
+    data: reportData,
+    isLoading: reportLoading,
+    error: reportError,
+  } = useQuery<ReportData>({
+    queryKey: ['reportPreview', reportHostname, reportType, selectedYear, selectedMonth, selectedQuarter],
+    queryFn: () => reportsApi.previewReport(
+      reportHostname,
+      reportType,
+      selectedYear,
+      reportType === 'monthly' ? selectedMonth : undefined,
+      reportType === 'quarterly' ? selectedQuarter : undefined
+    ),
+    enabled: !!reportHostname && activeTab === 'reports',
+  });
+
+  const handleDownloadReport = () => {
+    reportsApi.downloadReport(
+      reportHostname,
+      reportType,
+      selectedYear,
+      reportType === 'monthly' ? selectedMonth : undefined,
+      reportType === 'quarterly' ? selectedQuarter : undefined,
+      downloadFormat
+    );
+  };
+
+  // Fetch aggregated chart data (fast API - 43,000x smaller payload!)
   const filterRequest: FilterRequest = {
     hostname: selectedHostname,
     start_date: startDate,
     end_date: endDate,
     partitions: selectedPartitions.length > 0 ? selectedPartitions : undefined,
     accounts: selectedAccounts.length > 0 ? selectedAccounts : undefined,
+    users: selectedUsers.length > 0 ? selectedUsers : undefined,
+    qos: selectedQos.length > 0 ? selectedQos : undefined,
     states: selectedStates.length > 0 ? selectedStates : undefined,
+    period_type: actualPeriodType,  // Use the calculated or manually selected period type
+    color_by: colorBy || undefined,  // Group/color charts by selected dimension
+    account_segments: accountSegments > 0 ? accountSegments : undefined,  // Format account names
+    hide_unused_nodes: hideUnusedNodes,  // Hide nodes with 0 usage
+    sort_by_usage: sortByUsage,  // Sort nodes by usage
   };
 
   const {
-    data: filteredData,
+    data: chartsData,
     isLoading: dataLoading,
     error: dataError,
   } = useQuery({
-    queryKey: ['filteredData', filterRequest],
-    queryFn: () => dashboardApi.filterData(filterRequest),
+    queryKey: ['aggregatedCharts', filterRequest],
+    queryFn: () => dashboardApi.getAggregatedCharts(filterRequest),
     enabled: !!selectedHostname,
   });
 
@@ -94,6 +212,7 @@ const Dashboard: React.FC = () => {
             <p className="loading-detail">API: http://localhost:8100</p>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -108,45 +227,106 @@ const Dashboard: React.FC = () => {
             <p>No cluster data found. Please ensure data files are in the correct location.</p>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
   return (
     <div className="app">
-      <Header />
-      <div className="container">
-        {dataError && (
-          <div className="error">
-            Error loading data: {dataError instanceof Error ? dataError.message : 'Unknown error'}
-          </div>
-        )}
+      <Header activeTab={activeTab} onTabChange={setActiveTab} />
+      <div className="dashboard-layout">
+        {/* Sidebar for both overview and reports */}
+        <div className="sidebar">
+          {activeTab === 'overview' ? (
+            <Filters
+              metadata={metadata}
+              selectedHostname={selectedHostname}
+              setSelectedHostname={setSelectedHostname}
+              startDate={startDate}
+              setStartDate={setStartDate}
+              endDate={endDate}
+              setEndDate={setEndDate}
+              selectedPartitions={selectedPartitions}
+              setSelectedPartitions={setSelectedPartitions}
+              selectedAccounts={selectedAccounts}
+              setSelectedAccounts={setSelectedAccounts}
+              selectedUsers={selectedUsers}
+              setSelectedUsers={setSelectedUsers}
+              selectedQos={selectedQos}
+              setSelectedQos={setSelectedQos}
+              selectedStates={selectedStates}
+              setSelectedStates={setSelectedStates}
+              colorBy={colorBy}
+              setColorBy={setColorBy}
+              accountSegments={accountSegments}
+              setAccountSegments={setAccountSegments}
+              periodType={periodType}
+              setPeriodType={setPeriodType}
+              currentPeriodType={actualPeriodType}
+            />
+          ) : (
+            <ReportControls
+              metadata={metadata}
+              reportHostname={reportHostname}
+              setReportHostname={setReportHostname}
+              reportType={reportType}
+              setReportType={setReportType}
+              selectedYear={selectedYear}
+              setSelectedYear={setSelectedYear}
+              selectedMonth={selectedMonth}
+              setSelectedMonth={setSelectedMonth}
+              selectedQuarter={selectedQuarter}
+              setSelectedQuarter={setSelectedQuarter}
+              downloadFormat={downloadFormat}
+              setDownloadFormat={setDownloadFormat}
+              onDownload={handleDownloadReport}
+              availableYears={availableYears}
+            />
+          )}
+        </div>
+        <div className="main-content">
+          {/* Tab Content */}
+          {activeTab === 'overview' ? (
+            <>
+              {dataError && (
+                <div className="error">
+                  Error loading data: {dataError instanceof Error ? dataError.message : 'Unknown error'}
+                </div>
+              )}
 
-        <Filters
-          metadata={metadata}
-          selectedHostname={selectedHostname}
-          setSelectedHostname={setSelectedHostname}
-          startDate={startDate}
-          setStartDate={setStartDate}
-          endDate={endDate}
-          setEndDate={setEndDate}
-          selectedPartitions={selectedPartitions}
-          setSelectedPartitions={setSelectedPartitions}
-          selectedAccounts={selectedAccounts}
-          setSelectedAccounts={setSelectedAccounts}
-          selectedStates={selectedStates}
-          setSelectedStates={setSelectedStates}
-        />
-
-        {dataLoading ? (
-          <div className="loading">Loading data...</div>
-        ) : (
-          <>
-            <StatsCards data={filteredData} />
-            <Charts data={filteredData} />
-          </>
-        )}
+              {dataLoading ? (
+                <div className="loading-screen">
+                  <div className="loading-spinner"></div>
+                  <h2>Loading Charts...</h2>
+                  <p>Aggregating data for {selectedHostname}</p>
+                  <p className="loading-detail">Period: {startDate} to {endDate} ({actualPeriodType})</p>
+                </div>
+              ) : (
+                <>
+                  <StatsCards data={chartsData} />
+                  <Charts
+                    data={chartsData}
+                    hideUnusedNodes={hideUnusedNodes}
+                    setHideUnusedNodes={setHideUnusedNodes}
+                    sortByUsage={sortByUsage}
+                    setSortByUsage={setSortByUsage}
+                    colorBy={colorBy}
+                  />
+                </>
+              )}
+            </>
+          ) : (
+            <ReportPreview
+              reportData={reportData}
+              isLoading={reportLoading}
+              error={reportError}
+              reportType={reportType}
+            />
+          )}
+        </div>
       </div>
+      <Footer />
     </div>
   );
 };

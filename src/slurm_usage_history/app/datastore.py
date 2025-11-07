@@ -350,6 +350,21 @@ class PandasDataStore(metaclass=Singleton):
         The major time-based columns (SubmitYearMonth, SubmitYearWeek, etc.)
         are already present in the data.
         """
+        # Standardize column names - rename columns with hyphens/brackets to camelCase
+        column_renames = {
+            "CPU-hours": "CPUHours",
+            "GPU-hours": "GPUHours",
+            "CPUs": "AllocCPUS",
+            "GPUs": "AllocGPUS",
+            "Elapsed [h]": "ElapsedHours",
+            "WaitingTime [h]": "WaitingTimeHours",
+        }
+
+        for old_name, new_name in column_renames.items():
+            if old_name in raw_data.columns and new_name not in raw_data.columns:
+                raw_data = raw_data.rename(columns={old_name: new_name})
+                logging.info(f"Renamed column '{old_name}' to '{new_name}'")
+
         # Ensure column existence and data types
         if "Partition" not in raw_data.columns and "Partitions" in raw_data.columns:
             raw_data["Partition"] = raw_data["Partitions"]
