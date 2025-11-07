@@ -168,7 +168,5 @@ Thumbs.db
 # Hatch-vcs version file
 _version.py
 
-# Ansible sensitive configuration files
-# Keep example.yml but ignore actual host-specific configs
-ansible/host_vars/*.yml
-!ansible/host_vars/example.yml
+# Ansible deployment files (kept separate from application code)
+ansible/
