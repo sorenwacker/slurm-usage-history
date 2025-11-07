@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "ignore"
 
     def get_api_keys(self) -> list[str]:
         """Parse API keys from comma-separated string."""
