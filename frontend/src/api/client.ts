@@ -24,7 +24,9 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Redirect to SAML login on authentication error
+      console.log('401 Unauthorized - Redirecting to SAML login');
       window.location.href = '/saml/login';
+      return Promise.reject(error);
     }
     return Promise.reject(error);
   }
