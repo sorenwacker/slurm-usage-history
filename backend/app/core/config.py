@@ -19,6 +19,7 @@ class Settings(BaseSettings):
 
     # Security (comma-separated string)
     api_keys: str = ""
+    secret_key: str = "change-this-to-a-random-secret-key-in-production"
 
     # Admin (comma-separated: username:hashed_password)
     admin_users: str = ""
