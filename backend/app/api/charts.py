@@ -9,9 +9,10 @@ import hashlib
 import json
 
 import pandas as pd
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from ..core.config import get_settings
+from ..core.saml_auth import get_current_user_saml
 from ..models.data_models import FilterRequest
 from ..services.charts import (
     format_account_name,
@@ -136,7 +137,7 @@ def clear_chart_cache() -> None:
 
 
 @router.post("/charts")
-async def get_aggregated_charts(request: FilterRequest) -> dict[str, Any]:
+async def get_aggregated_charts(request: FilterRequest, current_user: dict = Depends(get_current_user_saml)) -> dict[str, Any]:
     """Get all aggregated chart data in a single request.
 
     This endpoint performs all aggregations on the backend using pandas,

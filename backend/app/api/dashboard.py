@@ -4,9 +4,10 @@ from pathlib import Path
 from typing import Any, Optional
 
 import numpy as np
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ..core.config import get_settings
+from ..core.saml_auth import get_current_user_saml
 from ..models.data_models import FilterRequest, HealthResponse, MetadataResponse
 
 # Add parent directory to path to import the original datastore
@@ -76,7 +77,7 @@ async def health_check() -> HealthResponse:
 
 
 @router.get("/metadata", response_model=MetadataResponse)
-async def get_metadata() -> MetadataResponse:
+async def get_metadata(current_user: dict = Depends(get_current_user_saml)) -> MetadataResponse:
     """Get metadata for all clusters including available filters."""
     try:
         datastore = get_datastore()
@@ -113,7 +114,7 @@ async def get_metadata() -> MetadataResponse:
 
 
 @router.post("/reload-data")
-async def reload_data(hostname: Optional[str] = None) -> dict:
+async def reload_data(hostname: Optional[str] = None, current_user: dict = Depends(get_current_user_saml)) -> dict:
     """Reload data from disk, checking for new/updated files.
 
     Args:
@@ -169,7 +170,7 @@ async def reload_data(hostname: Optional[str] = None) -> dict:
 
 
 @router.post("/filter")
-async def filter_data(request: FilterRequest) -> dict:
+async def filter_data(request: FilterRequest, current_user: dict = Depends(get_current_user_saml)) -> dict:
     """Filter data based on provided criteria and return aggregated results."""
     try:
         datastore = get_datastore()
@@ -223,6 +224,7 @@ async def get_cluster_stats(
     hostname: str,
     start_date: str | None = Query(None),
     end_date: str | None = Query(None),
+    current_user: dict = Depends(get_current_user_saml),
 ) -> dict:
     """Get statistics for a specific cluster."""
     try:

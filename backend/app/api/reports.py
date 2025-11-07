@@ -3,9 +3,10 @@ import json
 from typing import Any, Literal
 
 import pandas as pd
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 
+from ..core.saml_auth import get_current_user_saml
 from ..services.reports import (
     format_report_as_csv,
     format_report_as_pdf,
@@ -27,6 +28,7 @@ async def generate_report(
     year: int = Query(..., description="Year for the report"),
     month: int | None = Query(None, description="Month for monthly report (1-12)"),
     quarter: int | None = Query(None, description="Quarter for quarterly report (1-4)"),
+    current_user: dict = Depends(get_current_user_saml),
 ) -> Response:
     """
     Generate usage report for a specific period.
@@ -109,6 +111,7 @@ async def preview_report(
     year: int = Query(..., description="Year for the report"),
     month: int | None = Query(None, description="Month for monthly report (1-12)"),
     quarter: int | None = Query(None, description="Quarter for quarterly report (1-4)"),
+    current_user: dict = Depends(get_current_user_saml),
 ) -> dict[str, Any]:
     """
     Preview report data for inline display (without downloading).
@@ -157,7 +160,7 @@ async def preview_report(
 
 
 @router.get("/available-periods/{hostname}")
-async def get_available_periods(hostname: str) -> dict[str, Any]:
+async def get_available_periods(hostname: str, current_user: dict = Depends(get_current_user_saml)) -> dict[str, Any]:
     """
     Get available reporting periods for a cluster.
 
