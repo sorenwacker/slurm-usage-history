@@ -15,7 +15,20 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Include cookies for SAML session
 });
+
+// Add response interceptor to handle authentication errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Redirect to SAML login on authentication error
+      window.location.href = '/saml/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const dashboardApi = {
   getHealth: async (): Promise<HealthResponse> => {
