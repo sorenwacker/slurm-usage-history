@@ -124,6 +124,7 @@ async def saml_acs(request: Request):
     response.set_cookie(
         key="session_token",
         value=session_token,
+        path="/",
         httponly=True,
         secure=request.url.scheme == "https",
         samesite="lax",
@@ -222,7 +223,7 @@ async def saml_sls(request: Request):
 
     # Clear session cookie
     response = RedirectResponse(url=url or "/", status_code=status.HTTP_302_FOUND)
-    response.delete_cookie(key="session_token")
+    response.delete_cookie(key="session_token", path="/")
 
     return response
 
@@ -240,7 +241,7 @@ async def saml_logout(request: Request):
     if not is_saml_enabled():
         # Just clear cookie and redirect
         response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
-        response.delete_cookie(key="session_token")
+        response.delete_cookie(key="session_token", path="/")
         return response
 
     auth = init_saml_auth(request)
@@ -250,7 +251,7 @@ async def saml_logout(request: Request):
     slo_url = auth.logout()
 
     response = RedirectResponse(url=slo_url, status_code=status.HTTP_302_FOUND)
-    response.delete_cookie(key="session_token")
+    response.delete_cookie(key="session_token", path="/")
 
     return response
 
