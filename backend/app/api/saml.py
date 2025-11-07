@@ -59,12 +59,22 @@ async def saml_acs(request: Request):
     # Get POST data
     form_data = await request.form()
 
+    # Map new-style URLs to old-style for SAML validation
+    # This allows nginx rewrites from /?acs to /saml/acs to work
+    script_name = request.url.path
+    if script_name == "/saml/acs":
+        script_name = "/"
+        query_string = "acs"
+    else:
+        query_string = ""
+
     # Prepare request data for python3-saml
     request_data = {
         "https": "on" if request.url.scheme == "https" else "off",
         "http_host": request.url.hostname,
         "server_port": request.url.port or (443 if request.url.scheme == "https" else 80),
-        "script_name": request.url.path,
+        "script_name": script_name,
+        "query_string": query_string,
         "get_data": dict(request.query_params),
         "post_data": dict(form_data),
     }
@@ -175,11 +185,21 @@ async def saml_sls(request: Request):
     # For POST requests, get form data
     if request.method == "POST":
         form_data = await request.form()
+
+        # Map new-style URLs to old-style for SAML validation
+        script_name = request.url.path
+        if script_name == "/saml/sls":
+            script_name = "/"
+            query_string = "sls"
+        else:
+            query_string = ""
+
         request_data = {
             "https": "on" if request.url.scheme == "https" else "off",
             "http_host": request.url.hostname,
             "server_port": request.url.port or (443 if request.url.scheme == "https" else 80),
-            "script_name": request.url.path,
+            "script_name": script_name,
+            "query_string": query_string,
             "get_data": dict(request.query_params),
             "post_data": dict(form_data),
         }
