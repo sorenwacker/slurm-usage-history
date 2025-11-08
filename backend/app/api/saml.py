@@ -1,11 +1,12 @@
 """SAML SSO endpoints."""
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..core.saml_auth import (
     create_session_token,
+    get_current_user_saml,
     init_saml_auth,
     is_saml_enabled,
 )
