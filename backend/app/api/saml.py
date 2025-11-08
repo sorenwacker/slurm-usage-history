@@ -267,3 +267,37 @@ async def saml_status(request: Request):
         "enabled": is_saml_enabled(),
         "configured": is_saml_enabled(),
     }
+
+
+@router.get("/me")
+async def get_current_user_info(current_user: dict = Depends(get_current_user_saml)):
+    """Get current authenticated user information including role.
+
+    Returns:
+        User information with role (admin/user)
+    """
+    from ..core.config import get_settings
+
+    settings = get_settings()
+
+    # Extract email from SAML attributes
+    email = None
+    if "attributes" in current_user and current_user["attributes"]:
+        # Try common SAML email attribute names
+        email_attrs = current_user["attributes"].get("email") or \
+                     current_user["attributes"].get("mail") or \
+                     current_user["attributes"].get("emailAddress")
+        if email_attrs and isinstance(email_attrs, list) and len(email_attrs) > 0:
+            email = email_attrs[0]
+
+    # Check if user is admin
+    is_admin = False
+    if email:
+        is_admin = settings.is_admin_email(email)
+
+    return {
+        "username": current_user.get("username"),
+        "email": email,
+        "is_admin": is_admin,
+        "attributes": current_user.get("attributes", {}),
+    }

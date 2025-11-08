@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { dashboardApi, reportsApi } from '../api/client';
+import { dashboardApi, reportsApi, authApi } from '../api/client';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Filters from '../components/Filters';
@@ -13,6 +13,12 @@ import type { ReportData } from '../components/ReportPreview';
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'reports'>('overview');
+
+  // Fetch current user info to check admin status
+  const { data: userInfo } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: authApi.getCurrentUser,
+  });
   const [selectedHostname, setSelectedHostname] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -261,6 +267,7 @@ const Dashboard: React.FC = () => {
               setColorBy={setColorBy}
               accountSegments={accountSegments}
               setAccountSegments={setAccountSegments}
+              isAdmin={userInfo?.is_admin ?? false}
               periodType={periodType}
               setPeriodType={setPeriodType}
               currentPeriodType={actualPeriodType}

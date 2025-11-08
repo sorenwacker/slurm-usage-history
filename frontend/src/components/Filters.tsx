@@ -26,6 +26,7 @@ interface FiltersProps {
   periodType: string;
   setPeriodType: (periodType: string) => void;
   currentPeriodType: string;
+  isAdmin: boolean;
 }
 
 const Filters: React.FC<FiltersProps> = ({
@@ -53,6 +54,7 @@ const Filters: React.FC<FiltersProps> = ({
   periodType,
   setPeriodType,
   currentPeriodType,
+  isAdmin,
 }) => {
   // Individual collapse states for each filter category
   const [isPartitionsExpanded, setIsPartitionsExpanded] = useState(false);
@@ -300,7 +302,7 @@ const Filters: React.FC<FiltersProps> = ({
           <option value="Partition">Partition</option>
           <option value="State">State</option>
           <option value="QOS">QoS</option>
-          <option value="User">User</option>
+          {isAdmin && <option value="User">User</option>}
         </select>
       </div>
 

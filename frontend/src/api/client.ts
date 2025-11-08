@@ -32,6 +32,20 @@ apiClient.interceptors.response.use(
   }
 );
 
+export interface UserInfo {
+  username: string;
+  email: string | null;
+  is_admin: boolean;
+  attributes: Record<string, any>;
+}
+
+export const authApi = {
+  getCurrentUser: async (): Promise<UserInfo> => {
+    const response = await apiClient.get<UserInfo>('/saml/me');
+    return response.data;
+  },
+};
+
 export const dashboardApi = {
   getHealth: async (): Promise<HealthResponse> => {
     const response = await apiClient.get<HealthResponse>('/dashboard/health');
