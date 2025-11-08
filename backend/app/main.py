@@ -1,15 +1,40 @@
+import logging
+
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api import admin, charts, config_admin, dashboard, data, reports, saml
 from .core.config import get_settings
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager - handles startup and shutdown events."""
+    # Startup: Preload datastore in background
+    logger.info("Starting application...")
+    logger.info("Preloading datastore (this may take a moment)...")
+    try:
+        from .api.dashboard import get_datastore
+        datastore = get_datastore()
+        logger.info(f"Datastore loaded successfully. Hostnames: {datastore.get_hostnames()}")
+    except Exception as e:
+        logger.error(f"Failed to preload datastore: {e}")
+
+    yield
+
+    # Shutdown
+    logger.info("Shutting down application...")
+
 
 app = FastAPI(
     title=settings.api_title,
     version=settings.api_version,
     description="API for Slurm Usage History Dashboard with data ingestion capabilities",
+    lifespan=lifespan,
 )
 
 # Configure CORS
