@@ -67,10 +67,14 @@ const Dashboard: React.FC = () => {
     ? calculatePeriodType(startDate, endDate)
     : periodType;
 
-  // Fetch metadata
+  // Fetch metadata - refetch when hostname or date range changes to update filter options
   const { data: metadata, isLoading: metadataLoading } = useQuery({
-    queryKey: ['metadata'],
-    queryFn: dashboardApi.getMetadata,
+    queryKey: ['metadata', selectedHostname, startDate, endDate],
+    queryFn: () => dashboardApi.getMetadata({
+      hostname: selectedHostname || undefined,
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+    }),
   });
 
   // Helper function to calculate date 6 weeks ago from max date

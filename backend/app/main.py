@@ -14,19 +14,13 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager - handles startup and shutdown events."""
-    # Startup: Preload datastore in background
+    # Startup: Preload shared datastore
     logger.info("Starting application...")
-    logger.info("Preloading datastore (this may take a moment)...")
+    logger.info("Preloading shared datastore (this may take a moment)...")
     try:
-        # Preload both dashboard and charts datastores (they use separate singletons)
-        from .api.dashboard import get_datastore as get_dashboard_datastore
-        from .api.charts import get_datastore as get_charts_datastore
-
-        dashboard_ds = get_dashboard_datastore()
-        logger.info(f"Dashboard datastore loaded. Hostnames: {dashboard_ds.get_hostnames()}")
-
-        charts_ds = get_charts_datastore()
-        logger.info(f"Charts datastore loaded. Hostnames: {charts_ds.get_hostnames()}")
+        from .datastore_singleton import get_datastore
+        datastore = get_datastore()
+        logger.info(f"Shared datastore loaded successfully. Hostnames: {datastore.get_hostnames()}")
     except Exception as e:
         logger.error(f"Failed to preload datastore: {e}")
         import traceback

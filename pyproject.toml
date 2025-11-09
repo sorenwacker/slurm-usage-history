@@ -1,37 +1,52 @@
 [project]
-name = "slurm-usage-history"
+name = "slurm-dashboard"
 dynamic = ["version"]
 authors = [
   { name = "Sören Wacker", email = "s.wacker@gmail.com" },
 ]
-description = "A great package."
+description = "Modern web dashboard for SLURM cluster usage analytics with DuckDB-powered data processing"
 readme = "README.md"
 requires-python = ">=3.10"
+license = { text = "GPL-3.0-or-later" }
 classifiers = [
-  "Development Status :: 1 - Planning",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
+  "Intended Audience :: System Administrators",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
   "Operating System :: OS Independent",
+  "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering",
+  "Topic :: System :: Monitoring",
+  "Topic :: System :: Systems Administration",
 ]
+keywords = ["slurm", "hpc", "cluster", "dashboard", "monitoring", "analytics"]
+
+# Core dependencies (always installed)
 dependencies = [
-  "pandas",
-  "pyarrow",
-  "dash",
-  "dash[diskcache]",
-  "tqdm",
-  "dash-bootstrap-components",
-  "python-dotenv",
-  "flask-saml",
-  "duckdb",
-  "gunicorn",
-  "tabulate",
-  "dask[dataframe]",
-  "pip>=24.3.1",
+  "pandas>=2.0.0",
+  "pyarrow>=14.0.0",
+  "duckdb>=1.0.0",
+  "python-dotenv>=1.0.0",
+  "pyyaml>=6.0.0",
+  "tqdm>=4.65.0",
+]
+
+[project.optional-dependencies]
+# Agent for data collection on cluster nodes
+agent = [
+  "tabulate>=0.9.0",
+]
+
+# Web dashboard (FastAPI backend + dependencies)
+web = [
   "fastapi>=0.115.0",
   "uvicorn[standard]>=0.32.0",
+  "gunicorn>=21.0.0",
   "pydantic-settings>=2.5.0",
   "python-multipart>=0.0.9",
   "python3-saml>=1.15.0",
@@ -39,20 +54,66 @@ dependencies = [
   "python-jose[cryptography]>=3.3.0",
   "passlib[bcrypt]>=1.7.4",
   "email-validator>=2.0.0",
-  "pyyaml>=6.0.2",
-  "reportlab>=4.4.4",
-  "matplotlib>=3.10.7",
+  "reportlab>=4.0.0",
+  "matplotlib>=3.8.0",
 ]
+
+# Legacy dash dashboard (deprecated, will be removed)
+dash = [
+  "dash>=2.0.0",
+  "dash[diskcache]",
+  "dash-bootstrap-components>=1.4.0",
+  "flask-saml",
+]
+
+# Development dependencies
+dev = [
+  "hatch>=1.13.0",
+  "pre-commit>=3.8.0",
+  "pytest>=8.0.0",
+  "pytest-cov>=5.0.0",
+  "ruff>=0.4.0",
+]
+
+# Documentation
+docs = [
+  "mkdocs-material>=9.5.0",
+  "mkdocstrings[python]>=0.26.0",
+]
+
+# Everything (agent + web)
+all = [
+  "slurm-dashboard[agent,web]",
+]
+
+[project.urls]
+Homepage = "https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history"
+Documentation = "https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history/-/blob/main/README.md"
+Repository = "https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history"
+Issues = "https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history/-/issues"
+
+[project.scripts]
+# Data collection agent
+slurm-agent = "slurm_usage_history.scripts.get_weekly_usage:main"
+
+# Analysis scripts
+slurm-waiting-times = "slurm_usage_history.scripts.waiting_times:main"
+
+# Dashboard (legacy Dash)
+slurm-dashboard-legacy = "slurm_usage_history.app.main:main"
+
+# Web backend (FastAPI) - requires [web] extra
+slurm-backend = "slurm_usage_history.backend.cli:main [web]"
 
 [tool.uv]
 dev-dependencies = [
-  "hatch>=1.13.0,<2",
-  "pre-commit>=3.8.0,<4",
-  "pytest>=8.3.3,<9",
-  "pytest-cov>=5.0.0,<6",
-  "mkdocstrings[python]>=0.26.1,<1",
-  "mkdocs-material>=9.5.39,<10",
-  "setuptools-scm>=8.1.0,<9",
+  "hatch>=1.13.0",
+  "pre-commit>=3.8.0",
+  "pytest>=8.3.3",
+  "pytest-cov>=5.0.0",
+  "mkdocstrings[python]>=0.26.1",
+  "mkdocs-material>=9.5.39",
+  "setuptools-scm>=8.1.0",
 ]
 
 [build-system]
@@ -65,25 +126,16 @@ source = "vcs"
 [tool.hatch.build.hooks.vcs]
 version-file = "_version.py"
 
-[project.urls]
-Homepage = "https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history"
-
-[project.scripts]
-slushi-waiting-times = "slurm_usage_history.scripts.waiting_times:main"
-slushi-get-weekly-usage = "slurm_usage_history.scripts.get_weekly_usage:main"
-slushi-dashboard = "slurm_usage_history.app.main:main"
+[tool.hatch.build.targets.wheel]
+packages = ["src/slurm_usage_history"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
 xfail_strict = true
-filterwarnings = [
-  "error",
-]
+filterwarnings = ["error"]
 log_cli_level = "INFO"
-testpaths = [
-  "tests",
-]
+testpaths = ["tests"]
 
 [tool.coverage]
 run.source = ["slurm_usage_history"]
@@ -93,55 +145,49 @@ port.exclude_lines = [
   'if typing.TYPE_CHECKING:',
 ]
 
-
-
 [tool.ruff]
 src = ["src"]
 exclude = []
-line-length = 200  # how long you want lines to be, 88 is black's default
+line-length = 120
+target-version = "py310"
 
 [tool.ruff.format]
-docstring-code-format = true  # code snippets in docstrings will be formatted
+docstring-code-format = true
 
 [tool.ruff.lint]
-# For more strict linting and code simplifications, replace this with
-# https://github.com/NLeSC/python-template/blob/main/template/pyproject.toml.jinja#L121-L136
 select = [
-  "E", "F", "W", # flake8
-  "B",           # flake8-bugbear
-  "I",           # isort
-  "ARG",         # flake8-unused-arguments
-  "C4",          # flake8-comprehensions
-  "EM",          # flake8-errmsg
-  "ICN",         # flake8-import-conventions
-  "ISC",         # flake8-implicit-str-concat
-  "G",           # flake8-logging-format
-  "PGH",         # pygrep-hooks
-  "PIE",         # flake8-pie
-  "PL",          # pylint
-  "PT",          # flake8-pytest-style
-  "RET",         # flake8-return
-  "RUF",         # Ruff-specific
-  "SIM",         # flake8-simplify
-  "UP",          # pyupgrade
-  "YTT",         # flake8-2020
-  "EXE",         # flake8-executable
-  # "D",           # pydocstyle, uncomment to have the docstrings linted
-  # "ANN",         # flake8-annotations, uncomment to have type hint annotations linted
+  "E", "F", "W",  # flake8
+  "B",            # flake8-bugbear
+  "I",            # isort
+  "ARG",          # flake8-unused-arguments
+  "C4",           # flake8-comprehensions
+  "EM",           # flake8-errmsg
+  "ICN",          # flake8-import-conventions
+  "ISC",          # flake8-implicit-str-concat
+  "G",            # flake8-logging-format
+  "PGH",          # pygrep-hooks
+  "PIE",          # flake8-pie
+  "PL",           # pylint
+  "PT",           # flake8-pytest-style
+  "RET",          # flake8-return
+  "RUF",          # Ruff-specific
+  "SIM",          # flake8-simplify
+  "UP",           # pyupgrade
+  "YTT",          # flake8-2020
+  "EXE",          # flake8-executable
 ]
 ignore = [
-  "PLR",    # Design related pylint codes
-  "ISC001", # Conflicts with formatter
+  "PLR",     # Design related pylint codes
+  "ISC001",  # Conflicts with formatter
 ]
 pydocstyle.convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-# Tests can ignore a few extra rules
 "tests/**.py" = [
-    "ANN201", # Missing return type annotation for public function
-    "D103",   # Missing docstring
-    "S101",   # Use of assert is detected
-    "INP001", # Missing __init__.py file
+    "ANN201",  # Missing return type annotation
+    "D103",    # Missing docstring
+    "S101",    # Use of assert
+    "INP001",  # Missing __init__.py
 ]
 
 [tool.yamlfix]

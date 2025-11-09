@@ -52,8 +52,8 @@ export const dashboardApi = {
     return response.data;
   },
 
-  getMetadata: async (): Promise<MetadataResponse> => {
-    const response = await apiClient.get<MetadataResponse>('/dashboard/metadata');
+  getMetadata: async (params?: { hostname?: string; start_date?: string; end_date?: string }): Promise<MetadataResponse> => {
+    const response = await apiClient.get<MetadataResponse>('/dashboard/metadata', { params });
     return response.data;
   },
 

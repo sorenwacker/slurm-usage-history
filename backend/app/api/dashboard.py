@@ -23,31 +23,8 @@ except ImportError:
 router = APIRouter()
 settings = get_settings()
 
-# Global datastore instance
-_datastore: Optional[DuckDBDataStore] = None
-
-
-def get_datastore() -> DuckDBDataStore:
-    """Get or initialize the datastore singleton.
-
-    Uses DuckDBDataStore by default for better performance and lower memory usage.
-    Falls back to PandasDataStore if DuckDB is not available.
-    """
-    global _datastore
-    if _datastore is None:
-        # Prefer DuckDBDataStore for better performance
-        if DuckDBDataStore is not None:
-            _datastore = DuckDBDataStore(directory=settings.data_path)
-            _datastore.load_data()
-            _datastore.start_auto_refresh(interval=settings.auto_refresh_interval)
-        elif PandasDataStore is not None:
-            # Fallback to PandasDataStore if DuckDB not available
-            _datastore = PandasDataStore(directory=settings.data_path)
-            _datastore.load_data()
-            _datastore.start_auto_refresh(interval=settings.auto_refresh_interval)
-        else:
-            raise HTTPException(status_code=500, detail="DataStore not available")
-    return _datastore
+# Import shared datastore singleton
+from ..datastore_singleton import get_datastore
 
 
 def convert_numpy_to_native(obj: Any) -> Any:
@@ -90,11 +67,26 @@ async def health_check() -> HealthResponse:
 
 
 @router.get("/metadata", response_model=MetadataResponse)
-async def get_metadata(current_user: dict = Depends(get_current_user_saml)) -> MetadataResponse:
-    """Get metadata for all clusters including available filters."""
+async def get_metadata(
+    hostname: Optional[str] = Query(None, description="Filter metadata for specific hostname"),
+    start_date: Optional[str] = Query(None, description="Filter metadata from this date"),
+    end_date: Optional[str] = Query(None, description="Filter metadata until this date"),
+    current_user: dict = Depends(get_current_user_saml)
+) -> MetadataResponse:
+    """Get metadata for all clusters including available filters.
+
+    If start_date/end_date are provided, filter values will only include
+    values present in that date range, preventing empty graphs.
+    """
     try:
         datastore = get_datastore()
         hostnames = datastore.get_hostnames()
+
+        # If hostname filter is provided, only return metadata for that hostname
+        if hostname:
+            if hostname not in hostnames:
+                raise HTTPException(status_code=404, detail=f"Hostname {hostname} not found")
+            hostnames = [hostname]
 
         partitions = {}
         accounts = {}
@@ -104,17 +96,31 @@ async def get_metadata(current_user: dict = Depends(get_current_user_saml)) -> M
         date_ranges = {}
 
         for hostname in hostnames:
-            partitions[hostname] = datastore.get_partitions(hostname)
-            accounts[hostname] = datastore.get_accounts(hostname)
-            users[hostname] = datastore.get_users(hostname)
-            qos[hostname] = datastore.get_qos(hostname)
-            states[hostname] = datastore.get_states(hostname)
+            # If date range is provided, get filter values from filtered data
+            if start_date or end_date:
+                filter_values = datastore.get_filter_values_for_period(
+                    hostname=hostname,
+                    start_date=start_date,
+                    end_date=end_date
+                )
+                partitions[hostname] = filter_values["partitions"]
+                accounts[hostname] = filter_values["accounts"]
+                users[hostname] = filter_values["users"]
+                qos[hostname] = filter_values["qos"]
+                states[hostname] = filter_values["states"]
+            else:
+                # Otherwise get all values from full dataset
+                partitions[hostname] = datastore.get_partitions(hostname)
+                accounts[hostname] = datastore.get_accounts(hostname)
+                users[hostname] = datastore.get_users(hostname)
+                qos[hostname] = datastore.get_qos(hostname)
+                states[hostname] = datastore.get_states(hostname)
 
             min_date, max_date = datastore.get_min_max_dates(hostname)
             date_ranges[hostname] = {"min_date": min_date or "", "max_date": max_date or ""}
 
         return MetadataResponse(
-            hostnames=hostnames,
+            hostnames=list(hostnames) if hostname else datastore.get_hostnames(),
             partitions=partitions,
             accounts=accounts,
             users=users,
@@ -122,6 +128,8 @@ async def get_metadata(current_user: dict = Depends(get_current_user_saml)) -> M
             states=states,
             date_ranges=date_ranges,
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching metadata: {str(e)}")
 

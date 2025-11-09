@@ -190,7 +190,7 @@ class PandasDataStore(metaclass=Singleton):
             self.auto_refresh_interval = interval
 
         if self._refresh_thread is not None and self._refresh_thread.is_alive():
-            print("Auto-refresh is already running")
+            logger.info("Auto-refresh is already running")
             return
 
         self._stop_refresh_flag.clear()
@@ -200,7 +200,7 @@ class PandasDataStore(metaclass=Singleton):
             name="DataStore-AutoRefresh"
         )
         self._refresh_thread.start()
-        print(f"Started auto-refresh thread (every {self.auto_refresh_interval} seconds)")
+        logger.info(f"Started auto-refresh thread (every {self.auto_refresh_interval} seconds)")
 
     def stop_auto_refresh(self) -> None:
         """Stop the background thread for automatic data refresh.
@@ -208,16 +208,16 @@ class PandasDataStore(metaclass=Singleton):
         Signals the auto-refresh thread to stop and waits for its termination.
         """
         if self._refresh_thread is None or not self._refresh_thread.is_alive():
-            print("No auto-refresh thread is running")
+            logger.info("No auto-refresh thread is running")
             return
 
-        print("Stopping auto-refresh thread...")
+        logger.info("Stopping auto-refresh thread...")
         self._stop_refresh_flag.set()
         self._refresh_thread.join(timeout=5.0)
         if self._refresh_thread.is_alive():
-            print("Warning: Auto-refresh thread did not terminate gracefully")
+            logger.warning("Auto-refresh thread did not terminate gracefully")
         else:
-            print("Auto-refresh thread stopped successfully")
+            logger.info("Auto-refresh thread stopped successfully")
 
     def _auto_refresh_worker(self) -> None:
         """Worker method for the auto-refresh thread.
@@ -229,11 +229,11 @@ class PandasDataStore(metaclass=Singleton):
             try:
                 updated = self.check_for_updates()
                 if updated:
-                    print(f"Auto-refresh: Data was updated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                    logger.info(f"Auto-refresh: Data was updated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 else:
-                    print(f"Auto-refresh: No updates found at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                    logger.debug(f"Auto-refresh: No updates found at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             except Exception as e:
-                print(f"Error during auto-refresh: {e!s}")
+                logger.error(f"Error during auto-refresh: {e!s}")
 
             # Sleep for the specified interval, but check periodically if we should stop
             check_interval = 2
@@ -260,7 +260,7 @@ class PandasDataStore(metaclass=Singleton):
             raise ValueError(msg)
 
         self.auto_refresh_interval = interval
-        print(f"Auto-refresh interval set to {interval} seconds")
+        logger.info(f"Auto-refresh interval set to {interval} seconds")
 
         # Return status based on whether auto-refresh is running
         return self._refresh_thread is not None and self._refresh_thread.is_alive()
@@ -273,7 +273,7 @@ class PandasDataStore(metaclass=Singleton):
         Performance is measured using the timeit decorator.
         """
         for hostname in self.get_hostnames():
-            print(f"Loading data for {hostname}...")
+            logger.info(f"Loading data for {hostname}...")
             self._load_host_data(hostname)
 
     def _load_host_data(self, hostname: str) -> None:
@@ -403,14 +403,14 @@ class PandasDataStore(metaclass=Singleton):
         for hostname in self.get_hostnames():
             host_updates = self._check_host_updates(hostname)
             if host_updates:
-                print(f"Updates detected for host {hostname}, reloading data...")
+                logger.info(f"Updates detected for host {hostname}, reloading data...")
                 try:
                     self._load_host_data(hostname)
                     updated = True
                     # Clear the cache since data has changed
                     self._filter_data.cache_clear()
                 except Exception as e:
-                    print(f"Error reloading data for {hostname}: {e!s}")
+                    logger.error(f"Error reloading data for {hostname}: {e!s}")
 
         return updated
 
@@ -443,7 +443,7 @@ class PandasDataStore(metaclass=Singleton):
         # New files
         new_files = set(current_files.keys()) - set(old_timestamps.keys())
         if new_files:
-            print(f"New files found for {hostname}: {len(new_files)} files")
+            logger.info(f"New files found for {hostname}: {len(new_files)} files")
             return True
 
         # Changed files (timestamp differs)
@@ -453,7 +453,7 @@ class PandasDataStore(metaclass=Singleton):
                 changed_files.append(file_path)
 
         if changed_files:
-            print(f"Changed files found for {hostname}: {len(changed_files)} files")
+            logger.info(f"Changed files found for {hostname}: {len(changed_files)} files")
             return True
 
         # No changes detected
@@ -659,7 +659,7 @@ class PandasDataStore(metaclass=Singleton):
                         # Use current global setting
                         df_filtered["Account"] = df_filtered["Account"].apply(self.account_formatter.format_account)
                 except Exception as e:
-                    print(f"Error applying account formatting: {e}. Using original account names.")
+                    logger.warning(f"Error applying account formatting: {e}. Using original account names.")
 
         return df_filtered
 

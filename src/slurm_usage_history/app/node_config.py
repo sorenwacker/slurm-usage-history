@@ -2,6 +2,7 @@
 
 import json
 import os
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Union, Any, Pattern
 
@@ -59,7 +60,7 @@ class NodeConfiguration:
             path = Path(config_file)
 
             if not path.exists():
-                print(f"Config file not found: {config_file}")
+                logger.warning(f"Config file not found: {config_file}")
                 return False
 
             if path.suffix.lower() in [".yaml", ".yml"]:
@@ -69,15 +70,15 @@ class NodeConfiguration:
                 with open(path) as f:
                     self.config = json.load(f)
             else:
-                print(f"Unsupported config file format: {path.suffix}")
+                logger.error(f"Unsupported config file format: {path.suffix}")
                 return False
 
             self.config_file = config_file
-            print(f"Loaded node configuration from {config_file}")
+            logger.info(f"Loaded node configuration from {config_file}")
             return True
 
         except Exception as e:
-            print(f"Error loading config: {e!s}")
+            logger.error(f"Error loading config: {e!s}")
             return False
 
     def get_node_cpu_count(self, node_name: str) -> int:

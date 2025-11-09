@@ -1,7 +1,10 @@
 """Timeline chart generators for CPU, GPU, jobs, and users over time."""
+import logging
 from typing import Optional
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 
 def generate_cpu_usage_over_time(df: pd.DataFrame, period_type: str = "month", color_by: str | None = None) -> dict[str, list]:
@@ -33,8 +36,7 @@ def generate_cpu_usage_over_time(df: pd.DataFrame, period_type: str = "month", c
     df_copy = df.copy()
 
     if time_column not in df.columns:
-        print(f"DEBUG: time_column '{time_column}' NOT FOUND in DataFrame!")
-        print(f"DEBUG: Available columns: {df.columns.tolist()}")
+        logger.warning(f"Time column '{time_column}' not found in DataFrame. Available columns: {df.columns.tolist()}")
         if period_type == "year" and "StartYearMonth" in df.columns:
             df_copy["StartYear"] = df_copy["StartYearMonth"].astype(str).str[:4]
         else:
@@ -50,18 +52,7 @@ def generate_cpu_usage_over_time(df: pd.DataFrame, period_type: str = "month", c
 
     # If no color_by, return simple time series (backward compatible)
     if not color_by or color_by not in df_copy.columns:
-        # DEBUG: Log what we're grouping by
-        print(f"DEBUG generate_cpu_usage_over_time: period_type={period_type}, time_column={time_column}")
-        print(f"DEBUG: DataFrame has {len(df_copy)} rows")
-        print(f"DEBUG: time_column in columns? {time_column in df_copy.columns}")
-        if time_column in df_copy.columns:
-            print(f"DEBUG: First 5 {time_column} values: {df_copy[time_column].head().tolist()}")
-
         grouped = df_copy.groupby(time_column)["CPUHours"].sum().sort_index()
-
-        print(f"DEBUG: After groupby, got {len(grouped)} unique periods")
-        print(f"DEBUG: First 5 grouped periods: {grouped.index[:5].tolist()}")
-
         return {
             "x": grouped.index.tolist(),
             "y": grouped.values.tolist(),
@@ -128,8 +119,7 @@ def generate_gpu_usage_over_time(df: pd.DataFrame, period_type: str = "month", c
     df_copy = df.copy()
 
     if time_column not in df.columns:
-        print(f"DEBUG: time_column '{time_column}' NOT FOUND in DataFrame!")
-        print(f"DEBUG: Available columns: {df.columns.tolist()}")
+        logger.warning(f"Time column '{time_column}' not found in DataFrame. Available columns: {df.columns.tolist()}")
         if period_type == "year" and "StartYearMonth" in df.columns:
             df_copy["StartYear"] = df_copy["StartYearMonth"].astype(str).str[:4]
         else:

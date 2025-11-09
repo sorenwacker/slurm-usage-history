@@ -261,6 +261,70 @@ class DuckDBDataStore(metaclass=Singleton):
         """Get available states for the specified hostname."""
         return self.hosts[hostname]["states"] or []
 
+    def get_filter_values_for_period(
+        self,
+        hostname: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> dict[str, list[str]]:
+        """Get unique filter values for a specific time period.
+
+        This ensures filter dropdowns only show values that exist in the
+        selected date range, preventing empty graphs.
+
+        Args:
+            hostname: The hostname to query
+            start_date: Start date filter (YYYY-MM-DD)
+            end_date: End date filter (YYYY-MM-DD)
+
+        Returns:
+            Dictionary with lists of unique values for each filter dimension
+        """
+        host_dir = self.directory / hostname / "weekly-data"
+        file_pattern = str(host_dir / "*.parquet")
+
+        # Build WHERE clause for date filtering
+        where_clauses = []
+        if start_date:
+            where_clauses.append(f"Submit >= '{start_date}'")
+        if end_date:
+            where_clauses.append(f"Submit <= '{end_date}'")
+        where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+
+        conn = self._get_connection()
+
+        result = {
+            "partitions": [],
+            "accounts": [],
+            "users": [],
+            "qos": [],
+            "states": [],
+        }
+
+        # Query unique values for each dimension within the date range
+        for col, key in [
+            ("Partition", "partitions"),
+            ("Account", "accounts"),
+            ("User", "users"),
+            ("QOS", "qos"),
+            ("State", "states"),
+        ]:
+            try:
+                unique_values = conn.execute(
+                    f"""
+                    SELECT DISTINCT {col}
+                    FROM read_parquet('{file_pattern}', union_by_name=true)
+                    WHERE {where_sql} AND {col} IS NOT NULL
+                    ORDER BY {col}
+                    """
+                ).fetchall()
+                result[key] = [val[0] for val in unique_values]
+            except Exception as e:
+                logger.warning(f"Could not load unique values for {col} in period: {e}")
+                result[key] = []
+
+        return result
+
     def filter(
         self,
         hostname: str,
@@ -327,9 +391,11 @@ class DuckDBDataStore(metaclass=Singleton):
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
         # Build and execute query
+        # Note: Some parquet files have NodeList as VARCHAR[] while others have it as VARCHAR
+        # Using binary_as_string and excluding NodeList column to avoid type mismatches
         query = f"""
-        SELECT *
-        FROM read_parquet('{file_pattern}', union_by_name=true)
+        SELECT * EXCLUDE (NodeList)
+        FROM read_parquet('{file_pattern}', union_by_name=true, binary_as_string=true)
         WHERE {where_sql}
         """
 
@@ -342,11 +408,39 @@ class DuckDBDataStore(metaclass=Singleton):
         query_elapsed = time.time() - query_start
         logger.debug(f"DuckDB query completed in {query_elapsed:.3f}s, returned {len(df)} rows")
 
+        # Handle column name variations due to union_by_name
+        # Some parquet files use "CPU-hours" while others use "CPUHours"
+        if "CPU-hours" in df.columns and "CPUHours" in df.columns:
+            # Merge the columns, preferring non-NaN values
+            df["CPUHours"] = df["CPUHours"].fillna(df["CPU-hours"])
+            df = df.drop(columns=["CPU-hours"])
+        elif "CPU-hours" in df.columns:
+            df = df.rename(columns={"CPU-hours": "CPUHours"})
+
+        if "GPU-hours" in df.columns and "GPUHours" in df.columns:
+            df["GPUHours"] = df["GPUHours"].fillna(df["GPU-hours"])
+            df = df.drop(columns=["GPU-hours"])
+        elif "GPU-hours" in df.columns:
+            df = df.rename(columns={"GPU-hours": "GPUHours"})
+
+        # Normalize timing column names
+        if "WaitingTime [h]" in df.columns and "WaitingTimeHours" in df.columns:
+            df["WaitingTimeHours"] = df["WaitingTimeHours"].fillna(df["WaitingTime [h]"])
+            df = df.drop(columns=["WaitingTime [h]"])
+        elif "WaitingTime [h]" in df.columns:
+            df = df.rename(columns={"WaitingTime [h]": "WaitingTimeHours"})
+
+        if "Elapsed [h]" in df.columns and "ElapsedHours" in df.columns:
+            df["ElapsedHours"] = df["ElapsedHours"].fillna(df["Elapsed [h]"])
+            df = df.drop(columns=["Elapsed [h]"])
+        elif "Elapsed [h]" in df.columns:
+            df = df.rename(columns={"Elapsed [h]": "ElapsedHours"})
+
         # Apply account formatting if requested and available
         if format_accounts and self.account_formatter and "Account" in df.columns:
             segments = account_segments if account_segments is not None else 3
             df["Account"] = df["Account"].apply(
-                lambda x: self.account_formatter.format_account_name(x, segments=segments)
+                lambda x: self.account_formatter.format_account(x)
             )
 
         total_elapsed = time.time() - query_start

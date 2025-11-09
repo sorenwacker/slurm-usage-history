@@ -255,9 +255,7 @@ def add_callbacks(app, datastore, cache, background_callback_manager):
             "sdrwacker",
         ]
         try:
-            current_user = getpass.getuser()
-            print("Current user:", current_user)
-            if current_user in admin_users:
+            current_user = getpass.getuser()if current_user in admin_users:
                 return {"display": "block"}
             return {"display": "none"}
         except:
