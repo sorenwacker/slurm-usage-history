@@ -6,6 +6,7 @@ scalability compared to the pandas-based approach.
 """
 
 import logging
+import os
 import threading
 import time
 from datetime import datetime
@@ -101,7 +102,14 @@ class DuckDBDataStore(metaclass=Singleton):
         DuckDB connections are not thread-safe, so we maintain one per thread.
         """
         if not hasattr(self._local, "conn") or self._local.conn is None:
-            self._local.conn = duckdb.connect(":memory:")
+            # Create DuckDB extension directory in /tmp to avoid read-only filesystem issues
+            # Use process ID to avoid conflicts between multiple workers
+            extension_dir = f"/tmp/.duckdb-{os.getpid()}"
+            os.makedirs(extension_dir, exist_ok=True)
+
+            # Connect with explicit extension directory configuration
+            self._local.conn = duckdb.connect(":memory:", config={"extension_directory": extension_dir})
+
             # Install and load parquet extension
             self._local.conn.execute("INSTALL parquet")
             self._local.conn.execute("LOAD parquet")
@@ -183,7 +191,7 @@ class DuckDBDataStore(metaclass=Singleton):
                 SELECT
                     MIN(Submit) as min_date,
                     MAX(Submit) as max_date
-                FROM read_parquet('{file_pattern}')
+                FROM read_parquet('{file_pattern}', union_by_name=true)
                 """
             ).fetchone()
 
@@ -205,7 +213,7 @@ class DuckDBDataStore(metaclass=Singleton):
                     unique_values = conn.execute(
                         f"""
                         SELECT DISTINCT {col}
-                        FROM read_parquet('{file_pattern}')
+                        FROM read_parquet('{file_pattern}', union_by_name=true)
                         WHERE {col} IS NOT NULL
                         ORDER BY {col}
                         """
@@ -321,7 +329,7 @@ class DuckDBDataStore(metaclass=Singleton):
         # Build and execute query
         query = f"""
         SELECT *
-        FROM read_parquet('{file_pattern}')
+        FROM read_parquet('{file_pattern}', union_by_name=true)
         WHERE {where_sql}
         """
 
