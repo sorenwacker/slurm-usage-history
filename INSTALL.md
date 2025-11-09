@@ -59,7 +59,7 @@ pip install slurm-dashboard[web]
 export DATA_PATH=/data/slurm-usage
 
 # Start backend with integrated frontend
-uvicorn backend.app.main:app --host 0.0.0.0 --port 8100
+slurm-backend
 ```
 
 The `[web]` extra includes the pre-built React frontend served directly by FastAPI.

@@ -13,7 +13,7 @@ slurm-agent --output /data/slurm-usage/$(hostname)
 
 # Start dashboard (on server) - frontend included
 export DATA_PATH=/data/slurm-usage
-uvicorn backend.app.main:app --host 0.0.0.0 --port 8100
+slurm-backend
 ```
 
 Open browser to `http://localhost:8100`
@@ -73,7 +73,10 @@ export DATA_PATH=/data/slurm-usage
 export API_PREFIX=/api
 
 # Start backend with integrated frontend
-uvicorn backend.app.main:app --host 0.0.0.0 --port 8100
+slurm-backend
+
+# Or with auto-reload for development
+slurm-backend --reload
 ```
 
 Backend is now running at `http://localhost:8100`
@@ -136,7 +139,7 @@ slurm-waiting-times --input /data/slurm-usage/CLUSTER
 
 ```bash
 # Development
-uvicorn backend.app.main:app --reload
+slurm-backend --reload
 
 # Production (with Gunicorn)
 gunicorn backend.app.main:app \

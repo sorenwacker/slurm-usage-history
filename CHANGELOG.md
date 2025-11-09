@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Modern pyproject.toml** with optional extras: `[agent]`, `[web]`, `[all]`
 - **Comprehensive documentation** - INSTALL.md, QUICKSTART.md guides
 - **New CLI commands**: `slurm-agent`, `slurm-backend`, `slurm-waiting-times`
+- **Simplified backend startup** - `slurm-backend` command with sensible defaults
 - **Query caching** for 5-minute cache of chart data
 - **SAML 2.0 authentication** for enterprise SSO
 - **PDF report generation** with customizable templates

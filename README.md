@@ -64,7 +64,10 @@ slurm-agent --output /data/slurm-usage/$(hostname)
 export DATA_PATH=/data/slurm-usage
 
 # Start backend with integrated frontend
-uvicorn backend.app.main:app --host 0.0.0.0 --port 8100
+slurm-backend
+
+# Or for development with auto-reload
+slurm-backend --reload
 
 # Or use Gunicorn for production
 gunicorn backend.app.main:app \
@@ -119,6 +122,9 @@ DATA_PATH=/data/slurm-usage
 AUTO_REFRESH_INTERVAL=600
 ENABLE_SAML=true
 SAML_SETTINGS_PATH=/etc/slurm-dashboard/saml.json
+
+# Start with custom settings
+slurm-backend --port 8080
 ```
 
 ### Frontend: Custom Build
