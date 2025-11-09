@@ -12,7 +12,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import duckdb
+try:
+    import duckdb
+    DUCKDB_AVAILABLE = True
+except ImportError as e:
+    DUCKDB_AVAILABLE = False
+    duckdb = None  # type: ignore
+    logging.error(f"DuckDB not available: {e}. Install with: pip install duckdb")
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -53,7 +60,17 @@ class DuckDBDataStore(metaclass=Singleton):
             directory: Path to the data directory
             auto_refresh_interval: Refresh interval in seconds
             account_formatter: Formatter for account names
+
+        Raises:
+            ImportError: If DuckDB is not installed
         """
+        if not DUCKDB_AVAILABLE or duckdb is None:
+            raise ImportError(
+                "DuckDB is required but not installed. "
+                "Install with: pip install duckdb or uv add duckdb"
+            )
+
+        logger.info("Initializing DuckDBDataStore (low-memory mode)")
         self.directory = Path(directory).expanduser() if directory else Path.cwd()
         self.auto_refresh_interval = auto_refresh_interval
         self.account_formatter = account_formatter
@@ -116,9 +133,17 @@ class DuckDBDataStore(metaclass=Singleton):
         It only scans parquet files to extract metadata like date ranges
         and unique values for filters.
         """
+        import time
+        start_time = time.time()
         for hostname in self.get_hostnames():
             logger.info(f"Loading metadata for {hostname}...")
+            host_start = time.time()
             self._load_host_metadata(hostname)
+            host_elapsed = time.time() - host_start
+            logger.info(f"Loaded metadata for {hostname} in {host_elapsed:.2f}s")
+
+        total_elapsed = time.time() - start_time
+        logger.info(f"Total metadata loading time: {total_elapsed:.2f}s for {len(self.get_hostnames())} hosts")
 
     def _load_host_metadata(self, hostname: str) -> None:
         """Load metadata for a specific hostname.
@@ -190,7 +215,11 @@ class DuckDBDataStore(metaclass=Singleton):
                     logger.warning(f"Could not load unique values for {col}: {e}")
                     self.hosts[hostname][key] = []
 
-            logger.info(f"Loaded metadata for {hostname}: {len(parquet_files)} files, date range {self.hosts[hostname]['min_date']} to {self.hosts[hostname]['max_date']}")
+            logger.info(
+                f"Successfully loaded metadata for {hostname}: "
+                f"{len(parquet_files)} files, "
+                f"date range {self.hosts[hostname]['min_date']} to {self.hosts[hostname]['max_date']}"
+            )
 
         except Exception as e:
             logger.error(f"Error loading metadata for {hostname}: {e}")
@@ -296,8 +325,14 @@ class DuckDBDataStore(metaclass=Singleton):
         WHERE {where_sql}
         """
 
+        import time
+        query_start = time.time()
+
         conn = self._get_connection()
         df = conn.execute(query).df()
+
+        query_elapsed = time.time() - query_start
+        logger.debug(f"DuckDB query completed in {query_elapsed:.3f}s, returned {len(df)} rows")
 
         # Apply account formatting if requested and available
         if format_accounts and self.account_formatter and "Account" in df.columns:
@@ -305,6 +340,10 @@ class DuckDBDataStore(metaclass=Singleton):
             df["Account"] = df["Account"].apply(
                 lambda x: self.account_formatter.format_account_name(x, segments=segments)
             )
+
+        total_elapsed = time.time() - query_start
+        if total_elapsed > 1.0:
+            logger.info(f"Filter query took {total_elapsed:.3f}s for {len(df)} rows from {hostname}")
 
         return df
 
