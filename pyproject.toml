@@ -129,12 +129,17 @@ source = "vcs"
 [tool.hatch.build.hooks.vcs]
 version-file = "_version.py"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/slurm_usage_history"]
-artifacts = ["backend/app/static"]
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/backend",
+    "/README.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+]
 
-[tool.hatch.build.targets.wheel.force-include]
-"frontend/dist" = "backend/app/static"
+[tool.hatch.build.targets.wheel]
+packages = ["src/slurm_usage_history", "backend"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
