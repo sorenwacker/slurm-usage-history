@@ -28,7 +28,8 @@ keywords = ["slurm", "hpc", "cluster", "dashboard", "monitoring", "analytics"]
 
 # Core dependencies (always installed)
 dependencies = [
-  "pandas>=2.0.0",
+  "pandas>=2.0.0,<2.2.0",  # Pandas 2.2+ requires numpy 2.0 which needs GCC >= 9.3
+  "numpy>=1.24.0,<2.0.0",  # Pin numpy <2.0 for compatibility with older GCC
   "pyarrow>=14.0.0",
   "duckdb>=1.0.0",
   "python-dotenv>=1.0.0",
