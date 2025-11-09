@@ -4,6 +4,8 @@ Modern web dashboard for SLURM cluster usage analytics with DuckDB-powered data 
 
 ## Quick Start
 
+### From PyPI (Recommended)
+
 ```bash
 # Install core package
 pip install slurm-dashboard
@@ -17,6 +19,42 @@ pip install slurm-dashboard[web]
 # Everything
 pip install slurm-dashboard[all]
 ```
+
+### From GitLab (Development/Pre-release)
+
+Install directly from the GitLab repository:
+
+**With pip:**
+```bash
+# Latest from main branch - core only
+pip install git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git
+
+# With agent extra
+pip install "slurm-dashboard[agent] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
+
+# With web extra
+pip install "slurm-dashboard[web] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
+
+# Everything
+pip install "slurm-dashboard[all] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
+
+# Specific tag/version
+pip install "slurm-dashboard[all] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git@v0.3.0"
+
+# Specific commit
+pip install "slurm-dashboard[all] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git@382c032"
+```
+
+**With uv (faster):**
+```bash
+# Everything from latest
+uv pip install "slurm-dashboard[all] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
+
+# Specific version
+uv pip install "slurm-dashboard[all] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git@v0.3.0"
+```
+
+**Note:** GitLab installation requires git to be installed and GitLab access configured.
 
 ## Installation Scenarios
 

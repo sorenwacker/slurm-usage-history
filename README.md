@@ -36,6 +36,7 @@ Modern web dashboard for SLURM cluster usage analytics with DuckDB-powered data 
 
 ### Installation
 
+**From PyPI:**
 ```bash
 # Core package
 pip install slurm-dashboard
@@ -48,6 +49,15 @@ pip install slurm-dashboard[web]
 
 # Everything (recommended)
 pip install slurm-dashboard[all]
+```
+
+**From GitLab (development/pre-release):**
+```bash
+# Install latest from main branch with agent
+pip install "slurm-dashboard[agent] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
+
+# Install specific version
+pip install "slurm-dashboard[all] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git@v0.3.0"
 ```
 
 ### Collect Data (on SLURM cluster)
@@ -101,7 +111,9 @@ The web installation includes the pre-built React frontend, served directly by F
 
 ## Documentation
 
+- **[Quick Start](QUICKSTART.md)** - Get running in 5 minutes
 - **[Installation Guide](INSTALL.md)** - Detailed setup instructions
+- **[Cluster Setup](CLUSTER_SETUP.md)** - Agent installation on SLURM clusters
 - **[Deployment with Ansible](ansible/README.md)** - Automated deployment
 - **[API Documentation](http://localhost:8100/docs)** - Interactive API docs (when running)
 

@@ -5,8 +5,8 @@ Get SLURM Dashboard up and running in 5 minutes.
 ## TL;DR
 
 ```bash
-# Install
-pip install slurm-dashboard[all]
+# Install from GitLab
+pip install "slurm-dashboard[all] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
 
 # Collect data (on cluster)
 slurm-dashboard-agent --output /data/slurm-usage/$(hostname)
@@ -20,12 +20,15 @@ Open browser to `http://localhost:8100`
 
 Frontend is included with `[web]` extra - no separate build needed.
 
+**Note:** Once published to PyPI, you can use `pip install slurm-dashboard[all]` instead.
+
 ## Step-by-Step
 
 ### 1. Install Package
 
 Choose your installation based on needs:
 
+**From PyPI (when published):**
 ```bash
 # Minimum (data processing only)
 pip install slurm-dashboard
@@ -38,6 +41,18 @@ pip install slurm-dashboard[web]
 
 # Everything (recommended)
 pip install slurm-dashboard[all]
+```
+
+**From GitLab (before PyPI release or for development):**
+```bash
+# With pip
+pip install "slurm-dashboard[all] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
+
+# With uv (faster)
+uv pip install "slurm-dashboard[all] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
+
+# For cluster agent only
+pip install "slurm-dashboard[agent] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
 ```
 
 ### 2. Collect SLURM Data
