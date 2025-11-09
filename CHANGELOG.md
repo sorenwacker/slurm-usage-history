@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modern **DuckDB-powered backend** for 95% memory reduction (13GB → 1.1GB)
 - **React + TypeScript frontend** with Vite build system
 - **FastAPI backend** replacing legacy Flask/Dash
+- **Integrated frontend distribution** - pre-built frontend included in Python package
+- **Single-command deployment** - `pip install slurm-dashboard[web]` includes everything
 - **Dynamic filter population** - filters now only show values from selected date range
 - **Column name normalization** for consistent data processing across parquet files
 - **Timing column support** - waiting times and job duration charts now working

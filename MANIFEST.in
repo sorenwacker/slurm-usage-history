@@ -1,0 +1,10 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include INSTALL.md
+include QUICKSTART.md
+include pyproject.toml
+include build_frontend.sh
+
+recursive-include frontend/dist *
+recursive-include backend/app/static *

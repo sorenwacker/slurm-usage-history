@@ -11,12 +11,14 @@ pip install slurm-dashboard[all]
 # Collect data (on cluster)
 slurm-agent --output /data/slurm-usage/$(hostname)
 
-# Start dashboard (on server)
+# Start dashboard (on server) - frontend included
 export DATA_PATH=/data/slurm-usage
 uvicorn backend.app.main:app --host 0.0.0.0 --port 8100
 ```
 
 Open browser to `http://localhost:8100`
+
+Frontend is included with `[web]` extra - no separate build needed.
 
 ## Step-by-Step
 
@@ -63,22 +65,32 @@ crontab -e
 0 2 * * 1 slurm-agent --output /data/slurm-usage/$(hostname) 2>&1 | logger -t slurm-agent
 ```
 
-### 3. Start Backend (Development)
+### 3. Start Backend
 
 ```bash
 # Set environment variables
 export DATA_PATH=/data/slurm-usage
 export API_PREFIX=/api
 
-# Start backend with auto-reload
-uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8100
+# Start backend with integrated frontend
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8100
 ```
 
 Backend is now running at `http://localhost:8100`
 
 Test API: `curl http://localhost:8100/api/dashboard/health`
 
-### 4. Build Frontend (Development)
+### 4. Access Dashboard
+
+Open browser to:
+- Dashboard: `http://localhost:8100`
+- Backend API docs: `http://localhost:8100/docs`
+
+The frontend is pre-built and served directly by FastAPI.
+
+### 5. Frontend Development (Optional)
+
+Only needed if you want to modify the frontend:
 
 ```bash
 cd frontend
@@ -86,17 +98,11 @@ cd frontend
 # Install dependencies
 npm install
 
-# Start development server
+# Start development server with hot reload
 npm run dev
 ```
 
-Frontend is now running at `http://localhost:5173`
-
-### 5. Access Dashboard
-
-Open browser to:
-- Frontend: `http://localhost:5173`
-- Backend API docs: `http://localhost:8100/docs`
+Development server runs at `http://localhost:5173` with hot module replacement.
 
 ## Production Deployment
 

@@ -43,7 +43,7 @@ pip install slurm-dashboard
 # With data collection agent
 pip install slurm-dashboard[agent]
 
-# With web dashboard
+# With web dashboard (includes frontend)
 pip install slurm-dashboard[web]
 
 # Everything (recommended)
@@ -63,16 +63,19 @@ slurm-agent --output /data/slurm-usage/$(hostname)
 # Set data path
 export DATA_PATH=/data/slurm-usage
 
-# Start backend (development mode)
-uvicorn backend.app.main:app --reload --port 8100
+# Start backend with integrated frontend
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8100
 
-# Build frontend (production)
-cd frontend
-npm install
-npm run build
+# Or use Gunicorn for production
+gunicorn backend.app.main:app \
+  --workers 4 \
+  --worker-class uvicorn.workers.UvicornWorker \
+  --bind 0.0.0.0:8100
 ```
 
 Access dashboard at `http://localhost:8100`
+
+The web installation includes the pre-built React frontend, served directly by FastAPI.
 
 ## Architecture
 
@@ -138,6 +141,9 @@ uv pip install -e ".[all,dev]"
 
 # Or with pip
 pip install -e ".[all,dev]"
+
+# Build frontend for development
+./build_frontend.sh
 
 # Install pre-commit hooks
 pre-commit install

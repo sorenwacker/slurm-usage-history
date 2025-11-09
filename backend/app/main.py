@@ -1,8 +1,12 @@
 import logging
 
 from contextlib import asynccontextmanager
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from .api import admin, charts, config_admin, dashboard, data, reports, saml
 from .core.config import get_settings
@@ -58,14 +62,67 @@ app.include_router(config_admin.router, prefix=f"{settings.api_prefix}/admin", t
 app.include_router(saml.router, prefix="/saml", tags=["SAML Authentication"])
 
 
-@app.get("/")
-async def root():
-    """Root endpoint."""
-    return {
-        "message": "Slurm Usage History API",
-        "version": settings.api_version,
-        "docs": "/docs",
-    }
+# Serve static frontend files
+# Try multiple possible locations for frontend dist directory
+frontend_dist = None
+possible_paths = [
+    Path(__file__).parent.parent.parent / "frontend" / "dist",  # Development
+    Path(__file__).parent / "static",  # Packaged with backend
+]
+
+for path in possible_paths:
+    if path.exists() and path.is_dir():
+        frontend_dist = path
+        logger.info(f"Found frontend at: {frontend_dist}")
+        break
+
+if frontend_dist:
+    # Mount static assets (JS, CSS, images)
+    app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="assets")
+
+    # Serve root images
+    @app.get("/vite.svg")
+    async def vite_svg():
+        return FileResponse(frontend_dist / "vite.svg")
+
+    @app.get("/REIT_logo.png")
+    async def reit_logo():
+        return FileResponse(frontend_dist / "REIT_logo.png")
+
+    # Serve index.html at root
+    @app.get("/")
+    async def serve_root():
+        index_path = frontend_dist / "index.html"
+        if index_path.exists():
+            return FileResponse(index_path)
+        return {"message": "Frontend not found"}
+
+    # Catch-all route to serve index.html for React Router (SPA routing)
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        # Don't intercept API routes, docs, or SAML
+        if full_path.startswith("api") or full_path.startswith("docs") or full_path.startswith("saml") or full_path.startswith("openapi.json"):
+            # Let FastAPI handle these routes
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Not found")
+
+        # Serve index.html for all other routes (React Router handles routing)
+        index_path = frontend_dist / "index.html"
+        if index_path.exists():
+            return FileResponse(index_path)
+
+        return {"message": "Frontend not found"}
+else:
+    logger.warning("Frontend dist directory not found. Frontend will not be served.")
+
+    @app.get("/")
+    async def root():
+        """Root endpoint."""
+        return {
+            "message": "Slurm Usage History API",
+            "version": settings.api_version,
+            "docs": "/docs",
+        }
 
 
 @app.get("/api")

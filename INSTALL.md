@@ -51,16 +51,18 @@ pip install slurm-dashboard[web]
 **Requirements:**
 - Python 3.10+
 - Access to data directory (e.g., NFS mount)
-- For production: systemd, nginx/apache, Node.js (for frontend build)
+- For production: systemd, optional nginx/apache for reverse proxy
 
 **Quick Test:**
 ```bash
 # Set data path
 export DATA_PATH=/data/slurm-usage
 
-# Start backend (development)
+# Start backend with integrated frontend
 uvicorn backend.app.main:app --host 0.0.0.0 --port 8100
 ```
+
+The `[web]` extra includes the pre-built React frontend served directly by FastAPI.
 
 **Production Deployment:**
 
@@ -145,19 +147,11 @@ sudo systemctl enable slurm-dashboard-backend
 sudo systemctl start slurm-dashboard-backend
 ```
 
-#### 2. Frontend Setup
+#### 2. Nginx Reverse Proxy (Optional)
+
+For HTTPS/TLS termination:
 
 ```bash
-# Install Node.js 20+ (if not already installed)
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Build frontend
-cd frontend
-npm install
-VITE_API_URL=https://your-domain.com npm run build
-
-# Serve with nginx
 sudo tee /etc/nginx/sites-available/slurm-dashboard << 'EOF'
 server {
     listen 443 ssl http2;
@@ -166,28 +160,13 @@ server {
     ssl_certificate /etc/ssl/certs/your-cert.pem;
     ssl_certificate_key /etc/ssl/private/your-key.pem;
 
-    # Frontend
-    root /opt/slurm-dashboard/frontend/dist;
-    index index.html;
-
+    # Proxy all requests to FastAPI (serves both frontend and API)
     location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Backend API
-    location /api {
         proxy_pass http://127.0.0.1:8100;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # SAML endpoints (if using SAML authentication)
-    location /saml {
-        proxy_pass http://127.0.0.1:8100;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
     }
 }
 EOF
@@ -196,6 +175,8 @@ sudo ln -s /etc/nginx/sites-available/slurm-dashboard /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
+
+FastAPI serves both the frontend and API endpoints.
 
 #### 3. SAML Authentication (Optional)
 
