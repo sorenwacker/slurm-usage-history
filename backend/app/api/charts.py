@@ -50,18 +50,20 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 
 if TYPE_CHECKING:
-    from slurm_usage_history.app.datastore import PandasDataStore
+    from slurm_usage_history.app.duckdb_datastore import DuckDBDataStore
 
 try:
+    from slurm_usage_history.app.duckdb_datastore import DuckDBDataStore
     from slurm_usage_history.app.datastore import PandasDataStore
 except ImportError:
+    DuckDBDataStore = None  # type: ignore
     PandasDataStore = None  # type: ignore
 
 router = APIRouter()
 settings = get_settings()
 
 # Global datastore instance
-_datastore: Optional["PandasDataStore"] = None
+_datastore: Optional["DuckDBDataStore"] = None
 
 # Simple in-memory cache for chart data
 # Cache structure: {cache_key: (timestamp, data)}
@@ -69,15 +71,26 @@ _chart_cache: dict[str, tuple[datetime, dict[str, Any]]] = {}
 CACHE_TTL_SECONDS = 300  # 5 minutes cache TTL
 
 
-def get_datastore() -> PandasDataStore:
-    """Get or initialize the datastore singleton."""
+def get_datastore():
+    """Get or initialize the datastore singleton.
+
+    Uses DuckDBDataStore by default for better performance and lower memory usage.
+    Falls back to PandasDataStore if DuckDB is not available.
+    """
     global _datastore
     if _datastore is None:
-        if PandasDataStore is None:
+        # Prefer DuckDBDataStore for better performance
+        if DuckDBDataStore is not None:
+            _datastore = DuckDBDataStore(directory=settings.data_path)
+            _datastore.load_data()
+            _datastore.start_auto_refresh(interval=settings.auto_refresh_interval)
+        elif PandasDataStore is not None:
+            # Fallback to PandasDataStore if DuckDB not available
+            _datastore = PandasDataStore(directory=settings.data_path)
+            _datastore.load_data()
+            _datastore.start_auto_refresh(interval=settings.auto_refresh_interval)
+        else:
             raise HTTPException(status_code=500, detail="DataStore not available")
-        _datastore = PandasDataStore(directory=settings.data_path)
-        _datastore.load_data()
-        _datastore.start_auto_refresh(interval=settings.auto_refresh_interval)
     return _datastore
 
 

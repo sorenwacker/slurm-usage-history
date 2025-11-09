@@ -14,26 +14,39 @@ from ..models.data_models import FilterRequest, HealthResponse, MetadataResponse
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 
 try:
+    from slurm_usage_history.app.duckdb_datastore import DuckDBDataStore
     from slurm_usage_history.app.datastore import PandasDataStore
 except ImportError:
+    DuckDBDataStore = None
     PandasDataStore = None
 
 router = APIRouter()
 settings = get_settings()
 
 # Global datastore instance
-_datastore: Optional[PandasDataStore] = None
+_datastore: Optional[DuckDBDataStore] = None
 
 
-def get_datastore() -> PandasDataStore:
-    """Get or initialize the datastore singleton."""
+def get_datastore() -> DuckDBDataStore:
+    """Get or initialize the datastore singleton.
+
+    Uses DuckDBDataStore by default for better performance and lower memory usage.
+    Falls back to PandasDataStore if DuckDB is not available.
+    """
     global _datastore
     if _datastore is None:
-        if PandasDataStore is None:
+        # Prefer DuckDBDataStore for better performance
+        if DuckDBDataStore is not None:
+            _datastore = DuckDBDataStore(directory=settings.data_path)
+            _datastore.load_data()
+            _datastore.start_auto_refresh(interval=settings.auto_refresh_interval)
+        elif PandasDataStore is not None:
+            # Fallback to PandasDataStore if DuckDB not available
+            _datastore = PandasDataStore(directory=settings.data_path)
+            _datastore.load_data()
+            _datastore.start_auto_refresh(interval=settings.auto_refresh_interval)
+        else:
             raise HTTPException(status_code=500, detail="DataStore not available")
-        _datastore = PandasDataStore(directory=settings.data_path)
-        _datastore.load_data()
-        _datastore.start_auto_refresh(interval=settings.auto_refresh_interval)
     return _datastore
 
 
