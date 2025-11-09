@@ -54,7 +54,7 @@ pip install slurm-dashboard[all]
 
 ```bash
 # Run agent to collect usage data
-slurm-agent --output /data/slurm-usage/$(hostname)
+slurm-dashboard-agent --output /data/slurm-usage/$(hostname)
 ```
 
 ### Start Dashboard (on dashboard server)
@@ -64,10 +64,10 @@ slurm-agent --output /data/slurm-usage/$(hostname)
 export DATA_PATH=/data/slurm-usage
 
 # Start backend with integrated frontend
-slurm-backend
+slurm-dashboard
 
 # Or for development with auto-reload
-slurm-backend --reload
+slurm-dashboard --reload
 
 # Or use Gunicorn for production
 gunicorn backend.app.main:app \
@@ -83,20 +83,20 @@ The web installation includes the pre-built React frontend, served directly by F
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    SLURM Cluster                            │
-│  ┌──────────────┐                                           │
-│  │ slurm-agent  │ → Parquet files → NFS/shared storage     │
-│  └──────────────┘                                           │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                    SLURM Cluster                                 │
+│  ┌─────────────────────────┐                                     │
+│  │ slurm-dashboard-agent   │ → Parquet files → NFS/shared storage│
+│  └─────────────────────────┘                                     │
+└──────────────────────────────────────────────────────────────────┘
                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│                  Dashboard Server                           │
-│  ┌──────────────┐    ┌────────────────┐                    │
-│  │   DuckDB     │ ←→ │ FastAPI Backend│ ←→ React Frontend │
-│  │  Datastore   │    │  (Gunicorn)    │     (Nginx)       │
-│  └──────────────┘    └────────────────┘                    │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                  Dashboard Server                                │
+│  ┌──────────────┐    ┌────────────────┐                         │
+│  │   DuckDB     │ ←→ │ FastAPI Backend│ ←→ React Frontend       │
+│  │  Datastore   │    │  (Gunicorn)    │     (Integrated)        │
+│  └──────────────┘    └────────────────┘                         │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ## Documentation
@@ -111,7 +111,7 @@ The web installation includes the pre-built React frontend, served directly by F
 
 ```bash
 # Add to crontab for weekly collection
-0 2 * * 1 slurm-agent --output /data/slurm-usage/$(hostname) 2>&1 | logger -t slurm-agent
+0 2 * * 1 slurm-dashboard-agent --output /data/slurm-usage/$(hostname) 2>&1 | logger -t slurm-dashboard-agent
 ```
 
 ### Backend: Custom Configuration
@@ -124,7 +124,7 @@ ENABLE_SAML=true
 SAML_SETTINGS_PATH=/etc/slurm-dashboard/saml.json
 
 # Start with custom settings
-slurm-backend --port 8080
+slurm-dashboard --port 8080
 ```
 
 ### Frontend: Custom Build

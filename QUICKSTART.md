@@ -9,11 +9,11 @@ Get SLURM Dashboard up and running in 5 minutes.
 pip install slurm-dashboard[all]
 
 # Collect data (on cluster)
-slurm-agent --output /data/slurm-usage/$(hostname)
+slurm-dashboard-agent --output /data/slurm-usage/$(hostname)
 
 # Start dashboard (on server) - frontend included
 export DATA_PATH=/data/slurm-usage
-slurm-backend
+slurm-dashboard
 ```
 
 Open browser to `http://localhost:8100`
@@ -49,7 +49,7 @@ On your SLURM cluster head node:
 mkdir -p /data/slurm-usage
 
 # Run agent (collects last 7 days by default)
-slurm-agent --output /data/slurm-usage/$(hostname)
+slurm-dashboard-agent --output /data/slurm-usage/$(hostname)
 
 # Verify data was created
 ls -lh /data/slurm-usage/$(hostname)/weekly-data/
@@ -62,7 +62,7 @@ ls -lh /data/slurm-usage/$(hostname)/weekly-data/
 crontab -e
 
 # Add weekly collection (every Monday at 2 AM)
-0 2 * * 1 slurm-agent --output /data/slurm-usage/$(hostname) 2>&1 | logger -t slurm-agent
+0 2 * * 1 slurm-dashboard-agent --output /data/slurm-usage/$(hostname) 2>&1 | logger -t slurm-dashboard-agent
 ```
 
 ### 3. Start Backend
@@ -73,10 +73,10 @@ export DATA_PATH=/data/slurm-usage
 export API_PREFIX=/api
 
 # Start backend with integrated frontend
-slurm-backend
+slurm-dashboard
 
 # Or with auto-reload for development
-slurm-backend --reload
+slurm-dashboard --reload
 ```
 
 Backend is now running at `http://localhost:8100`
@@ -126,20 +126,20 @@ See [INSTALL.md](INSTALL.md) for detailed production setup.
 
 ```bash
 # Collect last 7 days
-slurm-agent --output /data/slurm-usage/CLUSTER
+slurm-dashboard-agent --output /data/slurm-usage/CLUSTER
 
 # Collect specific date range
-slurm-agent --start 2024-01-01 --end 2024-12-31 --output /data/slurm-usage/CLUSTER
+slurm-dashboard-agent --start 2024-01-01 --end 2024-12-31 --output /data/slurm-usage/CLUSTER
 
 # Analyze waiting times
-slurm-waiting-times --input /data/slurm-usage/CLUSTER
+slurm-dashboard-wait-times --input /data/slurm-usage/CLUSTER
 ```
 
 ### Backend Management
 
 ```bash
 # Development
-slurm-backend --reload
+slurm-dashboard --reload
 
 # Production (with Gunicorn)
 gunicorn backend.app.main:app \

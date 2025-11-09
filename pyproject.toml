@@ -94,16 +94,19 @@ Issues = "https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history/-/issues"
 
 [project.scripts]
 # Data collection agent
-slurm-agent = "slurm_usage_history.scripts.get_weekly_usage:main"
+slurm-dashboard-agent = "slurm_usage_history.scripts.get_weekly_usage:main"
 
 # Analysis scripts
+slurm-dashboard-wait-times = "slurm_usage_history.scripts.waiting_times:main"
+
+# Dashboard server (FastAPI with integrated frontend) - requires [web] extra
+slurm-dashboard = "slurm_usage_history.backend.cli:main [web]"
+
+# Legacy commands (deprecated, will be removed in v1.0.0)
+slurm-agent = "slurm_usage_history.scripts.get_weekly_usage:main"
 slurm-waiting-times = "slurm_usage_history.scripts.waiting_times:main"
-
-# Dashboard (legacy Dash)
-slurm-dashboard-legacy = "slurm_usage_history.app.main:main"
-
-# Web backend (FastAPI) - requires [web] extra
 slurm-backend = "slurm_usage_history.backend.cli:main [web]"
+slurm-dashboard-legacy = "slurm_usage_history.app.main:main"
 
 [tool.uv]
 dev-dependencies = [

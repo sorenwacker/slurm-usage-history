@@ -19,8 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Shared datastore singleton** for efficient memory management across workers
 - **Modern pyproject.toml** with optional extras: `[agent]`, `[web]`, `[all]`
 - **Comprehensive documentation** - INSTALL.md, QUICKSTART.md guides
-- **New CLI commands**: `slurm-agent`, `slurm-backend`, `slurm-waiting-times`
-- **Simplified backend startup** - `slurm-backend` command with sensible defaults
+- **New CLI commands**: `slurm-dashboard-agent`, `slurm-dashboard`, `slurm-dashboard-wait-times`
+- **Simplified backend startup** - `slurm-dashboard` command with sensible defaults
 - **Query caching** for 5-minute cache of chart data
 - **SAML 2.0 authentication** for enterprise SSO
 - **PDF report generation** with customizable templates
@@ -106,7 +106,7 @@ pip install slurm-dashboard[web]
 slushi-dashboard
 
 # New
-slurm-backend  # Or use uvicorn directly
+slurm-dashboard  # Or use uvicorn directly
 ```
 
 **Configuration:**
@@ -124,7 +124,7 @@ export DATA_PATH=/data/slurm-usage
 slushi-get-weekly-usage
 
 # New
-slurm-agent --output /data/slurm-usage/$(hostname)
+slurm-dashboard-agent --output /data/slurm-usage/$(hostname)
 ```
 
 **Memory Requirements:**
@@ -172,7 +172,12 @@ The DuckDB datastore is fully backward compatible with existing parquet files. N
 
 - **Legacy Dash dashboard** (`slurm-dashboard-legacy` command) will be removed in v1.0.0
 - **Pandas-only datastore** will be removed when DuckDB is fully stable (v1.0.0)
-- **Old CLI command names** (`slushi-*`) deprecated, use new `slurm-*` commands
+- **Old CLI command names**:
+  - `slushi-*` commands deprecated, use new `slurm-dashboard-*` commands
+  - `slurm-agent` deprecated, use `slurm-dashboard-agent`
+  - `slurm-backend` deprecated, use `slurm-dashboard`
+  - `slurm-waiting-times` deprecated, use `slurm-dashboard-wait-times`
+  - Old names will be removed in v1.0.0
 
 ---
 
