@@ -296,6 +296,17 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user_sa
     if email:
         is_admin = settings.is_admin_email(email)
 
+    # If not found by email, check if username (netid) matches any admin email prefix
+    # E.g., username "sdrwacker" matches "sdrwacker@tudelft.nl"
+    if not is_admin and current_user.get("username"):
+        username = current_user.get("username")
+        # Check if username@tudelft.nl is in admin emails
+        full_email = f"{username}@tudelft.nl"
+        is_admin = settings.is_admin_email(full_email)
+        # If we found a match, use the constructed email
+        if is_admin and not email:
+            email = full_email
+
     return {
         "username": current_user.get("username"),
         "email": email,
