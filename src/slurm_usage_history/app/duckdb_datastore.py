@@ -466,33 +466,10 @@ class DuckDBDataStore(metaclass=Singleton):
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
         # Build and execute query
-        # Note: Some parquet files have NodeList as VARCHAR[] while others have it as VARCHAR
-        # Cast NodeList to VARCHAR to normalize both types (arrays become strings, strings stay strings)
-        # Also handle old files that may have old column names (WaitingTime, AllocNodes, etc.)
-        # Exclude ALL possible column name variations to avoid conflicts
+        # Strategy: Select all columns first, then normalize in pandas for compatibility
+        # with both old and new parquet file formats
         query = f"""
-        SELECT
-            * EXCLUDE (
-                NodeList,
-                WaitingTime, WaitingTimeHours,
-                AllocNodes, Nodes,
-                AllocCPUS, CPUs,
-                AllocGPUS, GPUs,
-                ElapsedHours,
-                StartYearMonth, StartYearWeek, StartYear
-            ),
-            CASE
-                WHEN typeof(NodeList) = 'VARCHAR[]' THEN array_to_string(NodeList, ',')
-                ELSE CAST(NodeList AS VARCHAR)
-            END AS NodeList,
-            COALESCE(TRY_CAST(WaitingTimeHours AS DOUBLE), TRY_CAST(WaitingTime AS DOUBLE), 0.0) AS WaitingTimeHours,
-            COALESCE(TRY_CAST(Nodes AS INTEGER), TRY_CAST(AllocNodes AS INTEGER), 0) AS Nodes,
-            COALESCE(TRY_CAST(CPUs AS INTEGER), TRY_CAST(AllocCPUS AS INTEGER), 0) AS CPUs,
-            COALESCE(TRY_CAST(GPUs AS INTEGER), TRY_CAST(AllocGPUS AS INTEGER), 0) AS GPUs,
-            COALESCE(TRY_CAST(ElapsedHours AS DOUBLE), date_diff('second', Start, "End") / 3600.0) AS ElapsedHours,
-            COALESCE(TRY_CAST(StartYearMonth AS VARCHAR), strftime(Start, '%Y-%m')) AS StartYearMonth,
-            COALESCE(TRY_CAST(StartYearWeek AS VARCHAR), strftime(date_trunc('week', Start), '%Y-%m-%d')) AS StartYearWeek,
-            COALESCE(TRY_CAST(StartYear AS INTEGER), CAST(strftime(Start, '%Y') AS INTEGER)) AS StartYear
+        SELECT *
         FROM read_parquet('{file_pattern}', union_by_name=true, binary_as_string=true)
         WHERE {where_sql}
         """
@@ -521,21 +498,40 @@ class DuckDBDataStore(metaclass=Singleton):
         elif "GPU-hours" in df.columns:
             df = df.rename(columns={"GPU-hours": "GPUHours"})
 
-        # Handle legacy column name variations (for backward compatibility with old exports)
-        # Most normalization is now done in the SQL query for performance
-        if "WaitingTime [h]" in df.columns:
-            if "WaitingTimeHours" in df.columns:
-                df["WaitingTimeHours"] = df["WaitingTimeHours"].fillna(df["WaitingTime [h]"])
-                df = df.drop(columns=["WaitingTime [h]"])
-            else:
-                df = df.rename(columns={"WaitingTime [h]": "WaitingTimeHours"})
+        # Normalize column names and create derived columns
+        # Handle both old and new parquet file formats
 
-        if "Elapsed [h]" in df.columns:
-            if "ElapsedHours" in df.columns:
-                df["ElapsedHours"] = df["ElapsedHours"].fillna(df["Elapsed [h]"])
-                df = df.drop(columns=["Elapsed [h]"])
-            else:
+        # Timing columns
+        if "WaitingTimeHours" not in df.columns:
+            if "WaitingTime [h]" in df.columns:
+                df = df.rename(columns={"WaitingTime [h]": "WaitingTimeHours"})
+            elif "WaitingTime" in df.columns:
+                df = df.rename(columns={"WaitingTime": "WaitingTimeHours"})
+            elif "Submit" in df.columns and "Start" in df.columns:
+                df["WaitingTimeHours"] = (pd.to_datetime(df["Start"]) - pd.to_datetime(df["Submit"])).dt.total_seconds() / 3600.0
+
+        if "ElapsedHours" not in df.columns:
+            if "Elapsed [h]" in df.columns:
                 df = df.rename(columns={"Elapsed [h]": "ElapsedHours"})
+            elif "Start" in df.columns and "End" in df.columns:
+                df["ElapsedHours"] = (pd.to_datetime(df["End"]) - pd.to_datetime(df["Start"])).dt.total_seconds() / 3600.0
+
+        # Resource allocation columns
+        if "Nodes" not in df.columns and "AllocNodes" in df.columns:
+            df = df.rename(columns={"AllocNodes": "Nodes"})
+        if "CPUs" not in df.columns and "AllocCPUS" in df.columns:
+            df = df.rename(columns={"AllocCPUS": "CPUs"})
+        if "GPUs" not in df.columns and "AllocGPUS" in df.columns:
+            df = df.rename(columns={"AllocGPUS": "GPUs"})
+
+        # Start time period columns (for trend charts)
+        if "Start" in df.columns:
+            if "StartYearMonth" not in df.columns:
+                df["StartYearMonth"] = pd.to_datetime(df["Start"]).dt.to_period("M").astype(str)
+            if "StartYearWeek" not in df.columns:
+                df["StartYearWeek"] = pd.to_datetime(df["Start"]).dt.to_period("W").apply(lambda r: r.start_time).dt.strftime("%Y-%m-%d")
+            if "StartYear" not in df.columns:
+                df["StartYear"] = pd.to_datetime(df["Start"]).dt.year
 
         # Apply account formatting if requested and available
         if format_accounts and self.account_formatter and "Account" in df.columns:
