@@ -215,17 +215,10 @@ class DuckDBDataStore(metaclass=Singleton):
                         SELECT DISTINCT {col}
                         FROM read_parquet('{file_pattern}', union_by_name=true)
                         WHERE {col} IS NOT NULL
-                          AND trim({col}) != ''
-                          AND lower({col}) NOT IN ('nan', 'none')
                         ORDER BY {col}
                         """
                     ).fetchall()
-                    # Additional filtering to catch any edge cases
-                    filtered = [
-                        val[0] for val in unique_values
-                        if val[0] and str(val[0]).strip() and str(val[0]).lower() not in ('nan', 'none', '')
-                    ]
-                    self.hosts[hostname][key] = filtered
+                    self.hosts[hostname][key] = [val[0] for val in unique_values]
                 except Exception as e:
                     logger.warning(f"Could not load unique values for {col}: {e}")
                     self.hosts[hostname][key] = []
