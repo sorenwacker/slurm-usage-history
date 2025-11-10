@@ -194,6 +194,6 @@ The DuckDB datastore is fully backward compatible with existing parquet files. N
 
 - [GitLab Repository](https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history)
 - [Issue Tracker](https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history/-/issues)
-- [Documentation](README.md)
-- [Installation Guide](INSTALL.md)
-- [Quick Start](QUICKSTART.md)
+- [Documentation](../index.md)
+- [Installation Guide](../getting-started/installation.md)
+- [Quick Start](../getting-started/quickstart.md)

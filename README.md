@@ -1,4 +1,4 @@
-# SLURM Dashboard
+# SLURM Usage History Dashboard
 
 Modern web dashboard for SLURM cluster usage analytics with DuckDB-powered data processing.
 
@@ -7,276 +7,90 @@ Modern web dashboard for SLURM cluster usage analytics with DuckDB-powered data 
 
 ## Features
 
-### Data Collection & Processing
-- **Efficient data collection** from SLURM via `sacct`
-- **DuckDB-powered analytics** for low-memory, high-performance queries
-- **Automatic data refresh** with configurable intervals
-- **Parquet-based storage** for optimal compression and query speed
+- **High-performance analytics** - DuckDB engine with 92% memory reduction and 15x faster queries
+- **Modern web interface** - React + FastAPI with real-time interactive charts
+- **Enterprise SSO** - SAML 2.0 authentication with role-based access control
+- **Flexible deployment** - API-based agent or shared filesystem
+- **PDF reports** - Generate and share usage insights
+- **Multi-cluster support** - Manage multiple SLURM clusters from one dashboard
 
-### Modern Web Dashboard
-- **React frontend** with responsive design
-- **FastAPI backend** with async support
-- **Real-time interactive charts** (Plotly.js)
-- **Advanced filtering** by account, partition, user, QoS, state
-- **Dynamic date ranges** (day, week, month, year)
-- **PDF report generation** for sharing insights
+## Documentation
 
-### Security & Authentication
-- **SAML 2.0 integration** for SSO
-- **Role-based access** (coming soon)
-- **HTTPS/TLS support**
+**Full documentation:** [https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history](https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history)
 
-### Performance
-- **95% memory reduction** vs legacy pandas implementation (13GB → 1.1GB)
-- **Query caching** for faster repeated requests
-- **Lazy loading** - only load data when needed
-- **Multi-threaded** backend with Gunicorn + Uvicorn workers
+- [Quick Start Guide](docs/getting-started/quickstart.md) - Get running in 5 minutes
+- [Installation Guide](docs/getting-started/installation.md) - Production deployment
+- [Cluster Setup](docs/user-guide/cluster-setup.md) - Configure SLURM data collection
+- [Configuration](docs/user-guide/configuration.md) - Customize dashboard and clusters
 
 ## Quick Start
 
-### Installation
+### 1. Install Package
 
-**From PyPI:**
 ```bash
-# Core package
-pip install slurm-dashboard
-
-# With data collection agent
-pip install slurm-dashboard[agent]
-
-# With web dashboard (includes frontend)
-pip install slurm-dashboard[web]
-
-# Everything (recommended)
+# Full installation (dashboard + agent)
 pip install slurm-dashboard[all]
+
+# Or from GitLab for latest development version
+pip install "slurm-dashboard[all] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
 ```
 
-**From GitLab (development/pre-release):**
-```bash
-# Install latest from main branch with agent
-pip install "slurm-dashboard[agent] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
-
-# Install specific version
-pip install "slurm-dashboard[all] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git@v0.3.0"
-```
-
-### Collect Data (on SLURM cluster)
+### 2. Collect Data on SLURM Cluster
 
 ```bash
 # Run agent to collect usage data
 slurm-dashboard-agent --output /data/slurm-usage/$(hostname)
+
+# Or upload via API
+slurm-dashboard-agent \
+  --api-url https://dashboard.example.com/api \
+  --api-key your-api-key \
+  --output /data/slurm-usage/CLUSTERNAME
 ```
 
-### Start Dashboard (on dashboard server)
+### 3. Start Dashboard
 
 ```bash
-# Set data path
 export DATA_PATH=/data/slurm-usage
-
-# Start backend with integrated frontend
-slurm-dashboard
-
-# Or for development with auto-reload
-slurm-dashboard --reload
-
-# Or use Gunicorn for production
-gunicorn backend.app.main:app \
-  --workers 4 \
-  --worker-class uvicorn.workers.UvicornWorker \
-  --bind 0.0.0.0:8100
+slurm-dashboard  # Access at http://localhost:8100
 ```
 
-Access dashboard at `http://localhost:8100`
-
-The web installation includes the pre-built React frontend, served directly by FastAPI.
-
-## Architecture
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                    SLURM Cluster                                 │
-│  ┌─────────────────────────┐                                     │
-│  │ slurm-dashboard-agent   │ → Parquet files → NFS/shared storage│
-│  └─────────────────────────┘                                     │
-└──────────────────────────────────────────────────────────────────┘
-                           ↓
-┌──────────────────────────────────────────────────────────────────┐
-│                  Dashboard Server                                │
-│  ┌──────────────┐    ┌────────────────┐                         │
-│  │   DuckDB     │ ←→ │ FastAPI Backend│ ←→ React Frontend       │
-│  │  Datastore   │    │  (Gunicorn)    │     (Integrated)        │
-│  └──────────────┘    └────────────────┘                         │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-## Documentation
-
-- **[Quick Start](QUICKSTART.md)** - Get running in 5 minutes
-- **[Installation Guide](INSTALL.md)** - Detailed setup instructions
-- **[Cluster Setup](CLUSTER_SETUP.md)** - Agent installation on SLURM clusters
-- **[Deployment with Ansible](ansible/README.md)** - Automated deployment
-- **[API Documentation](http://localhost:8100/docs)** - Interactive API docs (when running)
-
-## Usage Examples
-
-### Agent: Automated Data Collection
-
-```bash
-# Add to crontab for weekly collection
-0 2 * * 1 slurm-dashboard-agent --output /data/slurm-usage/$(hostname) 2>&1 | logger -t slurm-dashboard-agent
-```
-
-### Backend: Custom Configuration
-
-```bash
-# .env file
-DATA_PATH=/data/slurm-usage
-AUTO_REFRESH_INTERVAL=600
-ENABLE_SAML=true
-SAML_SETTINGS_PATH=/etc/slurm-dashboard/saml.json
-
-# Start with custom settings
-slurm-dashboard --port 8080
-```
-
-### Frontend: Custom Build
-
-```bash
-# Set API endpoint
-VITE_API_URL=https://dashboard.example.com npm run build
-```
+For production deployment, see the [Installation Guide](docs/getting-started/installation.md).
 
 ## Development
 
-### Setup
-
 ```bash
+# Clone repository
 git clone https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git
 cd slurm-usage-history
 
-# Install with development dependencies
+# Install development dependencies
 uv pip install -e ".[all,dev]"
 
-# Or with pip
-pip install -e ".[all,dev]"
-
-# Build frontend for development
+# Build frontend
 ./build_frontend.sh
 
-# Install pre-commit hooks
-pre-commit install
-```
-
-### Run Tests
-
-```bash
+# Run tests
 pytest
-pytest --cov=slurm_usage_history
+
+# Code quality
+ruff format . && ruff check .
 ```
 
-### Code Quality
+## Performance
 
-```bash
-# Format code
-ruff format .
-
-# Lint code
-ruff check .
-
-# Type checking
-mypy src/
-```
-
-## Deployment
-
-### Quick Deploy with Ansible
-
-```bash
-cd ansible
-ansible-playbook -i inventory.yml playbook.yml
-```
-
-See [ansible/README.md](ansible/README.md) for configuration options.
-
-### Manual Production Setup
-
-See [INSTALL.md](INSTALL.md) for detailed manual deployment instructions including:
-- Systemd service configuration
-- Nginx setup
-- SAML authentication
-- Performance tuning
-
-## Performance Benchmarks
-
-| Metric | Pandas (Legacy) | DuckDB (New) | Improvement |
-|--------|----------------|--------------|-------------|
-| Memory Usage | 13 GB | 1.1 GB | **92% reduction** |
-| Query Time (year) | 8-12s | 0.3-0.8s | **~15x faster** |
-| Startup Time | 45s | 30s | **33% faster** |
-| Data Loading | Full dataset in RAM | On-demand from disk | **Scalable to TB+** |
-
-## Screenshots
-
-### Dashboard Overview
-![Dashboard](docs/screenshots/dashboard.png)
-
-### Advanced Filtering
-![Filtering](docs/screenshots/filters.png)
-
-### Report Generation
-![Reports](docs/screenshots/reports.png)
-
-## Roadmap
-
-- [ ] Multi-cluster support in single dashboard
-- [ ] User quotas and allocation tracking
-- [ ] Email alerts for quota limits
-- [ ] Historical trend analysis with forecasting
-- [ ] Cost tracking and chargeback reports
-- [ ] GPU usage detailed analytics
-- [ ] Node efficiency metrics
-
-## Contributing
-
-Contributions welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Merge Request
+| Metric | Legacy (Pandas) | Current (DuckDB) |
+|--------|----------------|------------------|
+| Memory | 13 GB | 1.1 GB (92% less) |
+| Query Speed | 8-12s | 0.3-0.8s (15x faster) |
+| Data Loading | Full RAM | On-demand (scalable to TB+) |
 
 ## License
 
-GNU General Public License v3.0 or later (GPL-3.0-or-later)
+GPL-3.0-or-later - See [LICENSE](LICENSE)
 
-See [LICENSE](LICENSE) for full text.
-
-## Authors
-
-- **Sören Wacker** - *Initial work* - [sdrwacker](https://gitlab.ewi.tudelft.nl/sdrwacker)
-
-## Acknowledgments
-
-- TU Delft Research Engineering & IT Services (REIT)
-- DAIC cluster team
-- All contributors and users
-
-## Support
+## Contact
 
 - **Issues**: [GitLab Issues](https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history/-/issues)
-- **Documentation**: [Wiki](https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history/-/wikis/home)
-- **Contact**: s.wacker@tudelft.nl
-
-## Citation
-
-If you use this software in your research, please cite:
-
-```bibtex
-@software{slurm_dashboard,
-  author = {Wacker, Sören},
-  title = {SLURM Dashboard: Modern Web Analytics for HPC Clusters},
-  year = {2024},
-  url = {https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history}
-}
-```
+- **Email**: s.wacker@tudelft.nl
+- **Institution**: TU Delft Research Engineering & IT Services

@@ -107,6 +107,7 @@ export function AdminClusters() {
           <div className="clusters-header-nav">
             <a href="/">Dashboard</a>
             <a href="/admin/config">YAML Config</a>
+            <a href="/admin/users">Users</a>
             <button onClick={handleLogout}>Logout</button>
           </div>
         </div>

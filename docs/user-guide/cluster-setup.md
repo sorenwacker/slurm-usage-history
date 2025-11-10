@@ -127,17 +127,12 @@ Contact your dashboard administrator for:
 - Dashboard API URL (e.g., `https://dashboard.example.com/api`)
 - API key for authentication
 
-Or generate an API key on the dashboard server:
-
-```bash
-# On dashboard server
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-```
-
-Then add to dashboard `.env`:
-```bash
-API_KEYS=your-generated-key-here
-```
+The administrator should create a cluster entry via the admin panel:
+1. Login at https://dashboard.example.com/admin/login
+2. Click "Add Cluster"
+3. Enter cluster name, description, contact email, and location
+4. Copy the generated API key
+5. A YAML configuration is automatically created for the cluster
 
 #### 2. Test API Upload
 
@@ -347,9 +342,9 @@ find /data/slurm-usage/$(hostname)/weekly-data -name "*.parquet" -mtime +730 -de
 
 After setting up data collection:
 
-1. Set up the dashboard server - see [INSTALL.md](INSTALL.md)
+1. Set up the dashboard server - see [INSTALL.md](../getting-started/installation.md)
 2. Configure automated reports - see documentation
-3. Set up SAML authentication (optional) - see [INSTALL.md](INSTALL.md#saml-authentication-optional)
+3. Set up SAML authentication (optional) - see [INSTALL.md](../getting-started/installation.md#saml-authentication-optional)
 
 ## Support
 

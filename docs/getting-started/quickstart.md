@@ -177,7 +177,7 @@ ansible-playbook -i inventory.yml playbook.yml
 
 ### Option 2: Manual
 
-See [INSTALL.md](INSTALL.md) for detailed production setup.
+See [INSTALL.md](../getting-started/installation.md) for detailed production setup.
 
 ## Common Commands
 
@@ -308,13 +308,12 @@ SAML_SETTINGS_PATH=/etc/slurm-dashboard/saml.json
 
 ## Next Steps
 
-- Read [INSTALL.md](INSTALL.md) for production deployment
-- Configure [SAML authentication](INSTALL.md#saml-authentication-optional)
-- Set up [automated backups](INSTALL.md#data-backup)
+- Read [INSTALL.md](../getting-started/installation.md) for production deployment
+- Configure [SAML authentication](../getting-started/installation.md#saml-authentication-optional)
+- Set up [automated backups](../getting-started/installation.md#data-backup)
 - Explore [API documentation](http://localhost:8100/docs)
 
 ## Getting Help
 
-- Check [FAQ](docs/FAQ.md)
 - Open an [issue](https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history/-/issues)
 - Contact: s.wacker@tudelft.nl

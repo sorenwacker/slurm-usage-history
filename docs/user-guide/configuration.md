@@ -206,7 +206,29 @@ settings:
 
 ### Adding Admin/Superadmin Users
 
-1. **Via SAML (Recommended for production):**
+#### Method 1: Via Admin Panel (Recommended)
+
+1. **Login to admin panel:**
+   - Visit https://dashboard.daic.tudelft.nl/admin/login
+   - Login with admin credentials
+
+2. **Navigate to Users page:**
+   - Click "Users" in the navigation menu
+   - Or visit https://dashboard.daic.tudelft.nl/admin/users
+
+3. **Add email addresses:**
+   - Enter email addresses in the appropriate sections (Admin or Superadmin)
+   - Click "Add" to add each email
+   - Click "Save Changes" to apply
+
+4. **Restart backend:**
+   ```bash
+   sudo systemctl restart slurm-usage-backend
+   ```
+
+#### Method 2: Via .env File (Alternative)
+
+1. **Via SAML:**
    ```bash
    # Edit .env file
    ADMIN_EMAILS=user1@tudelft.nl,user2@tudelft.nl
@@ -236,21 +258,24 @@ settings:
 1. **Create cluster in admin panel:**
    - Login at https://dashboard.daic.tudelft.nl/admin/login
    - Click "Add Cluster"
-   - Enter cluster name (e.g., "DAIC")
+   - Enter cluster name (e.g., "DAIC"), description, contact email, and location
    - Save and copy the generated API key
+   - **A default YAML configuration is automatically created** with the provided metadata
 
-2. **Configure cluster details in YAML:**
+2. **Customize cluster details in YAML (optional):**
    ```bash
-   # Edit config/clusters.yaml
+   # Edit config/clusters.yaml to add node hardware specs, aliases, etc.
    nano /opt/slurm-usage-history/config/clusters.yaml
 
-   # Add your cluster configuration (see example above)
+   # Add node_labels, account_labels, partition_labels (see example above)
    ```
 
 3. **Reload configuration:**
    - Visit https://dashboard.daic.tudelft.nl/admin/config
    - Click "Reload" to apply changes
    - Or use API: `POST /api/admin/config/reload`
+
+**Note:** With `auto_generate_labels: true` (default), the dashboard will automatically discover nodes from uploaded data and add them to the configuration. You can then edit these auto-generated entries to add hardware specifications and better descriptions.
 
 ### Adding Node Aliases
 

@@ -1,8 +1,10 @@
 """Admin API endpoints for cluster and API key management."""
 
+import logging
 from datetime import timedelta
 from pathlib import Path
 
+import yaml
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from ..core.admin_auth import (
@@ -24,6 +26,8 @@ from ..models.admin_models import (
     ClusterResponse,
     ClusterUpdate,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -51,6 +55,70 @@ def find_existing_data_directory(cluster_name: str) -> str | None:
             return item.name
 
     return None
+
+
+def ensure_cluster_yaml_config(cluster_name: str, description: str | None = None,
+                                contact_email: str | None = None, location: str | None = None) -> None:
+    """Ensure cluster has configuration in clusters.yaml.
+
+    Creates a default configuration if it doesn't exist.
+
+    Args:
+        cluster_name: Name of the cluster
+        description: Optional description
+        contact_email: Optional contact email
+        location: Optional location
+    """
+    config_dir = Path(__file__).parent.parent.parent / "config"
+    config_file = config_dir / "clusters.yaml"
+
+    # Create config directory if it doesn't exist
+    config_dir.mkdir(exist_ok=True)
+
+    # Load existing config or create new
+    if config_file.exists():
+        with open(config_file, 'r') as f:
+            config = yaml.safe_load(f) or {}
+    else:
+        config = {"clusters": {}, "settings": {}}
+
+    # Ensure structure exists
+    if "clusters" not in config:
+        config["clusters"] = {}
+    if "settings" not in config:
+        config["settings"] = {}
+
+    # Check if cluster already exists
+    if cluster_name in config["clusters"]:
+        logger.info(f"Cluster {cluster_name} already exists in YAML config")
+        return
+
+    # Create default configuration
+    config["clusters"][cluster_name] = {
+        "display_name": cluster_name,
+        "description": description or f"{cluster_name} Cluster",
+        "metadata": {
+            "location": location or "Unknown",
+            "contact": contact_email or "admin@example.com"
+        },
+        "node_labels": {},
+        "account_labels": {},
+        "partition_labels": {}
+    }
+
+    # Ensure default settings exist
+    if not config["settings"]:
+        config["settings"] = {
+            "default_node_type": "cpu",
+            "case_sensitive": False,
+            "auto_generate_labels": True
+        }
+
+    # Write back to file
+    with open(config_file, 'w') as f:
+        yaml.dump(config, f, default_flow_style=False, sort_keys=False, indent=2)
+
+    logger.info(f"Created YAML configuration for cluster: {cluster_name}")
 
 
 @router.post("/login", response_model=AdminLoginResponse)
@@ -144,6 +212,14 @@ async def create_cluster(
     try:
         cluster = db.create_cluster(
             name=cluster_name,
+            description=request.description,
+            contact_email=request.contact_email,
+            location=request.location,
+        )
+
+        # Ensure YAML configuration is created for this cluster
+        ensure_cluster_yaml_config(
+            cluster_name=cluster_name,
             description=request.description,
             contact_email=request.contact_email,
             location=request.location,
@@ -293,3 +369,105 @@ async def rotate_api_key(
         new_api_key=new_key,
         message="API key rotated successfully. Update cluster configuration with new key.",
     )
+
+
+@router.get("/admin-emails")
+async def get_admin_emails(admin: str = Depends(get_current_admin)):
+    """Get current admin and superadmin email lists.
+
+    Requires admin authentication.
+    """
+    settings = get_settings()
+
+    admin_emails = []
+    superadmin_emails = []
+
+    if settings.admin_emails:
+        admin_emails = [email.strip() for email in settings.admin_emails.split(",") if email.strip()]
+
+    if settings.superadmin_emails:
+        superadmin_emails = [email.strip() for email in settings.superadmin_emails.split(",") if email.strip()]
+
+    return {
+        "admin_emails": admin_emails,
+        "superadmin_emails": superadmin_emails,
+    }
+
+
+@router.post("/admin-emails")
+async def update_admin_emails(
+    admin_emails: list[str],
+    superadmin_emails: list[str],
+    admin: str = Depends(get_current_admin),
+):
+    """Update admin and superadmin email lists.
+
+    Updates the .env file with new email lists.
+    Requires admin authentication.
+    """
+    import os
+    from pathlib import Path
+
+    # Find .env file
+    env_file = Path(".env")
+    if not env_file.exists():
+        # Try parent directory
+        env_file = Path("../.env")
+        if not env_file.exists():
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=".env file not found",
+            )
+
+    # Read current .env content
+    try:
+        with open(env_file, 'r') as f:
+            lines = f.readlines()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to read .env file: {str(e)}",
+        )
+
+    # Update lines
+    admin_emails_str = ",".join(admin_emails)
+    superadmin_emails_str = ",".join(superadmin_emails)
+
+    admin_emails_found = False
+    superadmin_emails_found = False
+    new_lines = []
+
+    for line in lines:
+        if line.startswith("ADMIN_EMAILS="):
+            new_lines.append(f"ADMIN_EMAILS={admin_emails_str}\n")
+            admin_emails_found = True
+        elif line.startswith("SUPERADMIN_EMAILS="):
+            new_lines.append(f"SUPERADMIN_EMAILS={superadmin_emails_str}\n")
+            superadmin_emails_found = True
+        else:
+            new_lines.append(line)
+
+    # Add if not found
+    if not admin_emails_found:
+        new_lines.append(f"ADMIN_EMAILS={admin_emails_str}\n")
+    if not superadmin_emails_found:
+        new_lines.append(f"SUPERADMIN_EMAILS={superadmin_emails_str}\n")
+
+    # Write back
+    try:
+        with open(env_file, 'w') as f:
+            f.writelines(new_lines)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to write .env file: {str(e)}",
+        )
+
+    logger.info(f"Admin emails updated by {admin}: {len(admin_emails)} admins, {len(superadmin_emails)} superadmins")
+
+    return {
+        "status": "success",
+        "message": "Admin emails updated successfully. Changes will take effect after backend restart.",
+        "admin_emails": admin_emails,
+        "superadmin_emails": superadmin_emails,
+    }

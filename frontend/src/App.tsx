@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import { AdminLogin } from './pages/AdminLogin';
 import { AdminClusters } from './pages/AdminClusters';
 import { AdminConfig } from './pages/AdminConfig';
+import { AdminUsers } from './pages/AdminUsers';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -25,6 +26,7 @@ function App() {
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/clusters" element={<AdminClusters />} />
           <Route path="/admin/config" element={<AdminConfig />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

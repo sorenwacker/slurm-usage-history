@@ -1,5 +1,42 @@
-include:
-  - local: .gitlab/workflows/test_code.yml
-  - local: .gitlab/workflows/deploy_docs.yml
+stages:
+  - test
+  - deploy
 
-image: ghcr.io/astral-sh/uv:python3.10-bookworm
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+
+# Test that documentation builds without errors
+test:docs:
+  stage: test
+  image: python:3.11-slim
+  before_script:
+    - pip install mkdocs-material
+  script:
+    - mkdocs build --strict
+  only:
+    changes:
+      - docs/**/*
+      - mkdocs.yml
+      - .gitlab-ci.yml
+  except:
+    - main
+
+# Build and deploy documentation to GitLab Pages
+# Documentation will be available at: https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history
+pages:
+  stage: deploy
+  image: python:3.11-slim
+  before_script:
+    - pip install mkdocs-material
+  script:
+    - mkdocs build --strict
+    - mv site public
+  artifacts:
+    paths:
+      - public
+  only:
+    - main

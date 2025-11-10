@@ -131,7 +131,7 @@ cd ansible
 ansible-playbook -i inventory.yml playbook.yml
 ```
 
-See [ansible/README.md](ansible/README.md) for configuration options.
+See [https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history-ansible](https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history-ansible) for configuration options.
 
 ### Manual Deployment
 

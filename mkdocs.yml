@@ -1,14 +1,59 @@
+site_name: SLURM Usage History Dashboard
+site_description: Documentation for SLURM Usage History Dashboard
+site_author: TU Delft
+repo_url: https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history
+repo_name: GitLab
 
----
-site_name: Documentation
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+  - md_in_html
+
 nav:
   - Home: index.md
-theme: material
-plugins:
-  - autorefs:
-      resolve_closest: true
-  - mkdocstrings:
-      handlers:
-        python:
-          options:
-            show_submodules: true
+  - Getting Started:
+      - Quick Start: getting-started/quickstart.md
+      - Installation: getting-started/installation.md
+  - User Guide:
+      - Cluster Setup: user-guide/cluster-setup.md
+      - Configuration: user-guide/configuration.md
+  - Deployment:
+      - Basic Auth Setup: deployment/basic-auth-setup.md
+      - Phased Deployment: deployment/phased-deployment.md
+  - Development:
+      - Packaging: development/packaging.md
+      - Publishing to PyPI: development/pypi-publish.md
+      - Changelog: development/changelog.md

@@ -293,6 +293,7 @@ export function AdminConfig() {
           <div className="admin-header-nav">
             <a href="/">Dashboard</a>
             <a href="/admin/clusters">Clusters</a>
+            <a href="/admin/users">Users</a>
             <button onClick={handleLogout}>Logout</button>
           </div>
         </div>
