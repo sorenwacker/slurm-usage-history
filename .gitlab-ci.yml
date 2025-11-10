@@ -35,7 +35,7 @@ test:chart-generation:
   image: python:3.10
   before_script:
     - pip install uv
-    - uv sync
+    - uv sync --all-extras
   script:
     - uv run pytest tests/test_chart_generation.py -v
   artifacts:
@@ -49,7 +49,7 @@ test:backend:
   image: python:3.10
   before_script:
     - pip install uv
-    - uv sync
+    - uv sync --all-extras
   script:
     - uv run pytest tests/ -v --ignore=tests/test_chart_generation.py
   allow_failure: true

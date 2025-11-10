@@ -23,7 +23,7 @@ jobs:
         run: pip install uv
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --all-extras
 
       - name: Run chart generation tests
         run: uv run pytest tests/test_chart_generation.py -v
@@ -44,7 +44,7 @@ jobs:
         run: pip install uv
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --all-extras
 
       - name: Run backend tests
         run: uv run pytest tests/ -v --ignore=tests/test_chart_generation.py
