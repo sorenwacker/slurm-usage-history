@@ -5,6 +5,10 @@ Get SLURM Dashboard up and running in 5 minutes.
 ## TL;DR
 
 ```bash
+# Create and activate virtual environment
+python3 -m venv ~/slurm-dashboard-env
+source ~/slurm-dashboard-env/bin/activate
+
 # Install from GitLab
 pip install "slurm-dashboard[all] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
 
@@ -26,26 +30,33 @@ Frontend is included with `[web]` extra - no separate build needed.
 
 ### 1. Install Package
 
-Choose your installation based on needs:
+Create a virtual environment and install the package:
+
+```bash
+# Create virtual environment
+python3 -m venv ~/slurm-dashboard-env
+
+# Activate it
+source ~/slurm-dashboard-env/bin/activate
+
+# Install package (choose based on needs)
+```
 
 **From PyPI (when published):**
 ```bash
-# Minimum (data processing only)
-pip install slurm-dashboard
-
-# For cluster agent
-pip install slurm-dashboard[agent]
-
-# For web dashboard
+# For web dashboard (recommended)
 pip install slurm-dashboard[web]
 
-# Everything (recommended)
+# Everything (includes agent + web)
 pip install slurm-dashboard[all]
+
+# For cluster agent only
+pip install slurm-dashboard[agent]
 ```
 
 **From GitLab (before PyPI release or for development):**
 ```bash
-# With pip
+# With pip - everything (agent + web)
 pip install "slurm-dashboard[all] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
 
 # With uv (faster)
@@ -53,6 +64,11 @@ uv pip install "slurm-dashboard[all] @ git+https://gitlab.ewi.tudelft.nl/sdrwack
 
 # For cluster agent only
 pip install "slurm-dashboard[agent] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
+```
+
+**Note:** Remember to activate the virtual environment before running commands:
+```bash
+source ~/slurm-dashboard-env/bin/activate
 ```
 
 ### 2. Collect SLURM Data
