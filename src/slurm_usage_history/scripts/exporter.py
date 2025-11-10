@@ -430,8 +430,11 @@ def main():
         # Load configuration
         config = load_config(args.config)
 
+        # Use cluster name from CLI arg, config file, or auto-detect (in that order)
+        cluster_name = args.cluster_name or config.get('cluster_name') or None
+
         # Initialize extractor
-        extractor = SlurmDataExtractor(cluster_name=args.cluster_name)
+        extractor = SlurmDataExtractor(cluster_name=cluster_name)
 
         # Initialize dashboard client (unless dry run)
         client = None
