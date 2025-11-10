@@ -1,6 +1,145 @@
 import React, { useState } from 'react';
 import type { MetadataResponse } from '../types';
 
+// Helper function to filter items based on search
+const filterItems = (items: string[], search: string): string[] => {
+  if (!search.trim()) return items;
+  return items.filter(item =>
+    item.toLowerCase().includes(search.toLowerCase())
+  );
+};
+
+// Helper to toggle item selection
+const toggleItem = (item: string, selected: string[], setter: (items: string[]) => void) => {
+  if (selected.includes(item)) {
+    setter(selected.filter(i => i !== item));
+  } else {
+    setter([...selected, item]);
+  }
+};
+
+// Component for searchable checkbox list with collapse (moved outside to prevent recreation)
+const SearchableCheckboxList: React.FC<{
+  label: string;
+  items: string[];
+  selected: string[];
+  setSelected: (items: string[]) => void;
+  search: string;
+  setSearch: (search: string) => void;
+  isExpanded: boolean;
+  setIsExpanded: (expanded: boolean) => void;
+}> = ({ label, items, selected, setSelected, search, setSearch, isExpanded, setIsExpanded }) => {
+  const filteredItems = filterItems(items, search);
+  const allFiltered = filteredItems.length === selected.filter(s => filteredItems.includes(s)).length && filteredItems.length > 0;
+
+  const toggleAll = () => {
+    if (allFiltered) {
+      setSelected(selected.filter(s => !filteredItems.includes(s)));
+    } else {
+      setSelected([...new Set([...selected, ...filteredItems])]);
+    }
+  };
+
+  return (
+    <div className="filter-group">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+        <div
+          onClick={() => setIsExpanded(!isExpanded)}
+          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flex: 1 }}
+        >
+          <span style={{ marginRight: '0.5rem', fontSize: '0.9rem' }}>
+            {isExpanded ? '▼' : '▶'}
+          </span>
+          <label style={{ cursor: 'pointer', margin: 0 }}>{label}</label>
+          {selected.length > 0 && (
+            <span style={{
+              marginLeft: '0.5rem',
+              fontSize: '0.75rem',
+              color: '#6366f1',
+              fontWeight: 'bold'
+            }}>
+              ({selected.length} selected)
+            </span>
+          )}
+        </div>
+        {selected.length > 0 && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelected([]);
+            }}
+            style={{
+              fontSize: '0.75rem',
+              padding: '0.2rem 0.5rem',
+              background: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '3px',
+              cursor: 'pointer',
+            }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      {isExpanded && (
+        <>
+          <input
+            type="text"
+            placeholder={`Search ${label.toLowerCase()}...`}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              borderRadius: '4px',
+              border: '1px solid #ccc',
+              fontSize: '0.875rem',
+              marginBottom: '0.5rem',
+            }}
+          />
+          <div style={{
+            maxHeight: '200px',
+            overflowY: 'auto',
+            border: '1px solid #dee2e6',
+            borderRadius: '4px',
+            padding: '0.5rem',
+          }}>
+            {filteredItems.length > 1 && (
+              <label style={{ display: 'flex', alignItems: 'center', padding: '0.25rem 0', cursor: 'pointer', fontWeight: 'bold', borderBottom: '1px solid #e0e0e0', marginBottom: '0.25rem' }}>
+                <input
+                  type="checkbox"
+                  checked={allFiltered}
+                  onChange={toggleAll}
+                  style={{ marginRight: '0.5rem' }}
+                />
+                Select All ({filteredItems.length})
+              </label>
+            )}
+            {filteredItems.length === 0 && (
+              <div style={{ color: '#666', fontSize: '0.875rem', padding: '0.5rem', textAlign: 'center' }}>
+                No items found
+              </div>
+            )}
+            {filteredItems.map((item) => (
+              <label key={item} style={{ display: 'flex', alignItems: 'center', padding: '0.25rem 0', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={selected.includes(item)}
+                  onChange={() => toggleItem(item, selected, setSelected)}
+                  style={{ marginRight: '0.5rem' }}
+                />
+                {item}
+              </label>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 interface FiltersProps {
   metadata: MetadataResponse | undefined;
   selectedHostname: string;
@@ -85,145 +224,6 @@ const Filters: React.FC<FiltersProps> = ({
     setSelectedUsers([]);
     setSelectedQos([]);
     setSelectedStates([]);
-  };
-
-  // Helper function to filter items based on search
-  const filterItems = (items: string[], search: string): string[] => {
-    if (!search.trim()) return items;
-    return items.filter(item =>
-      item.toLowerCase().includes(search.toLowerCase())
-    );
-  };
-
-  // Helper to toggle item selection
-  const toggleItem = (item: string, selected: string[], setter: (items: string[]) => void) => {
-    if (selected.includes(item)) {
-      setter(selected.filter(i => i !== item));
-    } else {
-      setter([...selected, item]);
-    }
-  };
-
-  // Component for searchable checkbox list with collapse
-  const SearchableCheckboxList: React.FC<{
-    label: string;
-    items: string[];
-    selected: string[];
-    setSelected: (items: string[]) => void;
-    search: string;
-    setSearch: (search: string) => void;
-    isExpanded: boolean;
-    setIsExpanded: (expanded: boolean) => void;
-  }> = ({ label, items, selected, setSelected, search, setSearch, isExpanded, setIsExpanded }) => {
-    const filteredItems = filterItems(items, search);
-    const allFiltered = filteredItems.length === selected.filter(s => filteredItems.includes(s)).length && filteredItems.length > 0;
-
-    const toggleAll = () => {
-      if (allFiltered) {
-        setSelected(selected.filter(s => !filteredItems.includes(s)));
-      } else {
-        setSelected([...new Set([...selected, ...filteredItems])]);
-      }
-    };
-
-    return (
-      <div className="filter-group">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-          <div
-            onClick={() => setIsExpanded(!isExpanded)}
-            style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flex: 1 }}
-          >
-            <span style={{ marginRight: '0.5rem', fontSize: '0.9rem' }}>
-              {isExpanded ? '▼' : '▶'}
-            </span>
-            <label style={{ cursor: 'pointer', margin: 0 }}>{label}</label>
-            {selected.length > 0 && (
-              <span style={{
-                marginLeft: '0.5rem',
-                fontSize: '0.75rem',
-                color: '#6366f1',
-                fontWeight: 'bold'
-              }}>
-                ({selected.length} selected)
-              </span>
-            )}
-          </div>
-          {selected.length > 0 && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelected([]);
-              }}
-              style={{
-                fontSize: '0.75rem',
-                padding: '0.2rem 0.5rem',
-                background: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '3px',
-                cursor: 'pointer',
-              }}
-            >
-              Clear
-            </button>
-          )}
-        </div>
-        {isExpanded && (
-          <>
-            <input
-              type="text"
-              placeholder={`Search ${label.toLowerCase()}...`}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                fontSize: '0.875rem',
-                marginBottom: '0.5rem',
-              }}
-            />
-            <div style={{
-              maxHeight: '200px',
-              overflowY: 'auto',
-              border: '1px solid #dee2e6',
-              borderRadius: '4px',
-              padding: '0.5rem',
-            }}>
-              {filteredItems.length > 1 && (
-                <label style={{ display: 'flex', alignItems: 'center', padding: '0.25rem 0', cursor: 'pointer', fontWeight: 'bold', borderBottom: '1px solid #e0e0e0', marginBottom: '0.25rem' }}>
-                  <input
-                    type="checkbox"
-                    checked={allFiltered}
-                    onChange={toggleAll}
-                    style={{ marginRight: '0.5rem' }}
-                  />
-                  Select All ({filteredItems.length})
-                </label>
-              )}
-              {filteredItems.length === 0 && (
-                <div style={{ color: '#666', fontSize: '0.875rem', padding: '0.5rem', textAlign: 'center' }}>
-                  No items found
-                </div>
-              )}
-              {filteredItems.map((item) => (
-                <label key={item} style={{ display: 'flex', alignItems: 'center', padding: '0.25rem 0', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(item)}
-                    onChange={() => toggleItem(item, selected, setSelected)}
-                    style={{ marginRight: '0.5rem' }}
-                  />
-                  {item}
-                </label>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-    );
   };
 
   return (
