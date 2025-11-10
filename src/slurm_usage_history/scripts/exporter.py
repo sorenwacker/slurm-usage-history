@@ -140,12 +140,24 @@ class SlurmDataExtractor:
 
         logger.info("Formatting job data")
 
+        # Helper to normalize field values (handle nulls and empty strings)
+        def normalize_field(value, default='unknown'):
+            """Normalize field value by handling nulls and empty strings"""
+            if pd.isna(value):
+                return default
+            str_val = str(value).strip()
+            if not str_val or str_val.lower() in ('nan', 'none'):
+                return default
+            return str_val
+
         # Normalize job state (e.g., "CANCELLED by 12345" -> "CANCELLED")
         def normalize_state(state_str):
             """Normalize SLURM job state by removing suffixes like 'by XXX'"""
             if pd.isna(state_str) or not state_str:
                 return 'UNKNOWN'
             state = str(state_str).strip()
+            if not state or state.lower() in ('nan', 'none'):
+                return 'UNKNOWN'
             # Handle "CANCELLED by XXX", "TIMEOUT by XXX", etc.
             if ' by ' in state:
                 return state.split(' by ')[0].strip()
@@ -230,11 +242,11 @@ class SlurmDataExtractor:
         for _, row in df.iterrows():
             job = {
                 'JobID': str(row['JobID']),
-                'User': str(row['User']) if pd.notna(row['User']) else 'unknown',
-                'Account': str(row['Account']) if pd.notna(row['Account']) else 'unknown',
-                'Partition': str(row['Partition']) if pd.notna(row['Partition']) else 'unknown',
+                'User': normalize_field(row['User'], 'unknown'),
+                'Account': normalize_field(row['Account'], 'unknown'),
+                'Partition': normalize_field(row['Partition'], 'unknown'),
                 'State': normalize_state(row['State']),
-                'QOS': str(row['QOS']) if pd.notna(row['QOS']) else None,
+                'QOS': normalize_field(row['QOS'], None),
                 'Submit': str(row['Submit']),
                 'Start': str(row['Start']) if pd.notna(row['Start']) else None,
                 'End': str(row['End']) if pd.notna(row['End']) else None,
