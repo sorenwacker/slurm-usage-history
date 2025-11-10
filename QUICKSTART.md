@@ -80,13 +80,41 @@ crontab -e
 0 2 * * 1 slurm-dashboard-agent --output /data/slurm-usage/$(hostname) 2>&1 | logger -t slurm-dashboard-agent
 ```
 
-### 3. Start Backend
+### 3. Configure Environment
+
+Create a `.env` file with your configuration:
 
 ```bash
-# Set environment variables
-export DATA_PATH=/data/slurm-usage
-export API_PREFIX=/api
+# Create .env file
+cat > .env << 'EOF'
+# Required: Path to SLURM data
+DATA_PATH=/data/slurm-usage
 
+# Optional: API configuration
+API_PREFIX=/api
+AUTO_REFRESH_INTERVAL=600
+
+# Optional: CORS origins (comma-separated)
+CORS_ORIGINS=http://localhost:5173,http://localhost:8100
+
+# Optional: SAML authentication
+ENABLE_SAML=false
+
+# Optional: Logging
+LOG_LEVEL=INFO
+EOF
+```
+
+Or copy from example:
+```bash
+cp .env.example .env
+# Edit with your values
+nano .env
+```
+
+### 4. Start Backend
+
+```bash
 # Start backend with integrated frontend
 slurm-dashboard
 
@@ -98,7 +126,7 @@ Backend is now running at `http://localhost:8100`
 
 Test API: `curl http://localhost:8100/api/dashboard/health`
 
-### 4. Access Dashboard
+### 5. Access Dashboard
 
 Open browser to:
 - Dashboard: `http://localhost:8100`
@@ -106,7 +134,7 @@ Open browser to:
 
 The frontend is pre-built and served directly by FastAPI.
 
-### 5. Frontend Development (Optional)
+### 6. Frontend Development (Optional)
 
 Only needed if you want to modify the frontend:
 
