@@ -32,8 +32,7 @@ export interface FilterRequest {
   period_type?: string;
   color_by?: string;
   account_segments?: number;
-  hide_unused_nodes?: boolean;
-  sort_by_usage?: boolean;
+  // Note: hide_unused_nodes and sort_by_usage removed - handled client-side
 }
 
 export interface FilterResponse {

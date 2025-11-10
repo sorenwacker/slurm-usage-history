@@ -230,8 +230,7 @@ const Dashboard: React.FC = () => {
     period_type: actualPeriodType,  // Use the calculated or manually selected period type
     color_by: colorBy || undefined,  // Group/color charts by selected dimension
     account_segments: accountSegments > 0 ? accountSegments : undefined,  // Format account names
-    hide_unused_nodes: hideUnusedNodes,  // Hide nodes with 0 usage
-    sort_by_usage: sortByUsage,  // Sort nodes by usage
+    // Note: hide_unused_nodes and sort_by_usage are now handled client-side in Charts component
   };
 
   const {

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Plot from 'react-plotly.js';
-import type { AggregatedChartsResponse } from '../types';
+import type { AggregatedChartsResponse, ChartData } from '../types';
 import { createGlobalColorMap } from './charts/chartHelpers';
 import StackedAreaChart from './charts/StackedAreaChart';
 import PieChart from './charts/PieChart';
@@ -56,6 +56,63 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
     // Create and return the color map
     return allLabels.length > 0 ? createGlobalColorMap(allLabels) : null;
   }, [data, colorBy]);
+
+  // Filter and sort node data client-side to avoid re-fetching from backend
+  const processedNodeData = useMemo(() => {
+    if (!data) return { cpu: null, gpu: null };
+
+    const filterAndSortNodeData = (nodeData: ChartData): ChartData => {
+      let indices = nodeData.x.map((_, i) => i);
+
+      // Filter: hide nodes with 0 usage (when series data, sum all series values)
+      if (hideUnusedNodes) {
+        indices = indices.filter(i => {
+          if (nodeData.series) {
+            // Sum all series values for this node
+            const total = nodeData.series.reduce((sum, s) => sum + (s.data[i] || 0), 0);
+            return total > 0;
+          } else if (nodeData.y) {
+            return (nodeData.y[i] as number) > 0;
+          }
+          return true;
+        });
+      }
+
+      // Sort: by usage (descending) or alphabetically
+      if (sortByUsage) {
+        indices.sort((a, b) => {
+          let valueA = 0;
+          let valueB = 0;
+
+          if (nodeData.series) {
+            valueA = nodeData.series.reduce((sum, s) => sum + (s.data[a] || 0), 0);
+            valueB = nodeData.series.reduce((sum, s) => sum + (s.data[b] || 0), 0);
+          } else if (nodeData.y) {
+            valueA = nodeData.y[a] as number;
+            valueB = nodeData.y[b] as number;
+          }
+
+          return valueB - valueA; // Descending order
+        });
+      }
+
+      // Apply filtering/sorting
+      return {
+        ...nodeData,
+        x: indices.map(i => nodeData.x[i]),
+        y: nodeData.y ? indices.map(i => nodeData.y![i]) : undefined,
+        series: nodeData.series?.map(s => ({
+          ...s,
+          data: indices.map(i => s.data[i])
+        }))
+      };
+    };
+
+    return {
+      cpu: data.node_cpu_usage ? filterAndSortNodeData(data.node_cpu_usage) : null,
+      gpu: data.node_gpu_usage ? filterAndSortNodeData(data.node_gpu_usage) : null
+    };
+  }, [data, hideUnusedNodes, sortByUsage]);
 
   if (!data) {
     return (
@@ -218,7 +275,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
             </div>
           )}
         </div>
-        {(data.node_cpu_usage?.x.length > 0 || data.node_gpu_usage?.x.length > 0) && (
+        {(processedNodeData.cpu?.x.length || processedNodeData.gpu?.x.length) && (
           <div style={{ marginTop: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3>CPU/GPU Usage by Node</h3>
@@ -241,11 +298,11 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 </label>
               </div>
             </div>
-            {data.node_cpu_usage?.x.length > 0 && (
+            {processedNodeData.cpu && processedNodeData.cpu.x.length > 0 && (
               <div className="card" style={{ marginBottom: '1.5rem' }}>
                 <h3>CPU Usage by Node</h3>
                 <StackedAreaChart
-                  data={data.node_cpu_usage}
+                  data={processedNodeData.cpu}
                   xTitle="Node"
                   yTitle="CPU Hours"
                   defaultColor="#04A5D5"
@@ -255,11 +312,11 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 />
               </div>
             )}
-            {data.node_gpu_usage?.x.length > 0 && (
+            {processedNodeData.gpu && processedNodeData.gpu.x.length > 0 && (
               <div className="card">
                 <h3>GPU Usage by Node</h3>
                 <StackedAreaChart
-                  data={data.node_gpu_usage}
+                  data={processedNodeData.gpu}
                   xTitle="Node"
                   yTitle="GPU Hours"
                   defaultColor="#EC7300"

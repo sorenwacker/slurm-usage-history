@@ -179,12 +179,12 @@ async def get_aggregated_charts(request: FilterRequest, current_user: dict = Dep
         period_type = request.period_type or "month"
         color_by = request.color_by  # Can be: Account, Partition, State, QOS, User, or None
 
-        # Get node usage data
+        # Get node usage data (always return full data - filtering/sorting done client-side)
         node_usage = generate_node_usage(
             df,
             color_by=color_by,
-            hide_unused=request.hide_unused_nodes,
-            sort_by_usage=request.sort_by_usage,
+            hide_unused=False,  # Always return all nodes
+            sort_by_usage=False,  # Alphabetical order (client handles sorting)
         )
 
         charts_data = {
