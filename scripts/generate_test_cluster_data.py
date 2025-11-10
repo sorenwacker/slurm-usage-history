@@ -463,7 +463,7 @@ def main():
         "--output-dir",
         type=str,
         default=None,
-        help="Output directory (default: ./data/{cluster}/weekly-data)"
+        help="Output directory (default: ./data/{cluster}/data)"
     )
     parser.add_argument(
         "--seed",
@@ -492,7 +492,7 @@ def main():
         output_dir = args.output_dir
     else:
         script_dir = Path(__file__).parent.parent
-        output_dir = script_dir / "data" / args.cluster / "weekly-data"
+        output_dir = script_dir / "data" / args.cluster / "data"
 
     # Generate data
     print(f"=== Synthetic Cluster Data Generator ===")

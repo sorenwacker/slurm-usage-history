@@ -32,7 +32,7 @@ async def ingest_data(
     """
     try:
         # Create directory structure for hostname
-        data_dir = Path(settings.data_path) / request.hostname / "weekly-data"
+        data_dir = Path(settings.data_path) / request.hostname / "data"
         data_dir.mkdir(parents=True, exist_ok=True)
 
         # Convert jobs to DataFrame

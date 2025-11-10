@@ -645,7 +645,7 @@ def main() -> None:
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="data/hostname/weekly-data",
+        default="data/hostname/data",
         help="Directory to save the Parquet files.",
     )
     parser.add_argument(

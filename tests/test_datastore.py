@@ -80,7 +80,7 @@ def test_data():
 def temp_datadir(test_data):
     """Create a temporary directory with test data files."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        host_dir = Path(temp_dir) / "testhost" / "weekly-data"
+        host_dir = Path(temp_dir) / "testhost" / "data"
         host_dir.mkdir(parents=True)
 
         # Save test data to a parquet file
@@ -406,7 +406,7 @@ def test_check_for_updates(temp_datadir, test_data):
     assert not updated
 
     # Add a new file
-    host_dir = Path(temp_datadir) / "testhost" / "weekly-data"
+    host_dir = Path(temp_datadir) / "testhost" / "data"
     new_file = host_dir / "new_data.parquet"
     test_data.to_parquet(new_file)
 
@@ -439,7 +439,7 @@ def test_error_handling(temp_datadir):
         ds._load_raw_data("nonexistent")
 
     # Test missing parquet files
-    empty_host_dir = Path(temp_datadir) / "empty_host" / "weekly-data"
+    empty_host_dir = Path(temp_datadir) / "empty_host" / "data"
     empty_host_dir.mkdir(parents=True)
     with pytest.raises(FileNotFoundError):
         ds._load_raw_data("empty_host")

@@ -50,8 +50,8 @@ async def upload_data(
             detail="File must be a .parquet file",
         )
 
-    # Create directory structure: DATA_PATH/cluster_name/weekly-data/
-    cluster_dir = Path(settings.data_path) / cluster_name / "weekly-data"
+    # Create directory structure: DATA_PATH/cluster_name/data/
+    cluster_dir = Path(settings.data_path) / cluster_name / "data"
     cluster_dir.mkdir(parents=True, exist_ok=True)
 
     # Save file
@@ -131,7 +131,7 @@ async def list_uploaded_files(
     settings = get_settings()
 
     # Check cluster directory
-    cluster_dir = Path(settings.data_path) / cluster_name / "weekly-data"
+    cluster_dir = Path(settings.data_path) / cluster_name / "data"
 
     if not cluster_dir.exists():
         return {

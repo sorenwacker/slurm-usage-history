@@ -78,7 +78,7 @@ async def auto_generate_cluster_configuration(cluster_name: str):
         import pandas as pd
 
         settings = get_settings()
-        data_path = Path(settings.data_path) / cluster_name / "weekly-data"
+        data_path = Path(settings.data_path) / cluster_name / "data"
 
         if not data_path.exists():
             raise HTTPException(status_code=404, detail=f"No data directory found for cluster {cluster_name}")

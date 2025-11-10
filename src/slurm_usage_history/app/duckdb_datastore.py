@@ -159,7 +159,7 @@ class DuckDBDataStore(metaclass=Singleton):
         Args:
             hostname: The hostname to load metadata for
         """
-        host_dir = self.directory / hostname / "weekly-data"
+        host_dir = self.directory / hostname / "data"
         if not host_dir.exists() or not host_dir.is_dir():
             logger.warning(f"Directory not found for hostname: {hostname}")
             return
@@ -355,7 +355,7 @@ class DuckDBDataStore(metaclass=Singleton):
         Returns:
             Dictionary with lists of unique values for each filter dimension
         """
-        host_dir = self.directory / hostname / "weekly-data"
+        host_dir = self.directory / hostname / "data"
         file_pattern = str(host_dir / "*.parquet")
 
         # Build WHERE clause for date filtering
@@ -437,7 +437,7 @@ class DuckDBDataStore(metaclass=Singleton):
         Returns:
             Filtered DataFrame
         """
-        host_dir = self.directory / hostname / "weekly-data"
+        host_dir = self.directory / hostname / "data"
         file_pattern = str(host_dir / "*.parquet")
 
         # Build WHERE clause
@@ -611,7 +611,7 @@ class DuckDBDataStore(metaclass=Singleton):
 
     def _check_host_updates(self, hostname: str) -> bool:
         """Check if files for a specific host have been updated or new files added."""
-        host_dir = self.directory / hostname / "weekly-data"
+        host_dir = self.directory / hostname / "data"
         if not host_dir.exists() or not host_dir.is_dir():
             return False
 

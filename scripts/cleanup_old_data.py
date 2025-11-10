@@ -27,7 +27,7 @@ def cleanup_old_files(data_dir: Path, keep_months: int = 6, dry_run: bool = True
         if not hostname_dir.is_dir():
             continue
 
-        weekly_data_dir = hostname_dir / "weekly-data"
+        weekly_data_dir = hostname_dir / "data"
         if not weekly_data_dir.exists():
             continue
 
