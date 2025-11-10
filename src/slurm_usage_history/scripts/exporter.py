@@ -237,6 +237,19 @@ class SlurmDataExtractor:
 
         df['AllocNodes'] = df['NodeList'].apply(count_nodes)
 
+        # Filter out jobs with missing critical fields (malformed data)
+        initial_count = len(df)
+
+        # Check for empty/null User
+        df = df[df['User'].notna() & (df['User'].astype(str).str.strip() != '') & (df['User'].astype(str).str.lower() != 'nan')]
+
+        # Check for empty/null Partition
+        df = df[df['Partition'].notna() & (df['Partition'].astype(str).str.strip() != '') & (df['Partition'].astype(str).str.lower() != 'nan')]
+
+        filtered_count = initial_count - len(df)
+        if filtered_count > 0:
+            logger.info(f"Filtered out {filtered_count} jobs with missing User or Partition fields")
+
         # Convert to list of dicts
         jobs = []
         for _, row in df.iterrows():
