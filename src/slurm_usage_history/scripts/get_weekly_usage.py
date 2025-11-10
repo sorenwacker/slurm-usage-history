@@ -7,6 +7,7 @@ import re
 import subprocess
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 import pandas as pd
@@ -397,16 +398,80 @@ class DataExporter:
     Exports the fetched and formatted data.
     """
 
-    def __init__(self, data_fetcher: UsageDataFetcher, data_formatter: UsageDataFormatter):
+    def __init__(
+        self,
+        data_fetcher: UsageDataFetcher,
+        data_formatter: UsageDataFormatter,
+        api_url: Optional[str] = None,
+        api_key: Optional[str] = None,
+        cluster_name: Optional[str] = None,
+    ):
         """
         Initialize the DataExporter.
 
         Args:
             data_fetcher: UsageDataFetcher instance
             data_formatter: UsageDataFormatter instance
+            api_url: Optional API URL for uploading data (e.g., https://dashboard.example.com/api)
+            api_key: Optional API key for authentication
+            cluster_name: Optional cluster name for API uploads
         """
         self.data_fetcher = data_fetcher
         self.data_formatter = data_formatter
+        self.api_url = api_url
+        self.api_key = api_key
+        self.cluster_name = cluster_name
+
+    def upload_file_to_api(self, file_path: str) -> bool:
+        """
+        Upload a parquet file to the dashboard API.
+
+        Args:
+            file_path: Path to the parquet file
+
+        Returns:
+            True if upload successful, False otherwise
+        """
+        if not self.api_url or not self.api_key:
+            raise ValueError("API URL and API key are required for API uploads")
+
+        if not self.cluster_name:
+            raise ValueError("Cluster name is required for API uploads")
+
+        try:
+            import requests
+        except ImportError:
+            print("Error: 'requests' library is required for API uploads.")
+            print("Install with: pip install requests")
+            return False
+
+        try:
+            file_name = Path(file_path).name
+            upload_url = f"{self.api_url.rstrip('/')}/agent/upload"
+
+            with open(file_path, "rb") as f:
+                files = {"file": (file_name, f, "application/octet-stream")}
+                data = {"cluster_name": self.cluster_name}
+                headers = {"X-API-Key": self.api_key}
+
+                response = requests.post(
+                    upload_url,
+                    files=files,
+                    data=data,
+                    headers=headers,
+                    timeout=60,
+                )
+
+                if response.status_code in (200, 201):
+                    return True
+                else:
+                    print(f"Upload failed: HTTP {response.status_code}")
+                    print(f"Response: {response.text}")
+                    return False
+
+        except Exception as e:
+            print(f"Error uploading file to API: {e}")
+            return False
 
     def fetch_data_weekly(
         self,
@@ -477,6 +542,14 @@ class DataExporter:
                     # Save formatted data as Parquet file
                     formatted_data.to_parquet(file_path, index=False, engine="pyarrow")
 
+                    # Upload to API if configured
+                    if self.api_url and self.api_key and self.cluster_name:
+                        upload_success = self.upload_file_to_api(file_path)
+                        if upload_success:
+                            print(f"  ✓ Uploaded {file_path} to dashboard API")
+                        else:
+                            print(f"  ✗ Failed to upload {file_path}")
+
                     delay = 5
                     time.sleep(delay)
 
@@ -540,6 +613,23 @@ def main() -> None:
     )
     parser.add_argument("-v", "--verbose", action="store_true", default=False)
 
+    # API upload arguments
+    parser.add_argument(
+        "--api-url",
+        type=str,
+        help="Dashboard API URL for uploading data (e.g., https://dashboard.example.com/api)",
+    )
+    parser.add_argument(
+        "--api-key",
+        type=str,
+        help="API key for authentication with the dashboard",
+    )
+    parser.add_argument(
+        "--cluster",
+        type=str,
+        help="Cluster name (required for API uploads, e.g., DAIC)",
+    )
+
     # Legacy support for older interface
     parser.add_argument(
         "--from-year",
@@ -579,12 +669,25 @@ def main() -> None:
             to_date=args.to_date
         )
 
+    # Validate API upload configuration
+    if args.api_url or args.api_key:
+        if not (args.api_url and args.api_key and args.cluster):
+            parser.error(
+                "For API uploads, --api-url, --api-key, and --cluster are all required"
+            )
+
     # Create instances of fetcher and formatter
     data_fetcher = UsageDataFetcher()
     data_formatter = UsageDataFormatter()
 
     # Create and run the data exporter
-    exporter = DataExporter(data_fetcher, data_formatter)
+    exporter = DataExporter(
+        data_fetcher,
+        data_formatter,
+        api_url=args.api_url,
+        api_key=args.api_key,
+        cluster_name=args.cluster,
+    )
     exporter.fetch_data_weekly(
         from_year=from_year,
         from_week=from_week,
