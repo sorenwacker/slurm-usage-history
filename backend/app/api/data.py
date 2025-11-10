@@ -151,7 +151,7 @@ async def reload_datastore(
         import logging
         logger = logging.getLogger(__name__)
 
-        logger.info(f"Admin {admin.get('username', 'unknown')} triggered manual datastore reload")
+        logger.info(f"Admin {admin} triggered manual datastore reload")
         datastore = get_datastore()
         datastore.load_data()
 
