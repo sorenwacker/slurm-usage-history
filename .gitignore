@@ -1,8 +1,12 @@
-nohub.out
-
 data/
 cache/
+
+# Runtime files
 nohup.out
+backend.log
+backend.pid
+*.pid
+*.log
 
 .*
 
