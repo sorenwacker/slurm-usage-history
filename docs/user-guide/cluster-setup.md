@@ -5,198 +5,201 @@ Quick guide for installing and configuring the SLURM data collection agent on yo
 ## Prerequisites
 
 - SLURM cluster with `sacct` access
-- Python 3.10+
+- Python 3.10-3.12 (3.14+ not yet supported by pandas)
+- Conda or venv for isolated environments
 - Git (for GitLab installation)
-- Network access to GitLab (or use PyPI when published)
+- Network access to dashboard API
 
 ## Installation on Cluster
 
-### Option 1: From GitLab (Current)
+### Recommended: Using Conda
 
-Install directly from the repository:
+Conda provides the most reliable installation on older cluster systems (e.g., with GCC 4.8).
 
-**With Python venv (recommended for cluster systems):**
 ```bash
-# Create virtual environment
-python3 -m venv .venv
+# Create conda environment with Python 3.11
+conda create -n slurm-dash python=3.11 -y
+conda activate slurm-dash
 
-# Activate it
-source .venv/bin/activate
+# On older systems (GCC < 8.4), install modern compilers first
+conda install -y gcc_linux-64 gxx_linux-64
 
-# Install agent
-pip install "slurm-dashboard[agent] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
+# Install the agent
+pip install "git+https://gitlab.ewi.tudelft.nl/reit/slurm-usage-history.git#egg=slurm-dashboard[agent]"
+
+# Add to PATH if needed
+export PATH="$HOME/.local/bin:$PATH"
 
 # Verify installation
-slurm-dashboard-agent --help
+slurm-dashboard --help
 ```
 
-**With uv (faster, creates venv automatically):**
+### Alternative: Using venv
+
+If conda is not available:
+
 ```bash
-# Create and install in one step
-uv venv .venv
-source .venv/bin/activate
-uv pip install "slurm-dashboard[agent] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
+# Create virtual environment with Python 3.10-3.12
+python3.11 -m venv ~/slurm-dash-venv
+source ~/slurm-dash-venv/bin/activate
+
+# Install the agent
+pip install "git+https://gitlab.ewi.tudelft.nl/reit/slurm-usage-history.git#egg=slurm-dashboard[agent]"
 
 # Verify installation
-slurm-dashboard-agent --help
+slurm-dashboard --help
 ```
 
-**Note:** Remember to activate the virtual environment before running the agent.
-
-### Option 2: From PyPI (When Published)
+### From PyPI (When Published)
 
 ```bash
-# With pip
 pip install slurm-dashboard[agent]
-
-# With uv
-uv pip install slurm-dashboard[agent]
-
-# Verify
-slurm-dashboard-agent --help
+slurm-dashboard --help
 ```
+
+### Important Notes
+
+- **Python version**: Use Python 3.10-3.12 (not 3.14+, pandas doesn't support it yet)
+- **PATH setup**: If `slurm-dashboard` command is not found, add `~/.local/bin` to PATH:
+  ```bash
+  export PATH="$HOME/.local/bin:$PATH"
+  echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+  ```
+- **Old systems**: On clusters with GCC < 8.4, install compilers via conda first
 
 ## Setup Data Collection
 
-The agent supports two deployment modes:
+The new agent uses API-based submission - no shared filesystem required.
 
-1. **Filesystem-based** (traditional): Agent writes to shared filesystem (NFS), dashboard reads from same location
-2. **API-based** (recommended): Agent uploads data via HTTPS API with key authentication
+### 1. Get API Credentials
 
-### Deployment Mode 1: Filesystem-Based (NFS)
+Contact your dashboard administrator for:
+- Dashboard API URL (e.g., `https://dashboard.daic.tudelft.nl`)
+- API key for authentication
 
-#### 1. Create Data Directory
+The administrator creates a cluster entry via the admin panel and provides the API key.
 
-```bash
-# Choose a location accessible to the dashboard server (e.g., NFS mount)
-mkdir -p /data/slurm-usage
-```
-
-### 2. Test Manual Collection
+### 2. Create Configuration File
 
 ```bash
-# Collect last 7 days of data
-slurm-dashboard-agent --output /data/slurm-usage/$(hostname)
+# Activate your conda environment
+conda activate slurm-dash
 
-# Verify data was created
-ls -lh /data/slurm-usage/$(hostname)/weekly-data/
+# Create config with your credentials
+slurm-dashboard create-config \
+  --api-url https://dashboard.daic.tudelft.nl \
+  --api-key YOUR_API_KEY_HERE \
+  --cluster-name DAIC \
+  --local-data-path /data/slurm-usage/DAIC \
+  -o config.json
 ```
 
-You should see parquet files like `2024-W45.parquet`.
+This creates a `config.json` file with mode `0600` (readable only by you) containing:
+```json
+{
+  "api_url": "https://dashboard.daic.tudelft.nl",
+  "api_key": "YOUR_API_KEY_HERE",
+  "cluster_name": "DAIC",
+  "local_data_path": "/data/slurm-usage/DAIC",
+  "timeout": 30,
+  "collection_window_days": 7
+}
+```
 
-### 3. Automated Collection with Cron
+### 3. Test with Dry Run
+
+```bash
+# Test data extraction without submitting
+slurm-dashboard run --config config.json --dry-run --verbose
+```
+
+You should see:
+- Number of jobs extracted
+- Total CPU-hours and GPU-hours
+- Sample job record
+
+### 4. Run for Real
+
+```bash
+# Submit data to dashboard
+slurm-dashboard run --config config.json
+```
+
+Check the dashboard to verify data appears.
+
+### 5. Automated Collection with Cron
 
 ```bash
 # Edit crontab
 crontab -e
 
-# Add weekly collection (every Monday at 2 AM)
-# Note: Use absolute path to venv - adjust based on where you created .venv
-0 2 * * 1 /path/to/your/project/.venv/bin/slurm-dashboard-agent --output /data/slurm-usage/$(hostname) 2>&1 | logger -t slurm-dashboard-agent
+# Add daily collection at 2 AM
+# Adjust paths based on your conda installation
+0 2 * * * source ~/miniforge3/etc/profile.d/conda.sh && conda activate slurm-dash && slurm-dashboard run --config ~/config.json >> ~/agent.log 2>&1
 ```
 
-**Alternative: Daily collection (more granular)**
+**For venv instead of conda:**
 ```bash
-# Collect daily at 2 AM
-0 2 * * * /path/to/your/project/.venv/bin/slurm-dashboard-agent --output /data/slurm-usage/$(hostname) 2>&1 | logger -t slurm-dashboard-agent
+0 2 * * * source ~/slurm-dash-venv/bin/activate && slurm-dashboard run --config ~/config.json >> ~/agent.log 2>&1
 ```
 
-**Tip:** Find the absolute path with `which slurm-dashboard-agent` while your venv is activated.
-
-#### 4. Verify Cron Job
+### 6. Verify Cron Job
 
 ```bash
 # Check crontab
 crontab -l
 
-# Check system logs for agent output
-grep slurm-dashboard-agent /var/log/syslog
-# or on systemd systems:
-journalctl -t slurm-dashboard-agent
+# Watch the log file
+tail -f ~/agent.log
 ```
 
----
-
-### Deployment Mode 2: API-Based (Recommended)
-
-Upload data directly to dashboard via HTTPS API - no shared filesystem required.
-
-####  1. Get API Credentials
-
-Contact your dashboard administrator for:
-- Dashboard API URL (e.g., `https://dashboard.example.com/api`)
-- API key for authentication
-
-The administrator should create a cluster entry via the admin panel:
-1. Login at https://dashboard.example.com/admin/login
-2. Click "Add Cluster"
-3. Enter cluster name, description, contact email, and location
-4. Copy the generated API key
-5. A YAML configuration is automatically created for the cluster
-
-#### 2. Test API Upload
-
-```bash
-# Activate venv
-source .venv/bin/activate
-
-# Test upload with API
-# Note: Cluster name is automatically determined from the API key
-slurm-dashboard-agent \
-  --api-url https://dashboard.example.com/api \
-  --api-key your-api-key-here \
-  --output /data/slurm-usage/DAIC
-
-# The API key is tied to a specific cluster, so no need to specify cluster name
-# Data is saved locally AND uploaded to dashboard
-```
-
-#### 3. Automated Collection with API Upload
-
-```bash
-# Edit crontab
-crontab -e
-
-# Add weekly collection with API upload (every Monday at 2 AM)
-# Cluster is automatically determined from the API key
-0 2 * * 1 /path/to/.venv/bin/slurm-dashboard-agent --api-url https://dashboard.example.com/api --api-key your-api-key --output /data/slurm-usage/DAIC 2>&1 | logger -t slurm-dashboard-agent
-```
-
-**Advantages of API-based deployment:**
+**Advantages of this approach:**
 - No NFS required
 - HTTPS encryption
 - API key authentication
 - Works across networks/firewalls
-- Centralized access control
+- Simple configuration file
+- Optional local data backup
 
-#### 4. Cleaning Up Local Files (API mode)
+### Error Handling and Recovery
 
-When using API-based uploads, the agent checks the server for existing files before collecting data. This means you can safely delete local parquet files to save disk space:
+**If API submission fails:**
+
+The agent extracts data from SLURM's accounting database (sacct), which retains historical data. If submission fails:
+
+1. Error is logged to `~/agent.log` (or wherever your cron logs)
+2. Next cron run will retry the same period (default: last 7 days)
+3. No data is lost - SLURM keeps accounting data persistently
+4. Overlapping submissions are handled - dashboard deduplicates jobs by JobID
+
+**Checking for failures:**
 
 ```bash
-# The agent will check the server and skip weeks already uploaded
-# Safe to delete old local files
-rm /data/slurm-usage/DAIC/*.parquet
+# Check recent log entries
+tail -20 ~/agent.log
 
-# Next run will skip already-uploaded weeks
-slurm-dashboard-agent \
-  --api-url https://dashboard.example.com/api \
-  --api-key your-api-key \
-  --output /data/slurm-usage/DAIC
+# Look for errors
+grep -i error ~/agent.log
+
+# Check if agent is running
+ps aux | grep slurm-dashboard
 ```
 
-The agent automatically:
-1. Queries the server to see what files already exist
-2. Skips data collection for weeks already on the server
-3. Only collects and uploads new/missing weeks
+**Manual recovery after outage:**
 
-To force re-upload of all data (e.g., after data corrections):
+If the dashboard was down for an extended period, you can backfill data:
+
 ```bash
-slurm-dashboard-agent --overwrite \
-  --api-url https://dashboard.example.com/api \
-  --api-key your-api-key \
-  --output /data/slurm-usage/DAIC
+# Collect specific date range
+slurm-dashboard run \
+  --config config.json \
+  --start-date 2025-01-01 \
+  --end-date 2025-01-31
 ```
+
+**Future enhancement:**
+
+Local data backup (via `local_data_path` config option) will save extracted data locally before submission, providing an additional safety layer. This feature is planned for a future release.
 
 ---
 
@@ -206,36 +209,29 @@ slurm-dashboard-agent --overwrite \
 
 ```bash
 # Collect specific period
-slurm-dashboard-agent \
-  --start 2024-01-01 \
-  --end 2024-12-31 \
-  --output /data/slurm-usage/$(hostname)
+slurm-dashboard run \
+  --config config.json \
+  --start-date 2024-01-01 \
+  --end-date 2024-12-31
 ```
 
-### Multiple Clusters
-
-If you manage multiple clusters, use distinct output directories:
+### Override Cluster Name
 
 ```bash
-# On cluster1
-slurm-dashboard-agent --output /data/slurm-usage/cluster1
-
-# On cluster2
-slurm-dashboard-agent --output /data/slurm-usage/cluster2
+# Override cluster name from config
+slurm-dashboard run \
+  --config config.json \
+  --cluster-name MyCluster
 ```
 
-The dashboard will automatically detect and show all clusters.
+### Custom SLURM Path
 
-### Custom SLURM Partition
-
-If your SLURM installation is non-standard:
+If SLURM commands are not in your PATH:
 
 ```bash
-# Ensure sacct is in PATH
+# Add SLURM to PATH before running
 export PATH=/usr/local/slurm/bin:$PATH
-
-# Run agent
-slurm-dashboard-agent --output /data/slurm-usage/$(hostname)
+slurm-dashboard run --config config.json
 ```
 
 ## Troubleshooting
@@ -272,71 +268,56 @@ sacct --starttime $(date -d '7 days ago' +%Y-%m-%d) --format=JobID,Start,End,Sta
 sacctmgr show configuration
 ```
 
-### uv Installation Issues
+### Python 3.14 Installation Fails
 
-If `uv pip install` fails with environment errors:
+pandas doesn't yet support Python 3.14. Use Python 3.10-3.12:
 
 ```bash
-# Error: Failed to inspect Python interpreter from conda prefix
-# Solution: Use regular pip instead
-pip install "slurm-dashboard[agent] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
+# Recreate conda environment with correct Python version
+conda create -n slurm-dash python=3.11 -y
+conda activate slurm-dash
+pip install "git+https://gitlab.ewi.tudelft.nl/reit/slurm-usage-history.git#egg=slurm-dashboard[agent]"
+```
 
-# Or specify Python explicitly with uv
-uv pip install --python $(which python3) "slurm-dashboard[agent] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
+### GCC Too Old (GCC < 8.4)
+
+On older systems, pandas compilation fails. Install modern compilers via conda:
+
+```bash
+conda activate slurm-dash
+conda install -y gcc_linux-64 gxx_linux-64
+pip install "git+https://gitlab.ewi.tudelft.nl/reit/slurm-usage-history.git#egg=slurm-dashboard[agent]"
+```
+
+### Command Not Found
+
+If `slurm-dashboard` is not found after installation:
+
+```bash
+# Add ~/.local/bin to PATH
+export PATH="$HOME/.local/bin:$PATH"
+
+# Make permanent
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+
+# Or use full path
+~/.local/bin/slurm-dashboard --help
 ```
 
 ### GitLab Access Issues
 
-If you can't access GitLab from the cluster:
+If you can't access GitLab from the cluster, ask your administrator to:
 
-1. **Use PyPI** (when published): `pip install slurm-dashboard[agent]`
-2. **Download and install manually**:
-   ```bash
-   # On machine with GitLab access:
-   git clone https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git
-   cd slurm-usage-history
-   python -m build  # or: uv build
-
-   # Copy dist/*.whl to cluster
-   scp dist/slurm_dashboard-*.whl cluster:/tmp/
-
-   # On cluster:
-   pip install /tmp/slurm_dashboard-*.whl[agent]
-   ```
-
-## Data Storage Recommendations
-
-### Storage Size
-
-- **Per job record**: ~500 bytes compressed
-- **1 million jobs/week**: ~500 MB
-- **1 year of data**: ~25 GB
-
-Plan accordingly based on your cluster size.
-
-### NFS Mount
-
-If using NFS for shared storage:
-
-```bash
-# Example /etc/fstab entry
-server:/data/slurm-usage  /data/slurm-usage  nfs  defaults,rw  0  0
-```
-
-### Retention Policy
-
-Keep at least 1-2 years of data for trend analysis:
-
-```bash
-# Clean up data older than 2 years (optional)
-find /data/slurm-usage/$(hostname)/weekly-data -name "*.parquet" -mtime +730 -delete
-```
+1. Build the wheel file on a machine with GitLab access
+2. Copy it to the cluster
+3. Install with: `pip install slurm_dashboard-*.whl[agent]`
 
 ## Security Considerations
 
-1. **Read-only access**: The agent only reads from SLURM accounting database
-2. **File permissions**: Ensure data directory is only writable by authorized users
-3. **Network**: Agent doesn't require network access (only local SLURM access)
+1. **Read-only SLURM access**: Agent only reads from SLURM accounting database
+2. **Config file permissions**: config.json is created with mode 0600 (user-readable only)
+3. **API authentication**: All uploads use HTTPS with API key authentication
+4. **No data leakage**: Agent only uploads job metadata (no job outputs or user data)
 
 ## Next Steps
 
