@@ -87,8 +87,7 @@ def _generate_cache_key(request: FilterRequest) -> str:
         "color_by": request.color_by,
         "account_segments": request.account_segments,
         "complete_periods_only": request.complete_periods_only,
-        "hide_unused_nodes": request.hide_unused_nodes,
-        "sort_by_usage": request.sort_by_usage,
+        # Note: hide_unused_nodes and sort_by_usage removed - now handled client-side
     }
     # Convert to JSON string and hash it
     cache_str = json.dumps(cache_dict, sort_keys=True)
