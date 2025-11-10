@@ -1,6 +1,7 @@
 """Admin API endpoints for cluster and API key management."""
 
 from datetime import timedelta
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -10,6 +11,7 @@ from ..core.admin_auth import (
     create_access_token,
     get_current_admin,
 )
+from ..core.config import get_settings
 from ..db.clusters import get_cluster_db
 from ..models.admin_models import (
     AdminRole,
@@ -24,6 +26,31 @@ from ..models.admin_models import (
 )
 
 router = APIRouter()
+
+
+def find_existing_data_directory(cluster_name: str) -> str | None:
+    """Check if a data directory exists for this cluster (case-insensitive).
+
+    Returns the actual directory name if found, None otherwise.
+    """
+    settings = get_settings()
+    data_path = Path(settings.data_path)
+
+    if not data_path.exists():
+        return None
+
+    # Check for exact match first
+    exact_match = data_path / cluster_name
+    if exact_match.exists() and exact_match.is_dir():
+        return cluster_name
+
+    # Check for case-insensitive match
+    cluster_lower = cluster_name.lower()
+    for item in data_path.iterdir():
+        if item.is_dir() and item.name.lower() == cluster_lower:
+            return item.name
+
+    return None
 
 
 @router.post("/login", response_model=AdminLoginResponse)
@@ -93,13 +120,30 @@ async def create_cluster(
 ):
     """Create a new cluster and generate API key.
 
+    If a data directory already exists for this cluster (case-insensitive match),
+    the cluster name will automatically match the existing directory's case.
+
     Requires admin authentication.
     """
     db = get_cluster_db()
 
+    # Check for existing data directory and match its case
+    existing_dir = find_existing_data_directory(request.name)
+    cluster_name = existing_dir if existing_dir else request.name
+
+    # Warn if case was changed
+    if existing_dir and existing_dir != request.name:
+        # Log the case correction
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(
+            f"Cluster name corrected from '{request.name}' to '{existing_dir}' "
+            f"to match existing data directory"
+        )
+
     try:
         cluster = db.create_cluster(
-            name=request.name,
+            name=cluster_name,
             description=request.description,
             contact_email=request.contact_email,
             location=request.location,
