@@ -173,6 +173,35 @@ crontab -e
 - Works across networks/firewalls
 - Centralized access control
 
+#### 4. Cleaning Up Local Files (API mode)
+
+When using API-based uploads, the agent checks the server for existing files before collecting data. This means you can safely delete local parquet files to save disk space:
+
+```bash
+# The agent will check the server and skip weeks already uploaded
+# Safe to delete old local files
+rm /data/slurm-usage/DAIC/*.parquet
+
+# Next run will skip already-uploaded weeks
+slurm-dashboard-agent \
+  --api-url https://dashboard.example.com/api \
+  --api-key your-api-key \
+  --output /data/slurm-usage/DAIC
+```
+
+The agent automatically:
+1. Queries the server to see what files already exist
+2. Skips data collection for weeks already on the server
+3. Only collects and uploads new/missing weeks
+
+To force re-upload of all data (e.g., after data corrections):
+```bash
+slurm-dashboard-agent --overwrite \
+  --api-url https://dashboard.example.com/api \
+  --api-key your-api-key \
+  --output /data/slurm-usage/DAIC
+```
+
 ---
 
 ## Advanced Configuration

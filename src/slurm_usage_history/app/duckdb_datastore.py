@@ -223,6 +223,46 @@ class DuckDBDataStore(metaclass=Singleton):
                     logger.warning(f"Could not load unique values for {col}: {e}")
                     self.hosts[hostname][key] = []
 
+            # Extract unique node names for auto-discovery
+            try:
+                # NodeList can be either an array or a string (depending on parquet file version)
+                # Try to handle both cases
+                try:
+                    # Try as array first
+                    node_names = conn.execute(
+                        f"""
+                        SELECT DISTINCT unnest(NodeList) as node
+                        FROM read_parquet('{file_pattern}', union_by_name=true, hive_partitioning=false)
+                        WHERE NodeList IS NOT NULL AND typeof(NodeList) = 'VARCHAR[]'
+                        ORDER BY node
+                        """
+                    ).fetchall()
+                    discovered_nodes = set(val[0] for val in node_names if val[0])
+                except Exception:
+                    # Fall back to string handling (some files may have VARCHAR instead of array)
+                    discovered_nodes = set()
+
+                # Also try to get nodes from string-type NodeList columns
+                try:
+                    node_names_str = conn.execute(
+                        f"""
+                        SELECT DISTINCT NodeList as node
+                        FROM read_parquet('{file_pattern}', union_by_name=true, hive_partitioning=false)
+                        WHERE NodeList IS NOT NULL AND typeof(NodeList) = 'VARCHAR'
+                        ORDER BY node
+                        """
+                    ).fetchall()
+                    discovered_nodes.update(val[0] for val in node_names_str if val[0])
+                except Exception:
+                    pass
+
+                if discovered_nodes:
+                    # Run auto-discovery to update cluster config
+                    self._auto_discover_nodes(hostname, discovered_nodes)
+
+            except Exception as e:
+                logger.warning(f"Could not extract nodes for auto-discovery: {e}")
+
             logger.info(
                 f"Successfully loaded metadata for {hostname}: "
                 f"{len(parquet_files)} files, "
@@ -236,6 +276,41 @@ class DuckDBDataStore(metaclass=Singleton):
             self.hosts[hostname]["max_date"] = None
             for key in ["partitions", "accounts", "users", "qos", "states"]:
                 self.hosts[hostname][key] = []
+
+    def _auto_discover_nodes(self, hostname: str, node_names: set[str]) -> None:
+        """Auto-discover nodes from data and update cluster config.
+
+        Args:
+            hostname: Cluster/hostname
+            node_names: Set of unique node names found in data
+        """
+        if not node_names:
+            return
+
+        try:
+            # Import node discovery service from backend
+            # This is in the backend app, so we need to check if it's available
+            import sys
+            from pathlib import Path
+
+            # Try to import from backend
+            backend_path = Path(__file__).parent.parent.parent / "backend"
+            if backend_path.exists() and str(backend_path) not in sys.path:
+                sys.path.insert(0, str(backend_path))
+
+            from app.services.node_discovery import get_node_discovery_service
+
+            discovery_service = get_node_discovery_service()
+            added_count = discovery_service.discover_and_update_nodes(hostname, node_names)
+
+            if added_count > 0:
+                logger.info(f"Auto-discovery: Added {added_count} new nodes to {hostname} cluster config")
+
+        except ImportError as e:
+            # Node discovery service not available (e.g., running from legacy code location)
+            logger.debug(f"Node auto-discovery not available: {e}")
+        except Exception as e:
+            logger.warning(f"Failed to run node auto-discovery: {e}")
 
     def get_min_max_dates(self, hostname: str) -> tuple[str | None, str | None]:
         """Get minimum and maximum dates for the specified hostname."""

@@ -473,6 +473,35 @@ class DataExporter:
             print(f"Error uploading file to API: {e}")
             return False
 
+    def get_server_file_list(self) -> set:
+        """Get list of files already uploaded to the server.
+
+        Returns:
+            Set of filenames that exist on the server
+        """
+        if not self.api_url or not self.api_key or not self.cluster_name:
+            # API not configured, return empty set
+            return set()
+
+        try:
+            list_url = f"{self.api_url.rstrip('/')}/agent/list-files/{self.cluster_name}"
+            headers = {"X-API-Key": self.api_key}
+
+            response = requests.get(list_url, headers=headers, timeout=30)
+
+            if response.status_code == 200:
+                data = response.json()
+                files = data.get("files", [])
+                print(f"✓ Server has {len(files)} files already uploaded")
+                return set(files)
+            else:
+                print(f"Warning: Could not get server file list (HTTP {response.status_code})")
+                return set()
+
+        except Exception as e:
+            print(f"Warning: Could not get server file list: {e}")
+            return set()
+
     def fetch_data_weekly(
         self,
         from_year: int,
@@ -507,6 +536,9 @@ class DataExporter:
         if until_week is None:
             until_week = from_week
 
+        # Get list of files already on the server (if API is configured)
+        server_files = self.get_server_file_list()
+
         current_year = from_year
         current_week = from_week
         data_files: List[str] = []
@@ -522,11 +554,15 @@ class DataExporter:
             current_year == until_year and current_week <= until_week
         ):
             try:
-                # Check if the data file already exists
-                file_path = os.path.join(
-                    output_dir, f"week_{current_year}_W{current_week:02.0f}.parquet"
-                )
-                if overwrite or not os.path.exists(file_path):
+                # Check if the data file already exists (locally or on server)
+                file_name = f"week_{current_year}_W{current_week:02.0f}.parquet"
+                file_path = os.path.join(output_dir, file_name)
+
+                # Skip if file exists locally or on server (unless overwrite is True)
+                file_exists_locally = os.path.exists(file_path)
+                file_exists_on_server = file_name in server_files
+
+                if overwrite or (not file_exists_locally and not file_exists_on_server):
                     # Export usage data for the current week
                     weekly_data = self.data_fetcher.export_usage_data(
                         current_year,
@@ -553,8 +589,15 @@ class DataExporter:
                     delay = 5
                     time.sleep(delay)
 
-                # Append file path to list of saved files
-                data_files.append(file_path)
+                    # Append file path to list of saved files
+                    data_files.append(file_path)
+                else:
+                    # File already exists - skip collection
+                    if file_exists_on_server and not file_exists_locally:
+                        print(f"  ⊙ Skipping {file_name} (already on server)")
+                    elif file_exists_locally:
+                        print(f"  ⊙ Skipping {file_name} (exists locally)")
+                        data_files.append(file_path)
 
                 # Update progress bar
                 pbar.update(1)

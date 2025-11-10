@@ -115,6 +115,70 @@ async def health_check(api_key: str = Depends(verify_agent_api_key)) -> dict:
     }
 
 
+@router.get("/list-files/{cluster_name}")
+async def list_uploaded_files(
+    cluster_name: str,
+    api_key: str = Depends(verify_agent_api_key),
+) -> dict:
+    """List uploaded data files for a cluster.
+
+    This endpoint allows agents to check which files have already been uploaded
+    to the server, enabling local file cleanup without re-uploading.
+
+    Args:
+        cluster_name: Name of the cluster (e.g., DAIC)
+        api_key: Verified API key from header
+
+    Returns:
+        Dictionary with list of uploaded filenames
+
+    Example:
+        ```bash
+        curl -X GET "http://localhost:8100/api/agent/list-files/DAIC" \\
+          -H "X-API-Key: your-api-key-here"
+        ```
+    """
+    settings = get_settings()
+
+    # Validate cluster name
+    if not cluster_name or not cluster_name.replace("_", "").replace("-", "").isalnum():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid cluster name. Use alphanumeric characters, hyphens, or underscores only.",
+        )
+
+    # Check cluster directory
+    cluster_dir = Path(settings.data_path) / cluster_name / "weekly-data"
+
+    if not cluster_dir.exists():
+        return {
+            "cluster": cluster_name,
+            "files": [],
+            "count": 0,
+            "message": "No data directory found for this cluster",
+        }
+
+    try:
+        # List all parquet files
+        parquet_files = list(cluster_dir.glob("*.parquet"))
+        filenames = [f.name for f in parquet_files]
+
+        logger.info(f"Agent requested file list for {cluster_name}: {len(filenames)} files")
+
+        return {
+            "cluster": cluster_name,
+            "files": sorted(filenames),
+            "count": len(filenames),
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to list files for {cluster_name}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list files: {str(e)}",
+        ) from e
+
+
 @router.post("/upload-config", status_code=status.HTTP_201_CREATED)
 async def upload_cluster_config(
     cluster_name: Annotated[str, Form(description="Cluster name (e.g., DAIC)")],

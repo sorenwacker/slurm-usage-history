@@ -4,6 +4,8 @@ import { adminClient } from '../api/adminClient';
 import * as yaml from 'js-yaml';
 import './AdminConfig.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8100';
+
 interface ClusterConfig {
   display_name?: string;
   description?: string;
@@ -86,6 +88,17 @@ export function AdminConfig() {
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
+  const getAuthHeaders = (): HeadersInit => {
+    const token = localStorage.getItem('admin_token');
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+  };
+
   useEffect(() => {
     if (!adminClient.isAuthenticated()) {
       navigate('/admin/login');
@@ -97,7 +110,9 @@ export function AdminConfig() {
 
   const loadConfig = async () => {
     try {
-      const response = await fetch('http://localhost:8100/api/admin/config');
+      const response = await fetch(`${API_BASE_URL}/api/admin/config`, {
+        headers: getAuthHeaders(),
+      });
       if (!response.ok) throw new Error('Failed to load configuration');
       const data = await response.json();
       setConfig(data);
@@ -124,8 +139,9 @@ export function AdminConfig() {
     setSuccess('');
 
     try {
-      const response = await fetch(`http://localhost:8100/api/admin/config/${clusterName}/auto-generate`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/config/${clusterName}/auto-generate`, {
         method: 'POST',
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -148,8 +164,9 @@ export function AdminConfig() {
     setSuccess('');
 
     try {
-      const response = await fetch('http://localhost:8100/api/admin/config/reload', {
+      const response = await fetch(`${API_BASE_URL}/api/admin/config/reload`, {
         method: 'POST',
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) throw new Error('Failed to reload configuration');
@@ -199,11 +216,9 @@ export function AdminConfig() {
       const parsedConfig = yaml.load(yamlContent);
 
       // Save to backend
-      const response = await fetch(`http://localhost:8100/api/admin/config/${selectedCluster}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/config/${selectedCluster}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(parsedConfig),
       });
 
