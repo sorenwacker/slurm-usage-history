@@ -239,7 +239,31 @@ const Dashboard: React.FC = () => {
     error: dataError,
   } = useQuery({
     queryKey: ['aggregatedCharts', filterRequest],
-    queryFn: () => dashboardApi.getAggregatedCharts(filterRequest),
+    queryFn: async () => {
+      const queryStart = Date.now();
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('🔄 FETCHING DASHBOARD DATA');
+      console.log('═══════════════════════════════════════════════════════');
+      console.log(`🖥️  Cluster: ${filterRequest.hostname}`);
+      console.log(`📅 Date range: ${filterRequest.start_date} → ${filterRequest.end_date}`);
+      console.log(`📊 Period type: ${filterRequest.period_type}`);
+      console.log(`🎨 Color by: ${filterRequest.color_by || 'None'}`);
+      console.log(`📝 Account segments: ${filterRequest.account_segments || 'Full names'}`);
+      if (filterRequest.partitions?.length) console.log(`🔧 Partitions: ${filterRequest.partitions.join(', ')}`);
+      if (filterRequest.accounts?.length) console.log(`👥 Accounts: ${filterRequest.accounts.join(', ')}`);
+      if (filterRequest.users?.length) console.log(`👤 Users: ${filterRequest.users.join(', ')}`);
+      if (filterRequest.qos?.length) console.log(`⚡ QOS: ${filterRequest.qos.join(', ')}`);
+      if (filterRequest.states?.length) console.log(`📌 States: ${filterRequest.states.join(', ')}`);
+
+      const result = await dashboardApi.getAggregatedCharts(filterRequest);
+      const queryTime = Date.now() - queryStart;
+
+      console.log(`⏱️  API response time: ${queryTime}ms`);
+      console.log(`✅ Received ${result.summary.total_jobs.toLocaleString()} jobs`);
+      console.log('═══════════════════════════════════════════════════════');
+
+      return result;
+    },
     enabled: !!selectedHostname,
   });
 

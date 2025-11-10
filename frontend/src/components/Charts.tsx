@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Plot from 'react-plotly.js';
 import type { AggregatedChartsResponse, ChartData } from '../types';
 import { createGlobalColorMap } from './charts/chartHelpers';
@@ -19,6 +19,7 @@ interface ChartsProps {
 const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNodes, sortByUsage, setSortByUsage, colorBy }) => {
   const [waitingTimeTrendStat, setWaitingTimeTrendStat] = useState<string>('median');
   const [jobDurationTrendStat, setJobDurationTrendStat] = useState<string>('median');
+  const renderStartTime = useRef<number>(Date.now());
 
   // Create color map synchronously during render (not in useEffect)
   // This ensures the color map is available immediately when charts need it
@@ -113,6 +114,27 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
       gpu: data.node_gpu_usage ? filterAndSortNodeData(data.node_gpu_usage) : null
     };
   }, [data, hideUnusedNodes, sortByUsage]);
+
+  // Performance logging - measure render time after charts are rendered
+  useEffect(() => {
+    if (!data) return;
+
+    const renderTime = Date.now() - renderStartTime.current;
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('📊 CHARTS RENDER PERFORMANCE');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log(`⏱️  Render time: ${renderTime}ms`);
+    console.log(`📈 Total jobs: ${data.summary.total_jobs.toLocaleString()}`);
+    console.log(`🎨 Color by: ${colorBy || 'None'}`);
+    console.log(`🔍 Hide unused nodes: ${hideUnusedNodes}`);
+    console.log(`📊 Sort by usage: ${sortByUsage}`);
+    console.log(`🖥️  CPU nodes (filtered): ${processedNodeData.cpu?.x.length || 0}`);
+    console.log(`🎮 GPU nodes (filtered): ${processedNodeData.gpu?.x.length || 0}`);
+    console.log('═══════════════════════════════════════════════════════');
+
+    // Reset timer for next render
+    renderStartTime.current = Date.now();
+  }, [data, colorBy, hideUnusedNodes, sortByUsage, processedNodeData]);
 
   if (!data) {
     return (
