@@ -18,19 +18,18 @@ router = APIRouter(prefix="/agent", tags=["agent"])
 
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
 async def upload_data(
-    cluster_name: Annotated[str, Form(description="Cluster name (e.g., DAIC)")],
     file: Annotated[UploadFile, File(description="Parquet file with SLURM data")],
-    api_key: str = Depends(verify_agent_api_key),
+    cluster_name: str = Depends(verify_agent_api_key),
 ) -> dict:
     """Upload SLURM data from agent.
 
     This endpoint allows agents to upload collected SLURM data via API instead of
-    requiring shared filesystem access.
+    requiring shared filesystem access. The cluster is automatically determined from
+    the API key.
 
     Args:
-        cluster_name: Name of the cluster (used for directory organization)
         file: Parquet file containing SLURM job data
-        api_key: Verified API key from header
+        cluster_name: Cluster name from API key verification (injected automatically)
 
     Returns:
         Success message with file location
@@ -39,7 +38,6 @@ async def upload_data(
         ```bash
         curl -X POST "http://localhost:8100/api/agent/upload" \\
           -H "X-API-Key: your-api-key-here" \\
-          -F "cluster_name=DAIC" \\
           -F "file=@2024-W45.parquet"
         ```
     """
@@ -50,13 +48,6 @@ async def upload_data(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File must be a .parquet file",
-        )
-
-    # Validate cluster name (basic sanitation)
-    if not cluster_name or not cluster_name.replace("_", "").replace("-", "").isalnum():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid cluster name. Use alphanumeric characters, hyphens, or underscores only.",
         )
 
     # Create directory structure: DATA_PATH/cluster_name/weekly-data/
@@ -115,37 +106,29 @@ async def health_check(api_key: str = Depends(verify_agent_api_key)) -> dict:
     }
 
 
-@router.get("/list-files/{cluster_name}")
+@router.get("/list-files")
 async def list_uploaded_files(
-    cluster_name: str,
-    api_key: str = Depends(verify_agent_api_key),
+    cluster_name: str = Depends(verify_agent_api_key),
 ) -> dict:
-    """List uploaded data files for a cluster.
+    """List uploaded data files for authenticated cluster.
 
     This endpoint allows agents to check which files have already been uploaded
     to the server, enabling local file cleanup without re-uploading.
+    The cluster is automatically determined from the API key.
 
     Args:
-        cluster_name: Name of the cluster (e.g., DAIC)
-        api_key: Verified API key from header
+        cluster_name: Cluster name from API key verification (injected automatically)
 
     Returns:
         Dictionary with list of uploaded filenames
 
     Example:
         ```bash
-        curl -X GET "http://localhost:8100/api/agent/list-files/DAIC" \\
+        curl -X GET "http://localhost:8100/api/agent/list-files" \\
           -H "X-API-Key: your-api-key-here"
         ```
     """
     settings = get_settings()
-
-    # Validate cluster name
-    if not cluster_name or not cluster_name.replace("_", "").replace("-", "").isalnum():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid cluster name. Use alphanumeric characters, hyphens, or underscores only.",
-        )
 
     # Check cluster directory
     cluster_dir = Path(settings.data_path) / cluster_name / "weekly-data"
@@ -181,19 +164,18 @@ async def list_uploaded_files(
 
 @router.post("/upload-config", status_code=status.HTTP_201_CREATED)
 async def upload_cluster_config(
-    cluster_name: Annotated[str, Form(description="Cluster name (e.g., DAIC)")],
     file: Annotated[UploadFile, File(description="Cluster configuration YAML file")],
-    api_key: str = Depends(verify_agent_api_key),
+    cluster_name: str = Depends(verify_agent_api_key),
 ) -> dict:
     """Upload cluster configuration YAML.
 
     This endpoint allows agents to upload cluster configuration metadata
     including node labels, account mappings, and partition information.
+    The cluster is automatically determined from the API key.
 
     Args:
-        cluster_name: Name of the cluster
         file: YAML file with cluster configuration
-        api_key: Verified API key from header
+        cluster_name: Cluster name from API key verification (injected automatically)
 
     Returns:
         Success message with config location
@@ -202,7 +184,6 @@ async def upload_cluster_config(
         ```bash
         curl -X POST "http://localhost:8100/api/agent/upload-config" \\
           -H "X-API-Key: your-api-key-here" \\
-          -F "cluster_name=DAIC" \\
           -F "file=@cluster-config.yaml"
         ```
     """
@@ -211,13 +192,6 @@ async def upload_cluster_config(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File must be a .yaml or .yml file",
-        )
-
-    # Validate cluster name
-    if not cluster_name or not cluster_name.replace("_", "").replace("-", "").isalnum():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid cluster name. Use alphanumeric characters, hyphens, or underscores only.",
         )
 
     # Read and validate YAML
