@@ -213,7 +213,7 @@ const Dashboard: React.FC = () => {
   if (metadataLoading) {
     return (
       <div className="app">
-        <Header />
+        <Header userInfo={userInfo} />
         <div className="container">
           <div className="loading-screen">
             <div className="loading-spinner"></div>
@@ -230,7 +230,7 @@ const Dashboard: React.FC = () => {
   if (!metadata || metadata.hostnames.length === 0) {
     return (
       <div className="app">
-        <Header />
+        <Header userInfo={userInfo} />
         <div className="container">
           <div className="error-screen">
             <h2>No Data Available</h2>
@@ -244,7 +244,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="app">
-      <Header activeTab={activeTab} onTabChange={setActiveTab} />
+      <Header activeTab={activeTab} onTabChange={setActiveTab} userInfo={userInfo} />
       <div className="dashboard-layout">
         {/* Sidebar for both overview and reports */}
         <div className="sidebar">
