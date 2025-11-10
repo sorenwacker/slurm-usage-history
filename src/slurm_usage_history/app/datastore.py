@@ -293,7 +293,7 @@ class PandasDataStore(metaclass=Singleton):
         self.hosts[hostname]["min_date"] = raw_data["Submit"].dt.date.min().isoformat()
         self.hosts[hostname]["max_date"] = raw_data["Submit"].dt.date.max().isoformat()
 
-        # Store unique values for filtering
+        # Store unique values for filtering (exclude empty/null/nan values)
         for col, key in [
             ("Partition", "partitions"),
             ("Account", "accounts"),
@@ -302,7 +302,13 @@ class PandasDataStore(metaclass=Singleton):
             ("State", "states")
         ]:
             if col in transformed_data.columns:
-                self.hosts[hostname][key] = transformed_data[col].sort_values().unique().tolist()
+                # Get unique values and filter out empty strings, 'nan', 'None', and actual nulls
+                unique_values = transformed_data[col].dropna().astype(str).unique().tolist()
+                filtered_values = [
+                    v for v in unique_values
+                    if v and v.strip() and v.lower() not in ('nan', 'none', '')
+                ]
+                self.hosts[hostname][key] = sorted(filtered_values)
             else:
                 self.hosts[hostname][key] = []
 

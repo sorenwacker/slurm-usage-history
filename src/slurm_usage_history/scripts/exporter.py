@@ -140,6 +140,17 @@ class SlurmDataExtractor:
 
         logger.info("Formatting job data")
 
+        # Normalize job state (e.g., "CANCELLED by 12345" -> "CANCELLED")
+        def normalize_state(state_str):
+            """Normalize SLURM job state by removing suffixes like 'by XXX'"""
+            if pd.isna(state_str) or not state_str:
+                return 'UNKNOWN'
+            state = str(state_str).strip()
+            # Handle "CANCELLED by XXX", "TIMEOUT by XXX", etc.
+            if ' by ' in state:
+                return state.split(' by ')[0].strip()
+            return state
+
         # Parse AllocTRES to extract CPU, GPU, memory info
         def parse_alloc_tres(tres_str):
             """Parse AllocTRES string like 'cpu=4,mem=16G,gres/gpu=2'"""
@@ -222,7 +233,7 @@ class SlurmDataExtractor:
                 'User': str(row['User']) if pd.notna(row['User']) else 'unknown',
                 'Account': str(row['Account']) if pd.notna(row['Account']) else 'unknown',
                 'Partition': str(row['Partition']) if pd.notna(row['Partition']) else 'unknown',
-                'State': str(row['State']),
+                'State': normalize_state(row['State']),
                 'QOS': str(row['QOS']) if pd.notna(row['QOS']) else None,
                 'Submit': str(row['Submit']),
                 'Start': str(row['Start']) if pd.notna(row['Start']) else None,
