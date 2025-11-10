@@ -1,9 +1,11 @@
 """API endpoints for agent data uploads."""
 
 import logging
+import os
 from pathlib import Path
 from typing import Annotated
 
+import yaml
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
 from ..core.agent_auth import verify_agent_api_key
@@ -113,5 +115,94 @@ async def health_check(api_key: str = Depends(verify_agent_api_key)) -> dict:
     }
 
 
-# Import for health check
-import os
+@router.post("/upload-config", status_code=status.HTTP_201_CREATED)
+async def upload_cluster_config(
+    cluster_name: Annotated[str, Form(description="Cluster name (e.g., DAIC)")],
+    file: Annotated[UploadFile, File(description="Cluster configuration YAML file")],
+    api_key: str = Depends(verify_agent_api_key),
+) -> dict:
+    """Upload cluster configuration YAML.
+
+    This endpoint allows agents to upload cluster configuration metadata
+    including node labels, account mappings, and partition information.
+
+    Args:
+        cluster_name: Name of the cluster
+        file: YAML file with cluster configuration
+        api_key: Verified API key from header
+
+    Returns:
+        Success message with config location
+
+    Example:
+        ```bash
+        curl -X POST "http://localhost:8100/api/agent/upload-config" \\
+          -H "X-API-Key: your-api-key-here" \\
+          -F "cluster_name=DAIC" \\
+          -F "file=@cluster-config.yaml"
+        ```
+    """
+    # Validate file extension
+    if not file.filename or not (file.filename.endswith(".yaml") or file.filename.endswith(".yml")):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be a .yaml or .yml file",
+        )
+
+    # Validate cluster name
+    if not cluster_name or not cluster_name.replace("_", "").replace("-", "").isalnum():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid cluster name. Use alphanumeric characters, hyphens, or underscores only.",
+        )
+
+    # Read and validate YAML
+    try:
+        contents = await file.read()
+        config_data = yaml.safe_load(contents)
+
+        if not isinstance(config_data, dict):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid YAML structure. Must be a dictionary.",
+            )
+
+    except yaml.YAMLError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid YAML syntax: {str(e)}",
+        ) from e
+
+    # Save configuration to config directory
+    # Use project root /config directory
+    config_dir = Path(__file__).parent.parent.parent / "config"
+    config_dir.mkdir(exist_ok=True)
+
+    # For now, save as cluster-specific config
+    # Later we can merge into clusters.yaml
+    config_file = config_dir / f"{cluster_name}.yaml"
+
+    try:
+        with open(config_file, "w") as f:
+            yaml.dump(config_data, f, default_flow_style=False, sort_keys=False)
+
+        logger.info(
+            f"Agent uploaded cluster config: cluster={cluster_name}, "
+            f"file={file.filename}, size={len(contents)} bytes"
+        )
+
+        return {
+            "status": "success",
+            "message": f"Cluster configuration uploaded successfully: {file.filename}",
+            "cluster": cluster_name,
+            "file": file.filename,
+            "size": len(contents),
+            "saved_to": str(config_file),
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to save cluster config: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save configuration: {str(e)}",
+        ) from e
