@@ -42,6 +42,13 @@ const Dashboard: React.FC = () => {
   const [selectedQuarter, setSelectedQuarter] = useState<number>(Math.ceil((new Date().getMonth() + 1) / 3));
   const [downloadFormat, setDownloadFormat] = useState<'pdf' | 'csv' | 'json'>('pdf');
 
+  // Helper function to calculate start date (6 weeks before max_date)
+  const calculateStartDate = (maxDate: string): string => {
+    const date = new Date(maxDate);
+    date.setDate(date.getDate() - 42); // 6 weeks = 42 days
+    return date.toISOString().split('T')[0];
+  };
+
   // Helper function to automatically determine period type based on date range
   const calculatePeriodType = (start: string, end: string): string => {
     if (!start || !end) return 'month';
@@ -111,10 +118,11 @@ const Dashboard: React.FC = () => {
       const firstHostname = allClustersMetadata.hostnames[0];
       setSelectedHostname(firstHostname);
 
-      // Set date range - default to all available data
+      // Set date range - default to last 6 weeks
       const dateRange = allClustersMetadata.date_ranges[firstHostname];
-      if (dateRange && dateRange.min_date && dateRange.max_date) {
-        setStartDate(dateRange.min_date);
+      if (dateRange && dateRange.max_date) {
+        const calculatedStartDate = calculateStartDate(dateRange.max_date);
+        setStartDate(calculatedStartDate);
         setEndDate(dateRange.max_date);
       }
     }
@@ -127,9 +135,10 @@ const Dashboard: React.FC = () => {
       // Get the latest metadata for the new hostname
       if (allClustersMetadata && allClustersMetadata.date_ranges[selectedHostname]) {
         const dateRange = allClustersMetadata.date_ranges[selectedHostname];
-        if (dateRange.min_date && dateRange.max_date) {
-          // Default to all available data for new hostname
-          setStartDate(dateRange.min_date);
+        if (dateRange.max_date) {
+          // Default to last 6 weeks for new hostname
+          const calculatedStartDate = calculateStartDate(dateRange.max_date);
+          setStartDate(calculatedStartDate);
           setEndDate(dateRange.max_date);
         }
       }
