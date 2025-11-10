@@ -191,6 +191,20 @@ class AdminClient {
 
     return response.json();
   }
+
+  async reloadData(): Promise<{ success: boolean; message: string; date_ranges: Record<string, { min_date: string; max_date: string }> }> {
+    const response = await fetch(`${API_BASE_URL}/api/data/reload`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to reload data');
+    }
+
+    return response.json();
+  }
 }
 
 export const adminClient = new AdminClient();

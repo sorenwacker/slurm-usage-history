@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
-from ..core.auth import verify_api_key
+from ..core.auth import verify_admin_user, verify_api_key
 from ..core.config import get_settings
 from ..db.clusters import get_cluster_db
 from ..models.data_models import DataIngestionRequest, DataIngestionResponse
@@ -75,12 +75,19 @@ async def ingest_data(
         # Trigger datastore reload for this hostname
         try:
             from ..datastore_singleton import get_datastore
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Triggering datastore reload after ingesting data for {request.hostname}")
             datastore = get_datastore()
             datastore.load_data()
+            logger.info(f"Datastore reload completed. New date range: {datastore.get_min_max_dates(request.hostname)}")
         except Exception as e:
             # Log but don't fail the ingestion
             import logging
-            logging.warning(f"Failed to reload datastore after ingestion: {e}")
+            import traceback
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to reload datastore after ingestion: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
 
         return DataIngestionResponse(
             success=True,
@@ -93,4 +100,54 @@ async def ingest_data(
         raise HTTPException(
             status_code=500,
             detail=f"Error ingesting data: {str(e)}",
+        )
+
+
+@router.post("/reload")
+async def reload_datastore(
+    user_info: dict = Depends(verify_admin_user),
+) -> dict:
+    """Manually trigger datastore reload.
+
+    This endpoint forces a reload of all metadata from parquet files.
+    Useful after data ingestion if automatic reload fails.
+    Requires admin authentication.
+
+    Returns:
+        Status message with hostnames and date ranges
+    """
+    try:
+        from ..datastore_singleton import get_datastore
+        import logging
+        logger = logging.getLogger(__name__)
+
+        logger.info(f"Admin {user_info.get('email')} triggered manual datastore reload")
+        datastore = get_datastore()
+        datastore.load_data()
+
+        # Get updated metadata
+        hostnames = datastore.get_hostnames()
+        date_ranges = {}
+        for hostname in hostnames:
+            min_date, max_date = datastore.get_min_max_dates(hostname)
+            date_ranges[hostname] = {"min_date": min_date, "max_date": max_date}
+
+        logger.info(f"Datastore reload completed. Hostnames: {hostnames}")
+
+        return {
+            "success": True,
+            "message": f"Datastore reloaded successfully for {len(hostnames)} cluster(s)",
+            "hostnames": hostnames,
+            "date_ranges": date_ranges,
+        }
+
+    except Exception as e:
+        import logging
+        import traceback
+        logger = logging.getLogger(__name__)
+        logger.error(f"Manual datastore reload failed: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error reloading datastore: {str(e)}",
         )

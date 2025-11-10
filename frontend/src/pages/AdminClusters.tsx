@@ -10,6 +10,7 @@ export function AdminClusters() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [rotatingKey, setRotatingKey] = useState<string | null>(null);
   const [newAPIKey, setNewAPIKey] = useState<string | null>(null);
+  const [reloading, setReloading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,6 +37,19 @@ export function AdminClusters() {
   const handleLogout = () => {
     adminClient.logout();
     navigate('/admin/login');
+  };
+
+  const handleReloadData = async () => {
+    setReloading(true);
+    try {
+      const result = await adminClient.reloadData();
+      alert(`Data reloaded successfully!\n\n${result.message}\n\nLatest dates: ${JSON.stringify(result.date_ranges, null, 2)}`);
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reload data');
+    } finally {
+      setReloading(false);
+    }
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -107,6 +121,9 @@ export function AdminClusters() {
           <div className="clusters-header-nav">
             <a href="/">Dashboard</a>
             <a href="/admin/users">Users</a>
+            <button onClick={handleReloadData} disabled={reloading}>
+              {reloading ? 'Reloading...' : 'Reload Data'}
+            </button>
             <button onClick={handleLogout}>Logout</button>
           </div>
         </div>
