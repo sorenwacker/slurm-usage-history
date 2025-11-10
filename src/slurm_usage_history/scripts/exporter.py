@@ -347,6 +347,34 @@ def load_config(config_path: Path) -> Dict:
     return config
 
 
+def generate_weekly_chunks(start_date: str, end_date: str) -> List[tuple]:
+    """
+    Split date range into weekly chunks to avoid overloading SLURM and API.
+
+    Args:
+        start_date: Start date in YYYY-MM-DD format
+        end_date: End date in YYYY-MM-DD format
+
+    Returns:
+        List of (chunk_start, chunk_end) tuples
+    """
+    start = datetime.strptime(start_date, '%Y-%m-%d')
+    end = datetime.strptime(end_date, '%Y-%m-%d')
+
+    chunks = []
+    current = start
+
+    while current <= end:
+        chunk_end = min(current + timedelta(days=6), end)
+        chunks.append((
+            current.strftime('%Y-%m-%d'),
+            chunk_end.strftime('%Y-%m-%d')
+        ))
+        current = chunk_end + timedelta(days=1)
+
+    return chunks
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Extract SLURM job data and submit to dashboard'
@@ -394,7 +422,9 @@ def main():
         datetime.now() - timedelta(days=7)
     ).strftime('%Y-%m-%d')
 
-    logger.info(f"Processing date range: {start_date} to {end_date}")
+    # Split into weekly chunks to avoid overloading SLURM and API
+    chunks = generate_weekly_chunks(start_date, end_date)
+    logger.info(f"Processing {len(chunks)} weekly chunk(s) from {start_date} to {end_date}")
 
     try:
         # Load configuration
@@ -403,44 +433,66 @@ def main():
         # Initialize extractor
         extractor = SlurmDataExtractor(cluster_name=args.cluster_name)
 
-        # Extract jobs
-        df = extractor.extract_jobs(start_date, end_date)
+        # Initialize dashboard client (unless dry run)
+        client = None
+        if not args.dry_run:
+            client = DashboardClient(
+                api_url=config['api_url'],
+                api_key=config['api_key'],
+                timeout=config.get('timeout', 30)
+            )
+            # Check health first
+            health = client.check_health()
+            logger.info(f"Dashboard health: {health.get('status', 'unknown')}")
 
-        if df.empty:
-            logger.warning("No jobs found in specified date range")
-            return 0
+        # Process each chunk
+        total_jobs = 0
+        total_cpu_hours = 0.0
+        total_gpu_hours = 0.0
 
-        # Format jobs
-        jobs = extractor.format_jobs(df)
+        for i, (chunk_start, chunk_end) in enumerate(chunks, 1):
+            logger.info(f"Processing chunk {i}/{len(chunks)}: {chunk_start} to {chunk_end}")
 
+            # Extract jobs for this chunk
+            df = extractor.extract_jobs(chunk_start, chunk_end)
+
+            if df.empty:
+                logger.info(f"  No jobs in chunk {i}")
+                continue
+
+            # Format jobs
+            jobs = extractor.format_jobs(df)
+            chunk_cpu_hours = sum(j['CPUHours'] for j in jobs)
+            chunk_gpu_hours = sum(j['GPUHours'] for j in jobs)
+
+            logger.info(f"  Chunk {i}: {len(jobs)} jobs, {chunk_cpu_hours:.2f} CPU-hours, {chunk_gpu_hours:.2f} GPU-hours")
+
+            total_jobs += len(jobs)
+            total_cpu_hours += chunk_cpu_hours
+            total_gpu_hours += chunk_gpu_hours
+
+            if args.dry_run:
+                # Show sample of first job in first chunk
+                if i == 1 and jobs:
+                    logger.info(f"  Sample job: {json.dumps(jobs[0], indent=2)}")
+            else:
+                # Submit chunk to dashboard
+                result = client.submit_jobs(extractor.cluster_name, jobs)
+                logger.info(f"  Chunk {i} submitted: {result.get('message', 'OK')}")
+
+        # Summary
         if args.dry_run:
-            logger.info("DRY RUN: Would submit the following:")
+            logger.info("DRY RUN SUMMARY:")
             logger.info(f"  Cluster: {extractor.cluster_name}")
-            logger.info(f"  Jobs: {len(jobs)}")
-            logger.info(f"  Total CPU-hours: {sum(j['CPUHours'] for j in jobs):.2f}")
-            logger.info(f"  Total GPU-hours: {sum(j['GPUHours'] for j in jobs):.2f}")
+            logger.info(f"  Total jobs: {total_jobs}")
+            logger.info(f"  Total CPU-hours: {total_cpu_hours:.2f}")
+            logger.info(f"  Total GPU-hours: {total_gpu_hours:.2f}")
+        else:
+            logger.info("SUBMISSION COMPLETE:")
+            logger.info(f"  Total jobs submitted: {total_jobs}")
+            logger.info(f"  Total CPU-hours: {total_cpu_hours:.2f}")
+            logger.info(f"  Total GPU-hours: {total_gpu_hours:.2f}")
 
-            # Show sample of first job
-            if jobs:
-                logger.info(f"  Sample job: {json.dumps(jobs[0], indent=2)}")
-
-            return 0
-
-        # Submit to dashboard
-        client = DashboardClient(
-            api_url=config['api_url'],
-            api_key=config['api_key'],
-            timeout=config.get('timeout', 30)
-        )
-
-        # Check health first
-        health = client.check_health()
-        logger.info(f"Dashboard health: {health.get('status', 'unknown')}")
-
-        # Submit jobs
-        result = client.submit_jobs(extractor.cluster_name, jobs)
-
-        logger.info(f"Submission complete: {result}")
         return 0
 
     except KeyboardInterrupt:
