@@ -237,6 +237,11 @@ export const getCommonLayout = (xTitle: string, yTitle: string, showLegend: bool
     tickformat: ',',  // Thousands separator
   },
   hovermode: 'x unified',
+  hoverlabel: {
+    bgcolor: 'white',
+    bordercolor: '#ddd',
+    font: { color: 'black', size: 12 },
+  },
   showlegend: showLegend,
   legend: {
     x: 1.01,
