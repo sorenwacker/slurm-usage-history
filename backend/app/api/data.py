@@ -61,13 +61,42 @@ async def ingest_data(
         if "Submit" in df.columns and "Start" in df.columns:
             df["WaitingTime"] = (df["Start"] - df["Submit"]).dt.total_seconds() / 3600.0  # hours
 
-        # Generate filename based on current timestamp
-        timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"jobs_{timestamp}.parquet"
-        filepath = data_dir / filename
+        # Group by year and append to yearly files (instead of creating timestamped files)
+        import logging
+        logger = logging.getLogger(__name__)
 
-        # Save as parquet
-        df.to_parquet(filepath, index=False, engine="pyarrow")
+        years = df["SubmitYear"].unique() if "SubmitYear" in df.columns else []
+        jobs_saved = 0
+
+        for year in sorted(years):
+            year_df = df[df["SubmitYear"] == year].copy()
+            year_file = data_dir / f"jobs_{year}.parquet"
+
+            # Load existing file if it exists
+            if year_file.exists():
+                try:
+                    existing_df = pd.read_parquet(year_file)
+                    logger.info(f"Appending {len(year_df)} jobs to existing {year} file with {len(existing_df)} jobs")
+
+                    # Concatenate
+                    combined_df = pd.concat([existing_df, year_df], ignore_index=True)
+
+                    # Deduplicate by JobID (keep latest)
+                    if "JobID" in combined_df.columns:
+                        before = len(combined_df)
+                        combined_df = combined_df.drop_duplicates(subset=["JobID"], keep="last")
+                        logger.info(f"Deduplicated {before - len(combined_df)} duplicate jobs")
+
+                    year_df = combined_df
+                except Exception as e:
+                    logger.warning(f"Failed to load existing {year} file, will overwrite: {e}")
+            else:
+                logger.info(f"Creating new {year} file with {len(year_df)} jobs")
+
+            # Save yearly file
+            year_df.to_parquet(year_file, index=False, engine="pyarrow")
+            jobs_saved += len(year_df)
+            logger.info(f"Saved {len(year_df)} jobs to {year_file.name}")
 
         # Update submission stats
         db = get_cluster_db()
