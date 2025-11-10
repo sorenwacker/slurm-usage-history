@@ -107,9 +107,26 @@ async def saml_acs(request: Request):
     nameid = auth.get_nameid()
     session_index = auth.get_session_index()
 
+    # Log attributes for debugging
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"SAML NameID: {nameid}")
+    logger.info(f"SAML Attributes: {attributes}")
+
+    # Extract username from attributes (try common attribute names)
+    username = nameid  # Fallback to NameID
+    if attributes:
+        # Try common username attributes
+        username_attrs = attributes.get("uid") or \
+                        attributes.get("urn:oid:0.9.2342.19200300.100.1.1") or \
+                        attributes.get("username") or \
+                        attributes.get("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")
+        if username_attrs and isinstance(username_attrs, list) and len(username_attrs) > 0:
+            username = username_attrs[0]
+
     # Create user data for session
     user_data = {
-        "username": nameid,
+        "username": username,
         "attributes": attributes,
         "session_index": session_index,
     }
@@ -297,7 +314,7 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user_sa
         is_admin = settings.is_admin_email(email)
 
     # If not found by email, check if username (netid) matches any admin email prefix
-    # E.g., username "sdrwacker" matches "sdrwacker@tudelft.nl"
+    # E.g., username "jdoe" matches "jdoe@tudelft.nl"
     if not is_admin and current_user.get("username"):
         username = current_user.get("username")
         # Check if username@tudelft.nl is in admin emails
