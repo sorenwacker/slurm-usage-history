@@ -171,3 +171,4 @@ _version.py
 
 # Ansible deployment files (kept separate from application code)
 ansible/
+docker-compose.dev.tmp.yml

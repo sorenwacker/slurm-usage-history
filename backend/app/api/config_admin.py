@@ -74,16 +74,25 @@ async def auto_generate_cluster_configuration(cluster_name: str):
         Generated configuration with stats
     """
     try:
-        from .dashboard import get_datastore
+        from ..core.config import get_settings
+        import pandas as pd
 
-        datastore = get_datastore()
+        settings = get_settings()
+        data_path = Path(settings.data_path) / cluster_name / "weekly-data"
 
-        # Check if cluster exists in data
-        if cluster_name not in datastore.get_hostnames():
-            raise HTTPException(status_code=404, detail=f"No data found for cluster {cluster_name}")
+        if not data_path.exists():
+            raise HTTPException(status_code=404, detail=f"No data directory found for cluster {cluster_name}")
 
-        # Get all data for the cluster
-        df = datastore.filter(hostname=cluster_name)
+        # Load all parquet files directly to get full column set (including NodeList)
+        parquet_files = list(data_path.glob("*.parquet"))
+        if not parquet_files:
+            raise HTTPException(status_code=404, detail=f"No data files found for cluster {cluster_name}")
+
+        # Load and concatenate all data files
+        df_list = []
+        for file in parquet_files:
+            df_list.append(pd.read_parquet(file))
+        df = pd.concat(df_list, ignore_index=True)
 
         if df.empty:
             raise HTTPException(status_code=404, detail=f"No data found for cluster {cluster_name}")
@@ -91,23 +100,46 @@ async def auto_generate_cluster_configuration(cluster_name: str):
         # Generate node labels from unique node names
         node_labels = {}
         if "NodeList" in df.columns:
-            unique_nodes = df["NodeList"].dropna().unique()
-            for node in sorted(unique_nodes):
-                if node and isinstance(node, str):
-                    # Try to detect node type from name
-                    node_type = "cpu"
-                    if "gpu" in node.lower():
-                        node_type = "gpu"
-                    elif "login" in node.lower():
-                        node_type = "login"
-                    elif "storage" in node.lower() or "nas" in node.lower():
-                        node_type = "storage"
+            # NodeList can be strings (possibly comma-separated) or arrays
+            all_nodes = set()
+            for nodelist in df["NodeList"].dropna():
+                if isinstance(nodelist, str):
+                    # String may contain comma-separated node names
+                    for node in nodelist.split(','):
+                        node = node.strip()
+                        if node:
+                            all_nodes.add(node)
+                elif isinstance(nodelist, (list, tuple)):
+                    # It's a list/tuple of nodes
+                    for node in nodelist:
+                        if node and isinstance(node, str):
+                            all_nodes.add(node)
+                else:
+                    # Handle numpy arrays or other iterables (but not strings!)
+                    try:
+                        import numpy as np
+                        if isinstance(nodelist, np.ndarray):
+                            for node in nodelist:
+                                if node and isinstance(node, str):
+                                    all_nodes.add(node)
+                    except (TypeError, AttributeError, ImportError):
+                        pass
 
-                    node_labels[node] = {
-                        "synonyms": [],
-                        "type": node_type,
-                        "description": f"{node_type.upper()} Node {node}",
-                    }
+            for node in sorted(all_nodes):
+                # Try to detect node type from name
+                node_type = "cpu"
+                if "gpu" in node.lower():
+                    node_type = "gpu"
+                elif "login" in node.lower():
+                    node_type = "login"
+                elif "storage" in node.lower() or "nas" in node.lower():
+                    node_type = "storage"
+
+                node_labels[node] = {
+                    "synonyms": [],
+                    "type": node_type,
+                    "description": f"{node_type.upper()} Node {node}",
+                }
 
         # Generate account labels
         account_labels = {}

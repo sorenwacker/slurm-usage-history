@@ -1,0 +1,42 @@
+{
+  "strict": false,
+  "debug": true,
+  "sp": {
+    "entityId": "http://localhost:8100/saml/metadata",
+    "assertionConsumerService": {
+      "url": "http://localhost:8100/saml/acs",
+      "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+    },
+    "singleLogoutService": {
+      "url": "http://localhost:8100/saml/sls",
+      "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+    },
+    "NameIDFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+    "x509cert": "",
+    "privateKey": ""
+  },
+  "idp": {
+    "entityId": "http://saml-idp:8080/saml2/idp/metadata.php",
+    "singleSignOnService": {
+      "url": "http://localhost:8080/saml2/idp/SSOService.php",
+      "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+    },
+    "singleLogoutService": {
+      "url": "http://localhost:8080/saml2/idp/SingleLogoutService.php",
+      "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+    },
+    "x509cert": "MIIECTCCAnGgAwIBAgIUavsp1OiujkjQ+0pI1S6kGhElU1MwDQYJKoZIhvcNAQELBQAwFDESMBAGA1UEAwwJbG9jYWxob3N0MB4XDTI1MTExMDExMzY1M1oXDTM1MTExMDExMzY1M1owFDESMBAGA1UEAwwJbG9jYWxob3N0MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAnql8oh6Td5kob/E0fLuc+MONEkh73IMxsD0Uq0mSf4e1ocNeUfJaQrFMnqRI1nR/IFyU5VfYF5t52+M1zLo6Cd1LuS2U1jwG5KvWpoLZhhZtWtkuTFXgLvSDIGQwdzxpkLGniBN9OkjF2Jqy6HzP+12IvCrV/zzeuI4GD+Dfc6yCUJdWoE8kZ+kkvn9VPe85cT04335OATpMO14E4aR6fgCfMs131wNIyiAwZnmrSd7CBMKLF5gSCVvjkknFS4cEjYKqMr0qfCDEOQcfU1Liqz5AzhZm80hgDNqqo5NWg/gPeqRhdhDAV1AYjM6IltJ8tjzBMSS9n3TdsmhDqOgbg4Q6ERqbrk0xd5aB1p3zgQNo9KDrjx78UTo5NCC5DZyKFzyqDv+UxNW3fCohlEITJTlzATOy4Uw2AwuvFHawg1OO8ueE+mc5ocPB0seLYv9uPb7SHDN1A7GK66v6zG5JKShJrd21QlRBQnBXuEa3SaOu6KxJ2yo9FFMW2JLun+I7AgMBAAGjUzBRMB0GA1UdDgQWBBQbpuN0++4bZVlybmlw7nnqUbI4MDAfBgNVHSMEGDAWgBQbpuN0++4bZVlybmlw7nnqUbI4MDAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBgQAMnObMA9KBiqWu9nZIDwR08RK4Ix6XxejusgOIxU2TFbARRufKyWRawhY6QmE3ZOCatroJxOyjUaXNRYAOIvjkvRJHQ2N+ePwy2rUbxzv6KW8Z8vFxg5gB8YNx7+PvM8wWt5BvnPWTO0/scDDe6Xn034WRW+REKW3Za6uEaRlnkCWMa+ZIQ1FXUzVsMqNk0zagGBeIoBJVukgTlnO7Um4plGMD+cVUtbQgmxJLayJSnD0pGNHrWZVIVxzHFXogacWnFsFMDp4puCKWeoO5biuc6EybXu35zjhrJ9adDflMyYdncS0BC0S1pDLkhhp8aMPjShUzjOXq9KYDLhViz6iXm0Nl7BDSkUkIBDWQ5knEThc0TBIMFF1h0akFLIerShFhefJUhVkIp38of5yWsv5O8XoTT8aHzfAlOZ2TuOoalfls3/fzHfLwVbysfDbuzkNlgqjoJM5PXsm5ATFHN8Wnnzn0aFQPiO33js/+37/LjGHAV0K8y3T/2tAYvyXy+VY="
+  },
+  "security": {
+    "nameIdEncrypted": false,
+    "authnRequestsSigned": false,
+    "logoutRequestSigned": false,
+    "logoutResponseSigned": false,
+    "signMetadata": false,
+    "wantMessagesSigned": false,
+    "wantAssertionsSigned": false,
+    "wantAssertionsEncrypted": false,
+    "wantNameIdEncrypted": false,
+    "requestedAuthnContext": false
+  }
+}

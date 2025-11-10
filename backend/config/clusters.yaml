@@ -1,0 +1,2009 @@
+clusters:
+  DAIC:
+    display_name: DAIC
+    description: DAIC Cluster
+    metadata:
+      location: Unknown
+      contact: admin@example.com
+    node_labels:
+      100plus:
+        synonyms: []
+        type: cpu
+        description: CPU Node 100plus
+      3dgi01:
+        synonyms: []
+        type: cpu
+        description: CPU Node 3dgi01
+      3dgi02:
+        synonyms: []
+        type: cpu
+        description: CPU Node 3dgi02
+      3dgi1:
+        synonyms: []
+        type: cpu
+        description: CPU Node 3dgi1
+      3dgi2:
+        synonyms: []
+        type: cpu
+        description: CPU Node 3dgi2
+      awi01:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi01
+      awi02:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi02
+      awi04:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi04
+      awi05:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi05
+      awi08:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi08
+      awi09:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi09
+      awi10:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi10
+      awi11:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi11
+      awi12:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi12
+      awi19:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi19
+      awi20:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi20
+      awi21:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi21
+      awi22:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi22
+      awi23:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi23
+      awi24:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi24
+      awi25:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi25
+      awi26:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi26
+      cor1:
+        synonyms: []
+        type: cpu
+        description: CPU Node cor1
+      gpu01:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu01
+      gpu02:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu02
+      gpu03:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu03
+      gpu04:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu04
+      gpu05:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu05
+      gpu06:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu06
+      gpu07:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu07
+      gpu08:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu08
+      gpu09:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu09
+      gpu10:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu10
+      gpu11:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu11
+      gpu12:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu12
+      gpu14:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu14
+      gpu15:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu15
+      gpu16:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu16
+      gpu17:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu17
+      gpu18:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu18
+      gpu19:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu19
+      gpu20:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu20
+      gpu21:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu21
+      gpu22:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu22
+      gpu23:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu23
+      gpu24:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu24
+      gpu25:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu25
+      gpu26:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu26
+      gpu27:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu27
+      gpu28:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu28
+      gpu29:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu29
+      gpu30:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu30
+      gpu31:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu31
+      gpu32:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu32
+      gpu33:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu33
+      gpu34:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu34
+      gpu35:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu35
+      grs01:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs01
+      grs02:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs02
+      grs03:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs03
+      grs04:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs04
+      grs1:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs1
+      grs2:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs2
+      grs3:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs3
+      grs4:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs4
+      influ01:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ01
+      influ02:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ02
+      influ03:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ03
+      influ04:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ04
+      influ05:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ05
+      influ06:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ06
+      influ1:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ1
+      influ2:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ2
+      influ3:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ3
+      influ4:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ4
+      influ5:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ5
+      influ6:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ6
+      insy15:
+        synonyms: []
+        type: cpu
+        description: CPU Node insy15
+      insy16:
+        synonyms: []
+        type: cpu
+        description: CPU Node insy16
+    account_labels:
+      bk-ar-bkn:
+        display_name: bk-ar-bkn
+        short_name: BKN
+      ewi-insy-cgv:
+        display_name: ewi-insy-cgv
+        short_name: CGV
+      ewi-insy-cys:
+        display_name: ewi-insy-cys
+        short_name: CYS
+      ewi-insy-ii:
+        display_name: ewi-insy-ii
+        short_name: II
+      ewi-insy-mmc:
+        display_name: ewi-insy-mmc
+        short_name: MMC
+      ewi-insy-prb:
+        display_name: ewi-insy-prb
+        short_name: PRB
+      ewi-insy-reit:
+        display_name: ewi-insy-reit
+        short_name: REIT
+      ewi-insy-sdm:
+        display_name: ewi-insy-sdm
+        short_name: SDM
+      ewi-me-sps:
+        display_name: ewi-me-sps
+        short_name: SPS
+      ewi-st:
+        display_name: ewi-st
+        short_name: ST
+      ewi-st-algor:
+        display_name: ewi-st-algor
+        short_name: ALGOR
+      ewi-st-dis:
+        display_name: ewi-st-dis
+        short_name: DIS
+      ewi-st-ns:
+        display_name: ewi-st-ns
+        short_name: NS
+      ewi-st-wis:
+        display_name: ewi-st-wis
+        short_name: WIS
+      lr-asm-giovan:
+        display_name: lr-asm-giovan
+        short_name: GIOVAN
+      lr-co-oe:
+        display_name: lr-co-oe
+        short_name: OE
+      me-cor:
+        display_name: me-cor
+        short_name: COR
+      tnw-imphys:
+        display_name: tnw-imphys
+        short_name: IMPHYS
+      ud-ict:
+        display_name: ud-ict
+        short_name: ICT
+      ewi-insy-ii-influence:
+        display_name: ewi-insy-ii-influence
+        short_name: INFLUENCE
+      ewi-insy-prb-dbl:
+        display_name: ewi-insy-prb-dbl
+        short_name: DBL
+      ewi-insy-prb-prlab:
+        display_name: ewi-insy-prb-prlab
+        short_name: PRLAB
+      ewi-insy-prb-spclab:
+        display_name: ewi-insy-prb-spclab
+        short_name: SPCLAB
+      ewi-insy-prb-visionlab:
+        display_name: ewi-insy-prb-visionlab
+        short_name: VISIONLAB
+    partition_labels:
+      asm:
+        display_name: Asm Partition
+        description: asm partition
+      asm,general:
+        display_name: Asm,general Partition
+        description: asm,general partition
+      cor:
+        display_name: Cor Partition
+        description: cor partition
+      cor,general:
+        display_name: Cor,general Partition
+        description: cor,general partition
+      ewi-insy:
+        display_name: Ewi-insy Partition
+        description: ewi-insy partition
+      ewi-insy,ewi-insy-prb,ewi-insy-prb,general:
+        display_name: Ewi-insy,ewi-insy-prb,ewi-insy-prb,general Partition
+        description: ewi-insy,ewi-insy-prb,ewi-insy-prb,general partition
+      ewi-insy,ewi-insy-prb,general:
+        display_name: Ewi-insy,ewi-insy-prb,general Partition
+        description: ewi-insy,ewi-insy-prb,general partition
+      ewi-insy,general:
+        display_name: Ewi-insy,general Partition
+        description: ewi-insy,general partition
+      ewi-insy-prb:
+        display_name: Ewi-insy-prb Partition
+        description: ewi-insy-prb partition
+      ewi-insy-prb,ewi-insy,ewi-insy,general:
+        display_name: Ewi-insy-prb,ewi-insy,ewi-insy,general Partition
+        description: ewi-insy-prb,ewi-insy,ewi-insy,general partition
+      ewi-insy-prb,ewi-insy,general:
+        display_name: Ewi-insy-prb,ewi-insy,general Partition
+        description: ewi-insy-prb,ewi-insy,general partition
+      ewi-insy-prb,general:
+        display_name: Ewi-insy-prb,general Partition
+        description: ewi-insy-prb,general partition
+      ewi-insy-prb,influence,ewi-insy,general:
+        display_name: Ewi-insy-prb,influence,ewi-insy,general Partition
+        description: ewi-insy-prb,influence,ewi-insy,general partition
+      ewi-me-sps:
+        display_name: Ewi-me-sps Partition
+        description: ewi-me-sps partition
+      ewi-me-sps,general:
+        display_name: Ewi-me-sps,general Partition
+        description: ewi-me-sps,general partition
+      ewi-st:
+        display_name: Ewi-st Partition
+        description: ewi-st partition
+      ewi-st,general:
+        display_name: Ewi-st,general Partition
+        description: ewi-st,general partition
+      general:
+        display_name: General Partition
+        description: general partition
+      general,:
+        display_name: General, Partition
+        description: general, partition
+      general,bk-ar:
+        display_name: General,bk-ar Partition
+        description: general,bk-ar partition
+      general,cor:
+        display_name: General,cor Partition
+        description: general,cor partition
+      general,ewi-insy:
+        display_name: General,ewi-insy Partition
+        description: general,ewi-insy partition
+      general,ewi-insy,ewi-insy-prb:
+        display_name: General,ewi-insy,ewi-insy-prb Partition
+        description: general,ewi-insy,ewi-insy-prb partition
+      general,ewi-insy,ewi-insy-prb,influence:
+        display_name: General,ewi-insy,ewi-insy-prb,influence Partition
+        description: general,ewi-insy,ewi-insy-prb,influence partition
+      general,ewi-insy-prb,ewi-insy:
+        display_name: General,ewi-insy-prb,ewi-insy Partition
+        description: general,ewi-insy-prb,ewi-insy partition
+      general,ewi-me-sps:
+        display_name: General,ewi-me-sps Partition
+        description: general,ewi-me-sps partition
+      general,ewi-st:
+        display_name: General,ewi-st Partition
+        description: general,ewi-st partition
+      general,insy:
+        display_name: General,insy Partition
+        description: general,insy partition
+      general,insy,prb:
+        display_name: General,insy,prb Partition
+        description: general,insy,prb partition
+      general,me-cor:
+        display_name: General,me-cor Partition
+        description: general,me-cor partition
+      general,prb,insy:
+        display_name: General,prb,insy Partition
+        description: general,prb,insy partition
+      imphys:
+        display_name: Imphys Partition
+        description: imphys partition
+      imphys,general:
+        display_name: Imphys,general Partition
+        description: imphys,general partition
+      imphys,insy,general:
+        display_name: Imphys,insy,general Partition
+        description: imphys,insy,general partition
+      influence:
+        display_name: Influence Partition
+        description: influence partition
+      influence,insy,general:
+        display_name: Influence,insy,general Partition
+        description: influence,insy,general partition
+      insy:
+        display_name: Insy Partition
+        description: insy partition
+      insy,general:
+        display_name: Insy,general Partition
+        description: insy,general partition
+      insy,general,prb:
+        display_name: Insy,general,prb Partition
+        description: insy,general,prb partition
+      insy,influence,general:
+        display_name: Insy,influence,general Partition
+        description: insy,influence,general partition
+      insy,influence,mmll,prb,general:
+        display_name: Insy,influence,mmll,prb,general Partition
+        description: insy,influence,mmll,prb,general partition
+      insy,mmll,general:
+        display_name: Insy,mmll,general Partition
+        description: insy,mmll,general partition
+      insy,prb,general:
+        display_name: Insy,prb,general Partition
+        description: insy,prb,general partition
+      insy,st,general:
+        display_name: Insy,st,general Partition
+        description: insy,st,general partition
+      lr-asm:
+        display_name: Lr-asm Partition
+        description: lr-asm partition
+      lr-asm,general:
+        display_name: Lr-asm,general Partition
+        description: lr-asm,general partition
+      me-cor:
+        display_name: Me-cor Partition
+        description: me-cor partition
+      me-cor,general:
+        display_name: Me-cor,general Partition
+        description: me-cor,general partition
+      mmll:
+        display_name: Mmll Partition
+        description: mmll partition
+      mmll,insy,general:
+        display_name: Mmll,insy,general Partition
+        description: mmll,insy,general partition
+      prb:
+        display_name: Prb Partition
+        description: prb partition
+      prb,influence,insy,general:
+        display_name: Prb,influence,insy,general Partition
+        description: prb,influence,insy,general partition
+      prb,insy,general:
+        display_name: Prb,insy,general Partition
+        description: prb,insy,general partition
+      st:
+        display_name: St Partition
+        description: st partition
+      st,general:
+        display_name: St,general Partition
+        description: st,general partition
+      tnw-imphys:
+        display_name: Tnw-imphys Partition
+        description: tnw-imphys partition
+      tnw-imphys,general:
+        display_name: Tnw-imphys,general Partition
+        description: tnw-imphys,general partition
+  TestCluster:
+    display_name: TestCluster
+    description: TestCluster Cluster
+    metadata:
+      location: Unknown
+      contact: admin@example.com
+    node_labels:
+      a100-01:
+        synonyms: []
+        type: cpu
+        description: CPU Node a100-01
+      a100-01,a100-02:
+        synonyms: []
+        type: cpu
+        description: CPU Node a100-01,a100-02
+      a100-02:
+        synonyms: []
+        type: cpu
+        description: CPU Node a100-02
+      a100-02,a100-01:
+        synonyms: []
+        type: cpu
+        description: CPU Node a100-02,a100-01
+      bigmem01:
+        synonyms: []
+        type: cpu
+        description: CPU Node bigmem01
+      bigmem01,bigmem02:
+        synonyms: []
+        type: cpu
+        description: CPU Node bigmem01,bigmem02
+      bigmem02:
+        synonyms: []
+        type: cpu
+        description: CPU Node bigmem02
+      bigmem02,bigmem01:
+        synonyms: []
+        type: cpu
+        description: CPU Node bigmem02,bigmem01
+      cpu001:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu001
+      cpu001,cpu002:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu001,cpu002
+      cpu001,cpu004:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu001,cpu004
+      cpu001,cpu007:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu001,cpu007
+      cpu001,cpu008:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu001,cpu008
+      cpu001,cpu010:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu001,cpu010
+      cpu001,cpu011:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu001,cpu011
+      cpu001,cpu012:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu001,cpu012
+      cpu001,cpu012,cpu010,cpu013:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu001,cpu012,cpu010,cpu013
+      cpu001,cpu013:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu001,cpu013
+      cpu001,cpu013,cpu004,cpu014:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu001,cpu013,cpu004,cpu014
+      cpu001,cpu014:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu001,cpu014
+      cpu001,cpu015:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu001,cpu015
+      cpu002:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu002
+      cpu002,cpu001:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu002,cpu001
+      cpu002,cpu004:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu002,cpu004
+      cpu002,cpu005:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu002,cpu005
+      cpu002,cpu006:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu002,cpu006
+      cpu002,cpu007:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu002,cpu007
+      cpu002,cpu008:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu002,cpu008
+      cpu002,cpu009:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu002,cpu009
+      cpu002,cpu010:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu002,cpu010
+      cpu002,cpu012:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu002,cpu012
+      cpu002,cpu013:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu002,cpu013
+      cpu002,cpu015:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu002,cpu015
+      cpu002,cpu015,cpu006,cpu013:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu002,cpu015,cpu006,cpu013
+      cpu003:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu003
+      cpu003,cpu001:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu003,cpu001
+      cpu003,cpu002:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu003,cpu002
+      cpu003,cpu004:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu003,cpu004
+      cpu003,cpu005:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu003,cpu005
+      cpu003,cpu006:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu003,cpu006
+      cpu003,cpu007:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu003,cpu007
+      cpu003,cpu009:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu003,cpu009
+      cpu003,cpu010:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu003,cpu010
+      cpu003,cpu011:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu003,cpu011
+      cpu003,cpu013:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu003,cpu013
+      cpu003,cpu015:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu003,cpu015
+      cpu003,cpu016:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu003,cpu016
+      cpu004:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu004
+      cpu004,cpu001:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu004,cpu001
+      cpu004,cpu002:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu004,cpu002
+      cpu004,cpu003:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu004,cpu003
+      cpu004,cpu009:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu004,cpu009
+      cpu004,cpu010:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu004,cpu010
+      cpu004,cpu011:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu004,cpu011
+      cpu004,cpu012:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu004,cpu012
+      cpu004,cpu013:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu004,cpu013
+      cpu004,cpu014:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu004,cpu014
+      cpu004,cpu015:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu004,cpu015
+      cpu004,cpu016:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu004,cpu016
+      cpu005:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu005
+      cpu005,cpu001:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu005,cpu001
+      cpu005,cpu002:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu005,cpu002
+      cpu005,cpu003:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu005,cpu003
+      cpu005,cpu004:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu005,cpu004
+      cpu005,cpu007:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu005,cpu007
+      cpu005,cpu008:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu005,cpu008
+      cpu005,cpu009:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu005,cpu009
+      cpu005,cpu009,cpu012,cpu016:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu005,cpu009,cpu012,cpu016
+      cpu005,cpu011:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu005,cpu011
+      cpu005,cpu012:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu005,cpu012
+      cpu005,cpu015:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu005,cpu015
+      cpu006:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu006
+      cpu006,cpu001:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu006,cpu001
+      cpu006,cpu002:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu006,cpu002
+      cpu006,cpu003:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu006,cpu003
+      cpu006,cpu004:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu006,cpu004
+      cpu006,cpu004,cpu005,cpu008:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu006,cpu004,cpu005,cpu008
+      cpu006,cpu005:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu006,cpu005
+      cpu006,cpu007:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu006,cpu007
+      cpu006,cpu008:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu006,cpu008
+      cpu006,cpu009:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu006,cpu009
+      cpu006,cpu010:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu006,cpu010
+      cpu006,cpu013:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu006,cpu013
+      cpu006,cpu014:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu006,cpu014
+      cpu006,cpu015:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu006,cpu015
+      cpu006,cpu016:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu006,cpu016
+      cpu007:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu007
+      cpu007,cpu001:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu007,cpu001
+      cpu007,cpu002:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu007,cpu002
+      cpu007,cpu004:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu007,cpu004
+      cpu007,cpu006:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu007,cpu006
+      cpu007,cpu008:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu007,cpu008
+      cpu007,cpu009:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu007,cpu009
+      cpu007,cpu010:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu007,cpu010
+      cpu007,cpu011:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu007,cpu011
+      cpu007,cpu012:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu007,cpu012
+      cpu007,cpu013:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu007,cpu013
+      cpu007,cpu014:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu007,cpu014
+      cpu007,cpu015:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu007,cpu015
+      cpu007,cpu016:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu007,cpu016
+      cpu008:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu008
+      cpu008,cpu001:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu008,cpu001
+      cpu008,cpu002:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu008,cpu002
+      cpu008,cpu003:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu008,cpu003
+      cpu008,cpu004:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu008,cpu004
+      cpu008,cpu005:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu008,cpu005
+      cpu008,cpu005,cpu001,cpu014:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu008,cpu005,cpu001,cpu014
+      cpu008,cpu006:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu008,cpu006
+      cpu008,cpu007:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu008,cpu007
+      cpu008,cpu009:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu008,cpu009
+      cpu008,cpu010:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu008,cpu010
+      cpu008,cpu011:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu008,cpu011
+      cpu008,cpu012:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu008,cpu012
+      cpu008,cpu013:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu008,cpu013
+      cpu008,cpu015:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu008,cpu015
+      cpu009:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu009
+      cpu009,cpu001:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu009,cpu001
+      cpu009,cpu002:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu009,cpu002
+      cpu009,cpu003:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu009,cpu003
+      cpu009,cpu006:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu009,cpu006
+      cpu009,cpu008:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu009,cpu008
+      cpu009,cpu010:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu009,cpu010
+      cpu009,cpu011:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu009,cpu011
+      cpu009,cpu012:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu009,cpu012
+      cpu009,cpu013:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu009,cpu013
+      cpu009,cpu013,cpu011,cpu008:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu009,cpu013,cpu011,cpu008
+      cpu009,cpu015:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu009,cpu015
+      cpu009,cpu016:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu009,cpu016
+      cpu010:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu010
+      cpu010,cpu002:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu010,cpu002
+      cpu010,cpu003:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu010,cpu003
+      cpu010,cpu003,cpu005,cpu007:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu010,cpu003,cpu005,cpu007
+      cpu010,cpu004:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu010,cpu004
+      cpu010,cpu005:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu010,cpu005
+      cpu010,cpu006:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu010,cpu006
+      cpu010,cpu009:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu010,cpu009
+      cpu010,cpu011:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu010,cpu011
+      cpu010,cpu012:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu010,cpu012
+      cpu010,cpu013:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu010,cpu013
+      cpu010,cpu014:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu010,cpu014
+      cpu010,cpu016:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu010,cpu016
+      cpu011:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011
+      cpu011,cpu001:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu001
+      cpu011,cpu002,cpu012,cpu003:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu002,cpu012,cpu003
+      cpu011,cpu003:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu003
+      cpu011,cpu004,cpu015,cpu014:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu004,cpu015,cpu014
+      cpu011,cpu005:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu005
+      cpu011,cpu006:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu006
+      cpu011,cpu007:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu007
+      cpu011,cpu008:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu008
+      cpu011,cpu010:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu010
+      cpu011,cpu010,cpu013,cpu006:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu010,cpu013,cpu006
+      cpu011,cpu012:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu012
+      cpu011,cpu013:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu013
+      cpu011,cpu014:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu014
+      cpu011,cpu015:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu015
+      cpu011,cpu015,cpu007,cpu004:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu015,cpu007,cpu004
+      cpu011,cpu016:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu011,cpu016
+      cpu012:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu012
+      cpu012,cpu001:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu012,cpu001
+      cpu012,cpu002:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu012,cpu002
+      cpu012,cpu003:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu012,cpu003
+      cpu012,cpu005:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu012,cpu005
+      cpu012,cpu006:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu012,cpu006
+      cpu012,cpu007:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu012,cpu007
+      cpu012,cpu008:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu012,cpu008
+      cpu012,cpu009:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu012,cpu009
+      cpu012,cpu010:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu012,cpu010
+      cpu012,cpu011:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu012,cpu011
+      cpu012,cpu014:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu012,cpu014
+      cpu013:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu013
+      cpu013,cpu001:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu013,cpu001
+      cpu013,cpu002:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu013,cpu002
+      cpu013,cpu003:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu013,cpu003
+      cpu013,cpu004:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu013,cpu004
+      cpu013,cpu005:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu013,cpu005
+      cpu013,cpu007:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu013,cpu007
+      cpu013,cpu010:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu013,cpu010
+      cpu013,cpu011:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu013,cpu011
+      cpu013,cpu012:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu013,cpu012
+      cpu013,cpu014:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu013,cpu014
+      cpu014:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu014
+      cpu014,cpu001:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu014,cpu001
+      cpu014,cpu002:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu014,cpu002
+      cpu014,cpu003:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu014,cpu003
+      cpu014,cpu005:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu014,cpu005
+      cpu014,cpu008:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu014,cpu008
+      cpu014,cpu009:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu014,cpu009
+      cpu014,cpu010,cpu007,cpu003:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu014,cpu010,cpu007,cpu003
+      cpu014,cpu012:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu014,cpu012
+      cpu014,cpu013:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu014,cpu013
+      cpu014,cpu015:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu014,cpu015
+      cpu015:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu015
+      cpu015,cpu001:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu015,cpu001
+      cpu015,cpu002:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu015,cpu002
+      cpu015,cpu003:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu015,cpu003
+      cpu015,cpu004:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu015,cpu004
+      cpu015,cpu005:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu015,cpu005
+      cpu015,cpu006:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu015,cpu006
+      cpu015,cpu008:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu015,cpu008
+      cpu015,cpu010:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu015,cpu010
+      cpu015,cpu016:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu015,cpu016
+      cpu016:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu016
+      cpu016,cpu001:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu016,cpu001
+      cpu016,cpu003:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu016,cpu003
+      cpu016,cpu005:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu016,cpu005
+      cpu016,cpu007:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu016,cpu007
+      cpu016,cpu008:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu016,cpu008
+      cpu016,cpu009:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu016,cpu009
+      cpu016,cpu010:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu016,cpu010
+      cpu016,cpu011:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu016,cpu011
+      cpu016,cpu012:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu016,cpu012
+      cpu016,cpu013:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu016,cpu013
+      cpu016,cpu014:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu016,cpu014
+      cpu016,cpu015:
+        synonyms: []
+        type: cpu
+        description: CPU Node cpu016,cpu015
+      gpu01:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu01
+      gpu01,gpu02:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu01,gpu02
+      gpu01,gpu02,gpu03,gpu04:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu01,gpu02,gpu03,gpu04
+      gpu01,gpu02,gpu04,gpu03:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu01,gpu02,gpu04,gpu03
+      gpu01,gpu03:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu01,gpu03
+      gpu01,gpu03,gpu02,gpu04:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu01,gpu03,gpu02,gpu04
+      gpu01,gpu03,gpu04,gpu02:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu01,gpu03,gpu04,gpu02
+      gpu01,gpu04:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu01,gpu04
+      gpu01,gpu04,gpu02,gpu03:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu01,gpu04,gpu02,gpu03
+      gpu01,gpu04,gpu03,gpu02:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu01,gpu04,gpu03,gpu02
+      gpu02:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu02
+      gpu02,gpu01:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu02,gpu01
+      gpu02,gpu01,gpu03,gpu04:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu02,gpu01,gpu03,gpu04
+      gpu02,gpu01,gpu04,gpu03:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu02,gpu01,gpu04,gpu03
+      gpu02,gpu03:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu02,gpu03
+      gpu02,gpu03,gpu01,gpu04:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu02,gpu03,gpu01,gpu04
+      gpu02,gpu03,gpu04,gpu01:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu02,gpu03,gpu04,gpu01
+      gpu02,gpu04:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu02,gpu04
+      gpu02,gpu04,gpu01,gpu03:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu02,gpu04,gpu01,gpu03
+      gpu02,gpu04,gpu03,gpu01:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu02,gpu04,gpu03,gpu01
+      gpu03:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu03
+      gpu03,gpu01:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu03,gpu01
+      gpu03,gpu01,gpu02,gpu04:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu03,gpu01,gpu02,gpu04
+      gpu03,gpu01,gpu04,gpu02:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu03,gpu01,gpu04,gpu02
+      gpu03,gpu02:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu03,gpu02
+      gpu03,gpu02,gpu01,gpu04:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu03,gpu02,gpu01,gpu04
+      gpu03,gpu02,gpu04,gpu01:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu03,gpu02,gpu04,gpu01
+      gpu03,gpu04:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu03,gpu04
+      gpu03,gpu04,gpu01,gpu02:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu03,gpu04,gpu01,gpu02
+      gpu03,gpu04,gpu02,gpu01:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu03,gpu04,gpu02,gpu01
+      gpu04:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu04
+      gpu04,gpu01:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu04,gpu01
+      gpu04,gpu01,gpu02,gpu03:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu04,gpu01,gpu02,gpu03
+      gpu04,gpu01,gpu03,gpu02:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu04,gpu01,gpu03,gpu02
+      gpu04,gpu02:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu04,gpu02
+      gpu04,gpu02,gpu01,gpu03:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu04,gpu02,gpu01,gpu03
+      gpu04,gpu02,gpu03,gpu01:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu04,gpu02,gpu03,gpu01
+      gpu04,gpu03:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu04,gpu03
+      gpu04,gpu03,gpu01,gpu02:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu04,gpu03,gpu01,gpu02
+      gpu04,gpu03,gpu02,gpu01:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu04,gpu03,gpu02,gpu01
+      highmem01:
+        synonyms: []
+        type: cpu
+        description: CPU Node highmem01
+      highmem01,highmem02:
+        synonyms: []
+        type: cpu
+        description: CPU Node highmem01,highmem02
+      highmem01,highmem03:
+        synonyms: []
+        type: cpu
+        description: CPU Node highmem01,highmem03
+      highmem02:
+        synonyms: []
+        type: cpu
+        description: CPU Node highmem02
+      highmem02,highmem01:
+        synonyms: []
+        type: cpu
+        description: CPU Node highmem02,highmem01
+      highmem02,highmem03:
+        synonyms: []
+        type: cpu
+        description: CPU Node highmem02,highmem03
+      highmem03:
+        synonyms: []
+        type: cpu
+        description: CPU Node highmem03
+      highmem03,highmem01:
+        synonyms: []
+        type: cpu
+        description: CPU Node highmem03,highmem01
+      highmem03,highmem02:
+        synonyms: []
+        type: cpu
+        description: CPU Node highmem03,highmem02
+      int01:
+        synonyms: []
+        type: cpu
+        description: CPU Node int01
+      int01,int02:
+        synonyms: []
+        type: cpu
+        description: CPU Node int01,int02
+      int01,int03:
+        synonyms: []
+        type: cpu
+        description: CPU Node int01,int03
+      int02:
+        synonyms: []
+        type: cpu
+        description: CPU Node int02
+      int02,int01:
+        synonyms: []
+        type: cpu
+        description: CPU Node int02,int01
+      int02,int03:
+        synonyms: []
+        type: cpu
+        description: CPU Node int02,int03
+      int03:
+        synonyms: []
+        type: cpu
+        description: CPU Node int03
+      int03,int01:
+        synonyms: []
+        type: cpu
+        description: CPU Node int03,int01
+      int03,int02:
+        synonyms: []
+        type: cpu
+        description: CPU Node int03,int02
+      long01:
+        synonyms: []
+        type: cpu
+        description: CPU Node long01
+      long01,long02:
+        synonyms: []
+        type: cpu
+        description: CPU Node long01,long02
+      long02:
+        synonyms: []
+        type: cpu
+        description: CPU Node long02
+      long02,long01:
+        synonyms: []
+        type: cpu
+        description: CPU Node long02,long01
+      med01:
+        synonyms: []
+        type: cpu
+        description: CPU Node med01
+      med01,med02:
+        synonyms: []
+        type: cpu
+        description: CPU Node med01,med02
+      med01,med03:
+        synonyms: []
+        type: cpu
+        description: CPU Node med01,med03
+      med01,med03,med02:
+        synonyms: []
+        type: cpu
+        description: CPU Node med01,med03,med02
+      med02:
+        synonyms: []
+        type: cpu
+        description: CPU Node med02
+      med02,med01:
+        synonyms: []
+        type: cpu
+        description: CPU Node med02,med01
+      med02,med01,med03:
+        synonyms: []
+        type: cpu
+        description: CPU Node med02,med01,med03
+      med02,med03:
+        synonyms: []
+        type: cpu
+        description: CPU Node med02,med03
+      med02,med03,med01:
+        synonyms: []
+        type: cpu
+        description: CPU Node med02,med03,med01
+      med03:
+        synonyms: []
+        type: cpu
+        description: CPU Node med03
+      med03,med01:
+        synonyms: []
+        type: cpu
+        description: CPU Node med03,med01
+      med03,med01,med02:
+        synonyms: []
+        type: cpu
+        description: CPU Node med03,med01,med02
+      med03,med02:
+        synonyms: []
+        type: cpu
+        description: CPU Node med03,med02
+      med03,med02,med01:
+        synonyms: []
+        type: cpu
+        description: CPU Node med03,med02,med01
+      short01:
+        synonyms: []
+        type: cpu
+        description: CPU Node short01
+      short01,short02:
+        synonyms: []
+        type: cpu
+        description: CPU Node short01,short02
+      short01,short03:
+        synonyms: []
+        type: cpu
+        description: CPU Node short01,short03
+      short01,short03,short04,short02:
+        synonyms: []
+        type: cpu
+        description: CPU Node short01,short03,short04,short02
+      short01,short04:
+        synonyms: []
+        type: cpu
+        description: CPU Node short01,short04
+      short02:
+        synonyms: []
+        type: cpu
+        description: CPU Node short02
+      short02,short01:
+        synonyms: []
+        type: cpu
+        description: CPU Node short02,short01
+      short02,short03:
+        synonyms: []
+        type: cpu
+        description: CPU Node short02,short03
+      short02,short04:
+        synonyms: []
+        type: cpu
+        description: CPU Node short02,short04
+      short03:
+        synonyms: []
+        type: cpu
+        description: CPU Node short03
+      short03,short01:
+        synonyms: []
+        type: cpu
+        description: CPU Node short03,short01
+      short03,short02:
+        synonyms: []
+        type: cpu
+        description: CPU Node short03,short02
+      short03,short02,short01,short04:
+        synonyms: []
+        type: cpu
+        description: CPU Node short03,short02,short01,short04
+      short03,short02,short04,short01:
+        synonyms: []
+        type: cpu
+        description: CPU Node short03,short02,short04,short01
+      short03,short04:
+        synonyms: []
+        type: cpu
+        description: CPU Node short03,short04
+      short03,short04,short02,short01:
+        synonyms: []
+        type: cpu
+        description: CPU Node short03,short04,short02,short01
+      short04:
+        synonyms: []
+        type: cpu
+        description: CPU Node short04
+      short04,short01:
+        synonyms: []
+        type: cpu
+        description: CPU Node short04,short01
+      short04,short02:
+        synonyms: []
+        type: cpu
+        description: CPU Node short04,short02
+      short04,short03:
+        synonyms: []
+        type: cpu
+        description: CPU Node short04,short03
+      v100-01:
+        synonyms: []
+        type: cpu
+        description: CPU Node v100-01
+      v100-01,v100-02:
+        synonyms: []
+        type: cpu
+        description: CPU Node v100-01,v100-02
+      v100-01,v100-02,v100-03:
+        synonyms: []
+        type: cpu
+        description: CPU Node v100-01,v100-02,v100-03
+      v100-01,v100-03:
+        synonyms: []
+        type: cpu
+        description: CPU Node v100-01,v100-03
+      v100-01,v100-03,v100-02:
+        synonyms: []
+        type: cpu
+        description: CPU Node v100-01,v100-03,v100-02
+      v100-02:
+        synonyms: []
+        type: cpu
+        description: CPU Node v100-02
+      v100-02,v100-01:
+        synonyms: []
+        type: cpu
+        description: CPU Node v100-02,v100-01
+      v100-02,v100-01,v100-03:
+        synonyms: []
+        type: cpu
+        description: CPU Node v100-02,v100-01,v100-03
+      v100-02,v100-03:
+        synonyms: []
+        type: cpu
+        description: CPU Node v100-02,v100-03
+      v100-02,v100-03,v100-01:
+        synonyms: []
+        type: cpu
+        description: CPU Node v100-02,v100-03,v100-01
+      v100-03:
+        synonyms: []
+        type: cpu
+        description: CPU Node v100-03
+      v100-03,v100-01:
+        synonyms: []
+        type: cpu
+        description: CPU Node v100-03,v100-01
+      v100-03,v100-01,v100-02:
+        synonyms: []
+        type: cpu
+        description: CPU Node v100-03,v100-01,v100-02
+      v100-03,v100-02:
+        synonyms: []
+        type: cpu
+        description: CPU Node v100-03,v100-02
+      v100-03,v100-02,v100-01:
+        synonyms: []
+        type: cpu
+        description: CPU Node v100-03,v100-02,v100-01
+    account_labels:
+      bio-ecology:
+        display_name: bio-ecology
+        short_name: ECOLOGY
+      bio-genomics:
+        display_name: bio-genomics
+        short_name: GENOMICS
+      bio-imaging:
+        display_name: bio-imaging
+        short_name: IMAGING
+      bio-neuro:
+        display_name: bio-neuro
+        short_name: NEURO
+      bio-proteomics:
+        display_name: bio-proteomics
+        short_name: PROTEOMICS
+      chem-catalysis:
+        display_name: chem-catalysis
+        short_name: CATALYSIS
+      chem-compbio:
+        display_name: chem-compbio
+        short_name: COMPBIO
+      chem-materials:
+        display_name: chem-materials
+        short_name: MATERIALS
+      chem-synthesis:
+        display_name: chem-synthesis
+        short_name: SYNTHESIS
+      cs-graphics:
+        display_name: cs-graphics
+        short_name: GRAPHICS
+      cs-ml-lab:
+        display_name: cs-ml-lab
+        short_name: LAB
+      cs-nlp-group:
+        display_name: cs-nlp-group
+        short_name: GROUP
+      cs-robotics:
+        display_name: cs-robotics
+        short_name: ROBOTICS
+      cs-systems:
+        display_name: cs-systems
+        short_name: SYSTEMS
+      cs-vision-lab:
+        display_name: cs-vision-lab
+        short_name: LAB
+      ee-circuits:
+        display_name: ee-circuits
+        short_name: CIRCUITS
+      ee-comms:
+        display_name: ee-comms
+        short_name: COMMS
+      ee-controls:
+        display_name: ee-controls
+        short_name: CONTROLS
+      ee-power:
+        display_name: ee-power
+        short_name: POWER
+      ee-signal-proc:
+        display_name: ee-signal-proc
+        short_name: PROC
+      math-modeling:
+        display_name: math-modeling
+        short_name: MODELING
+      math-optimization:
+        display_name: math-optimization
+        short_name: OPTIMIZATION
+      math-statistics:
+        display_name: math-statistics
+        short_name: STATISTICS
+      matsci-nano:
+        display_name: matsci-nano
+        short_name: NANO
+      matsci-polymers:
+        display_name: matsci-polymers
+        short_name: POLYMERS
+      med-bioinformatics:
+        display_name: med-bioinformatics
+        short_name: BIOINFORMATICS
+      med-imaging:
+        display_name: med-imaging
+        short_name: IMAGING
+      physics-astro:
+        display_name: physics-astro
+        short_name: ASTRO
+      physics-cmp:
+        display_name: physics-cmp
+        short_name: CMP
+      physics-hep:
+        display_name: physics-hep
+        short_name: HEP
+      physics-quantum:
+        display_name: physics-quantum
+        short_name: QUANTUM
+    partition_labels:
+      bigmem:
+        display_name: Bigmem Partition
+        description: bigmem partition
+      cpu:
+        display_name: Cpu Partition
+        description: cpu partition
+      cpu-highmem:
+        display_name: Cpu-highmem Partition
+        description: cpu-highmem partition
+      gpu:
+        display_name: Gpu Partition
+        description: gpu partition
+      gpu-a100:
+        display_name: Gpu-a100 Partition
+        description: gpu-a100 partition
+      gpu-v100:
+        display_name: Gpu-v100 Partition
+        description: gpu-v100 partition
+      interactive:
+        display_name: Interactive Partition
+        description: interactive partition
+      long:
+        display_name: Long Partition
+        description: long partition
+      medium:
+        display_name: Medium Partition
+        description: medium partition
+      short:
+        display_name: Short Partition
+        description: short partition
+settings:
+  default_node_type: cpu
+  case_sensitive: false
+  auto_generate_labels: true

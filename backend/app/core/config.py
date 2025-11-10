@@ -12,6 +12,9 @@ load_dotenv()
 class Settings(BaseSettings):
     """Application settings."""
 
+    # Environment
+    environment: str = "production"  # production, development, or staging
+
     # API Settings
     api_title: str = "Slurm Usage History API"
     api_version: str = "1.0.0"
@@ -117,6 +120,14 @@ class Settings(BaseSettings):
             return None
         email_roles = self.get_admin_email_roles()
         return email_roles.get(email.lower())
+
+    def is_development(self) -> bool:
+        """Check if running in development mode."""
+        return self.environment.lower() in ["development", "dev"]
+
+    def is_production(self) -> bool:
+        """Check if running in production mode."""
+        return self.environment.lower() in ["production", "prod"]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

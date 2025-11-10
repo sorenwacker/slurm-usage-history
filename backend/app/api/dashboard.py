@@ -82,11 +82,17 @@ async def get_metadata(
         datastore = get_datastore()
         hostnames = datastore.get_hostnames()
 
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[METADATA] Initial hostnames from datastore: {hostnames}")
+        logger.info(f"[METADATA] Query parameter hostname: {hostname}")
+
         # If hostname filter is provided, only return metadata for that hostname
         if hostname:
             if hostname not in hostnames:
                 raise HTTPException(status_code=404, detail=f"Hostname {hostname} not found")
             hostnames = [hostname]
+            logger.info(f"[METADATA] Filtered to: {hostnames}")
 
         partitions = {}
         accounts = {}
@@ -119,8 +125,13 @@ async def get_metadata(
             min_date, max_date = datastore.get_min_max_dates(hostname)
             date_ranges[hostname] = {"min_date": min_date or "", "max_date": max_date or ""}
 
+        # Determine which hostnames to return
+        query_param_hostname = hostname  # Save the query parameter before it gets shadowed
+        returned_hostnames = list(hostnames) if query_param_hostname else datastore.get_hostnames()
+        logger.info(f"[METADATA] Returning hostnames: {returned_hostnames}")
+
         return MetadataResponse(
-            hostnames=list(hostnames) if hostname else datastore.get_hostnames(),
+            hostnames=returned_hostnames,
             partitions=partitions,
             accounts=accounts,
             users=users,

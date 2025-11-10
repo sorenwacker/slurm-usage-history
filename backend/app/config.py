@@ -16,8 +16,8 @@ class ClusterConfig:
             config_path: Path to clusters.yaml file. If None, uses default location.
         """
         if config_path is None:
-            # Try to find config file in project root
-            current_dir = Path(__file__).parent.parent.parent
+            # Try to find config file in backend directory
+            current_dir = Path(__file__).parent.parent
             config_path = current_dir / "config" / "clusters.yaml"
 
         self.config_path = Path(config_path)

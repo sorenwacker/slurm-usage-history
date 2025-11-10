@@ -45,9 +45,16 @@ if _is_editable():
         # This will fail with LookupError if Git is not installed
         __version__ = get_version(root="../..", relative_to=__file__)
     except (ImportError, LookupError, UserWarning):
-        __version__ = version(__name__)
+        try:
+            __version__ = version(__name__)
+        except Exception:
+            __version__ = "0.0.0-dev"
 else:
     # Get the version as specified by the wheel
-    __version__ = version(__name__)
+    try:
+        __version__ = version(__name__)
+    except Exception:
+        # When using mounted src directory without installed package
+        __version__ = "0.0.0-dev"
 
 __all__ = ("__version__",)

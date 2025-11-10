@@ -5,7 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import yaml
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from ..core.admin_auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -148,6 +148,75 @@ async def admin_login(request: AdminLoginRequest):
         expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         role=AdminRole.SUPERADMIN,
         email=None,
+    )
+
+
+@router.get("/saml-token", response_model=AdminLoginResponse)
+async def get_admin_token_from_saml(request: Request):
+    """Get admin token for SAML-authenticated users.
+
+    Checks if the user is authenticated via SAML and has admin privileges,
+    then issues an admin JWT token.
+
+    Note: This endpoint uses cookie-based SAML authentication, not Bearer token.
+    """
+    from ..core.saml_auth import get_current_user_saml
+
+    try:
+        # Get user data from SAML session cookie using the existing dependency
+        session_token = request.cookies.get("session_token")
+        user_data = await get_current_user_saml(session_token=session_token)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated via SAML",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Extract email from SAML attributes (similar to /saml/me endpoint)
+    settings = get_settings()
+    email = None
+    if "attributes" in user_data and user_data["attributes"]:
+        email_attrs = user_data["attributes"].get("email") or \
+                     user_data["attributes"].get("mail") or \
+                     user_data["attributes"].get("emailAddress")
+        if email_attrs and isinstance(email_attrs, list) and len(email_attrs) > 0:
+            email = email_attrs[0]
+
+    # Check if user is admin
+    is_admin = False
+    if email:
+        is_admin = settings.is_admin_email(email)
+
+    # If not found by email, check if username (netid) matches any admin email prefix
+    if not is_admin and user_data.get("username"):
+        username = user_data.get("username")
+        full_email = f"{username}@tudelft.nl"
+        is_admin = settings.is_admin_email(full_email)
+        if is_admin and not email:
+            email = full_email
+
+    if not is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not have admin privileges",
+        )
+
+    # Create admin token
+    username = user_data.get("username") or email or "saml_user"
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": username}, expires_delta=access_token_expires
+    )
+
+    return AdminLoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        role=AdminRole.SUPERADMIN,
+        email=email,
     )
 
 

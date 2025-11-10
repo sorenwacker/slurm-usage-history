@@ -811,10 +811,12 @@ def generate_job_duration_trends(df: pd.DataFrame, period_type: str = "month", c
 
 def generate_cpus_per_job(df: pd.DataFrame) -> dict[str, list]:
     """Aggregate CPUs per job distribution."""
-    if "AllocCPUS" not in df.columns:
+    # Support both AllocCPUS and CPUs column names
+    cpu_col = "AllocCPUS" if "AllocCPUS" in df.columns else "CPUs"
+    if cpu_col not in df.columns:
         return {"x": [], "y": []}
 
-    counts = df["AllocCPUS"].value_counts().sort_index().head(20)
+    counts = df[cpu_col].value_counts().sort_index().head(20)
     return {
         "x": counts.index.tolist(),
         "y": counts.values.tolist(),
@@ -823,14 +825,16 @@ def generate_cpus_per_job(df: pd.DataFrame) -> dict[str, list]:
 
 def generate_gpus_per_job(df: pd.DataFrame) -> dict[str, list]:
     """Aggregate GPUs per job distribution (only jobs with GPUs, limited to 20 bins)."""
-    if "AllocGPUS" not in df.columns:
+    # Support both AllocGPUS and GPUs column names
+    gpu_col = "AllocGPUS" if "AllocGPUS" in df.columns else "GPUs"
+    if gpu_col not in df.columns:
         return {"x": [], "y": []}
 
-    gpu_jobs = df[df["AllocGPUS"] > 0]
+    gpu_jobs = df[df[gpu_col] > 0]
     if gpu_jobs.empty:
         return {"x": [], "y": []}
 
-    counts = gpu_jobs["AllocGPUS"].value_counts().sort_index().head(20)
+    counts = gpu_jobs[gpu_col].value_counts().sort_index().head(20)
     return {
         "x": counts.index.tolist(),
         "y": counts.values.tolist(),

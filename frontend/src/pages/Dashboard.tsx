@@ -67,6 +67,12 @@ const Dashboard: React.FC = () => {
     ? calculatePeriodType(startDate, endDate)
     : periodType;
 
+  // Fetch full cluster list (never filtered by hostname)
+  const { data: allClustersMetadata } = useQuery({
+    queryKey: ['allClusters'],
+    queryFn: () => dashboardApi.getMetadata({}),
+  });
+
   // Fetch metadata - refetch when hostname or date range changes to update filter options
   const { data: metadata, isLoading: metadataLoading } = useQuery({
     queryKey: ['metadata', selectedHostname, startDate, endDate],
@@ -76,6 +82,21 @@ const Dashboard: React.FC = () => {
       end_date: endDate || undefined,
     }),
   });
+
+  // Combine metadata: use full cluster list from allClustersMetadata, but filtered data from metadata
+  const combinedMetadata = useMemo(() => {
+    if (!allClustersMetadata) return metadata;
+    if (!metadata) return allClustersMetadata;
+
+    return {
+      ...metadata,
+      hostnames: allClustersMetadata.hostnames,  // Always show all clusters in dropdown
+      date_ranges: {
+        ...allClustersMetadata.date_ranges,  // Include all cluster date ranges
+        ...metadata.date_ranges,  // Override with filtered ranges if available
+      },
+    };
+  }, [allClustersMetadata, metadata]);
 
   // Helper function to calculate date 6 weeks ago from max date
   const calculateStartDate = (maxDate: string): string => {
@@ -87,19 +108,19 @@ const Dashboard: React.FC = () => {
 
   // Set initial hostname and dates when metadata loads
   useEffect(() => {
-    if (metadata && metadata.hostnames.length > 0 && !selectedHostname) {
-      const firstHostname = metadata.hostnames[0];
+    if (allClustersMetadata && allClustersMetadata.hostnames.length > 0 && !selectedHostname) {
+      const firstHostname = allClustersMetadata.hostnames[0];
       setSelectedHostname(firstHostname);
 
       // Set date range - default to last 6 weeks
-      const dateRange = metadata.date_ranges[firstHostname];
+      const dateRange = allClustersMetadata.date_ranges[firstHostname];
       if (dateRange && dateRange.max_date) {
         const calculatedStartDate = calculateStartDate(dateRange.max_date);
         setStartDate(calculatedStartDate);
         setEndDate(dateRange.max_date);
       }
     }
-  }, [metadata, selectedHostname]);
+  }, [allClustersMetadata, selectedHostname]);
 
   // Update dates when hostname changes
   useEffect(() => {
@@ -250,7 +271,7 @@ const Dashboard: React.FC = () => {
         <div className="sidebar">
           {activeTab === 'overview' ? (
             <Filters
-              metadata={metadata}
+              metadata={combinedMetadata}
               selectedHostname={selectedHostname}
               setSelectedHostname={setSelectedHostname}
               startDate={startDate}

@@ -51,9 +51,11 @@ nav:
       - Cluster Setup: user-guide/cluster-setup.md
       - Configuration: user-guide/configuration.md
   - Deployment:
+      - SAML Setup: deployment/saml-setup.md
       - Basic Auth Setup: deployment/basic-auth-setup.md
       - Phased Deployment: deployment/phased-deployment.md
   - Development:
+      - Local Development: development/local-development.md
       - Packaging: development/packaging.md
       - Publishing to PyPI: development/pypi-publish.md
       - Changelog: development/changelog.md

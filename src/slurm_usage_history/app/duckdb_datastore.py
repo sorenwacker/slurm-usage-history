@@ -467,9 +467,14 @@ class DuckDBDataStore(metaclass=Singleton):
 
         # Build and execute query
         # Note: Some parquet files have NodeList as VARCHAR[] while others have it as VARCHAR
-        # Using binary_as_string and excluding NodeList column to avoid type mismatches
+        # Cast NodeList to VARCHAR to normalize both types (arrays become strings, strings stay strings)
         query = f"""
-        SELECT * EXCLUDE (NodeList)
+        SELECT
+            * EXCLUDE (NodeList),
+            CASE
+                WHEN typeof(NodeList) = 'VARCHAR[]' THEN array_to_string(NodeList, ',')
+                ELSE CAST(NodeList AS VARCHAR)
+            END AS NodeList
         FROM read_parquet('{file_pattern}', union_by_name=true, binary_as_string=true)
         WHERE {where_sql}
         """

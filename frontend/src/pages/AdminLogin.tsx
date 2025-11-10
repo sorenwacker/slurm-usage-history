@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminClient } from '../api/adminClient';
+import { authApi } from '../api/client';
 import './AdminLogin.css';
 
 export function AdminLogin() {
@@ -8,7 +9,45 @@ export function AdminLogin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingSaml, setCheckingSaml] = useState(true);
   const navigate = useNavigate();
+
+  // Check if user is already authenticated via SAML and is an admin
+  useEffect(() => {
+    const checkSamlAuth = async () => {
+      try {
+        const userInfo = await authApi.getCurrentUser();
+        if (userInfo.is_admin) {
+          // User is SAML-authenticated and is an admin
+          // Get admin token automatically
+          const response = await fetch(
+            `${import.meta.env.VITE_API_URL || 'http://localhost:8100'}/api/admin/saml-token`,
+            {
+              credentials: 'include',
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('admin_token', data.access_token);
+            localStorage.setItem('admin_token_expires',
+              (Date.now() + data.expires_in * 1000).toString()
+            );
+            // Redirect to admin clusters page
+            navigate('/admin/clusters');
+            return;
+          }
+        }
+      } catch (err) {
+        // User is not SAML-authenticated or not an admin, show login form
+        console.log('SAML auth check failed, showing login form');
+      } finally {
+        setCheckingSaml(false);
+      }
+    };
+
+    checkSamlAuth();
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +63,27 @@ export function AdminLogin() {
       setLoading(false);
     }
   };
+
+  // Show loading while checking SAML authentication
+  if (checkingSaml) {
+    return (
+      <div className="login-container">
+        <div className="login-wrapper">
+          <div className="login-card">
+            <div className="login-header">
+              <div className="login-icon">
+                <span>🔐</span>
+              </div>
+              <h2 className="login-title">Checking authentication...</h2>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+              <div className="login-spinner"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="login-container">

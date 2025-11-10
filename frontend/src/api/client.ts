@@ -24,9 +24,25 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Redirect to SAML login on authentication error
-      console.log('401 Unauthorized - Redirecting to SAML login');
-      window.location.href = '/saml/login';
-      return Promise.reject(error);
+      console.log('401 Unauthorized from apiClient - Redirecting to SAML login');
+      const currentUrl = window.location.href;
+      window.location.replace(`${API_BASE_URL}/saml/login?redirect_to=${encodeURIComponent(currentUrl)}`);
+      return new Promise(() => {}); // Never resolve to prevent further execution
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Add global axios interceptor for SAML auth errors
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && !error.config?.url?.includes('/saml/login')) {
+      // Redirect to SAML login on authentication error
+      console.log('401 Unauthorized from axios - Redirecting to SAML login', error.config?.url);
+      const currentUrl = window.location.href;
+      window.location.replace(`${API_BASE_URL}/saml/login?redirect_to=${encodeURIComponent(currentUrl)}`);
+      return new Promise(() => {}); // Never resolve to prevent further execution
     }
     return Promise.reject(error);
   }
@@ -41,7 +57,10 @@ export interface UserInfo {
 
 export const authApi = {
   getCurrentUser: async (): Promise<UserInfo> => {
-    const response = await apiClient.get<UserInfo>('/saml/me');
+    // SAML endpoints are at /saml, not /api/saml
+    const response = await axios.get<UserInfo>(`${API_BASE_URL}/saml/me`, {
+      withCredentials: true,
+    });
     return response.data;
   },
 };

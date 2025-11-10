@@ -72,6 +72,16 @@ async def ingest_data(
         db = get_cluster_db()
         db.update_submission_stats(request.hostname, len(request.jobs))
 
+        # Trigger datastore reload for this hostname
+        try:
+            from ..datastore_singleton import get_datastore
+            datastore = get_datastore()
+            datastore.load_data()
+        except Exception as e:
+            # Log but don't fail the ingestion
+            import logging
+            logging.warning(f"Failed to reload datastore after ingestion: {e}")
+
         return DataIngestionResponse(
             success=True,
             message=f"Successfully ingested {len(request.jobs)} jobs for {request.hostname}",

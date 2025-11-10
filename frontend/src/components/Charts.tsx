@@ -515,7 +515,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 data={data.cpus_per_job}
                 xTitle="Number of CPUs"
                 yTitle="Number of Jobs"
-                defaultColor="#28a745"
+                defaultColor="#04A5D5"
                 colorMap={colorMap}
                 isHistogram={true}
               />
@@ -528,7 +528,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 data={data.gpus_per_job}
                 xTitle="Number of GPUs"
                 yTitle="Number of Jobs"
-                defaultColor="#6f42c1"
+                defaultColor="#EC7300"
                 colorMap={colorMap}
                 isHistogram={true}
               />

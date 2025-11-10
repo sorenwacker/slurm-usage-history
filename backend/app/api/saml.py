@@ -139,15 +139,37 @@ async def saml_acs(request: Request):
 
     # Create response with cookie
     response = RedirectResponse(url=relay_state, status_code=status.HTTP_302_FOUND)
-    response.set_cookie(
-        key="session_token",
-        value=session_token,
-        path="/",
-        httponly=True,
-        secure=request.url.scheme == "https",
-        samesite="lax",
-        max_age=86400,  # 24 hours
-    )
+
+    # Security checks for production
+    from ..core.config import get_settings
+    settings = get_settings()
+    is_https = request.url.scheme == "https"
+
+    if settings.is_production() and not is_https:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="SAML authentication requires HTTPS in production environments"
+        )
+
+    # Cookie settings: strict in production, permissive in development
+    # In development: Don't set samesite (browser defaults to lax for same-site localhost)
+    # In production: samesite=lax for security (requires same-site requests)
+    cookie_secure = is_https  # Only set secure flag on HTTPS
+
+    cookie_kwargs = {
+        "key": "session_token",
+        "value": session_token,
+        "path": "/",
+        "httponly": True,
+        "secure": cookie_secure,
+        "max_age": 86400,  # 24 hours
+    }
+
+    # Only set samesite in production (browsers handle localhost:* as same-site)
+    if settings.is_production():
+        cookie_kwargs["samesite"] = "lax"
+
+    response.set_cookie(**cookie_kwargs)
 
     return response
 
@@ -247,18 +269,21 @@ async def saml_sls(request: Request):
 
 
 @router.get("/logout")
-async def saml_logout(request: Request):
+async def saml_logout(request: Request, redirect_to: Optional[str] = None):
     """Initiate SAML logout.
 
     Args:
         request: FastAPI request object
+        redirect_to: Optional URL to redirect to after logout
 
     Returns:
-        Redirect to IdP logout
+        Redirect to IdP logout or redirect_to URL
     """
+    redirect_url = redirect_to or "/"
+
     if not is_saml_enabled():
         # Just clear cookie and redirect
-        response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+        response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
         response.delete_cookie(key="session_token", path="/")
         return response
 
@@ -266,7 +291,7 @@ async def saml_logout(request: Request):
 
     # Get session index from user's session
     # In a real implementation, you'd retrieve this from the user's session
-    slo_url = auth.logout()
+    slo_url = auth.logout(return_to=redirect_url)
 
     response = RedirectResponse(url=slo_url, status_code=status.HTTP_302_FOUND)
     response.delete_cookie(key="session_token", path="/")
@@ -312,6 +337,8 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user_sa
     is_admin = False
     if email:
         is_admin = settings.is_admin_email(email)
+        # Debug logging
+        print(f"[DEBUG] Email: {email}, is_admin: {is_admin}, admin_emails: {settings.get_admin_email_roles()}")
 
     # If not found by email, check if username (netid) matches any admin email prefix
     # E.g., username "jdoe" matches "jdoe@tudelft.nl"
@@ -320,13 +347,16 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user_sa
         # Check if username@tudelft.nl is in admin emails
         full_email = f"{username}@tudelft.nl"
         is_admin = settings.is_admin_email(full_email)
+        print(f"[DEBUG] Checking username: {username}, full_email: {full_email}, is_admin: {is_admin}")
         # If we found a match, use the constructed email
         if is_admin and not email:
             email = full_email
 
-    return {
+    result = {
         "username": current_user.get("username"),
         "email": email,
         "is_admin": is_admin,
         "attributes": current_user.get("attributes", {}),
     }
+    print(f"[DEBUG] /saml/me returning: {result}")
+    return result
