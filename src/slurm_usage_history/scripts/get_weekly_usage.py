@@ -426,6 +426,8 @@ class DataExporter:
         """
         Upload a parquet file to the dashboard API.
 
+        The cluster is automatically determined from the API key.
+
         Args:
             file_path: Path to the parquet file
 
@@ -434,9 +436,6 @@ class DataExporter:
         """
         if not self.api_url or not self.api_key:
             raise ValueError("API URL and API key are required for API uploads")
-
-        if not self.cluster_name:
-            raise ValueError("Cluster name is required for API uploads")
 
         try:
             import requests
@@ -451,13 +450,11 @@ class DataExporter:
 
             with open(file_path, "rb") as f:
                 files = {"file": (file_name, f, "application/octet-stream")}
-                data = {"cluster_name": self.cluster_name}
                 headers = {"X-API-Key": self.api_key}
 
                 response = requests.post(
                     upload_url,
                     files=files,
-                    data=data,
                     headers=headers,
                     timeout=60,
                 )
@@ -476,15 +473,17 @@ class DataExporter:
     def get_server_file_list(self) -> set:
         """Get list of files already uploaded to the server.
 
+        The cluster is automatically determined from the API key.
+
         Returns:
             Set of filenames that exist on the server
         """
-        if not self.api_url or not self.api_key or not self.cluster_name:
+        if not self.api_url or not self.api_key:
             # API not configured, return empty set
             return set()
 
         try:
-            list_url = f"{self.api_url.rstrip('/')}/agent/list-files/{self.cluster_name}"
+            list_url = f"{self.api_url.rstrip('/')}/agent/list-files"
             headers = {"X-API-Key": self.api_key}
 
             response = requests.get(list_url, headers=headers, timeout=30)

@@ -145,13 +145,14 @@ API_KEYS=your-generated-key-here
 # Activate venv
 source .venv/bin/activate
 
-# Test upload with API (cluster name auto-detected from output path)
+# Test upload with API
+# Note: Cluster name is automatically determined from the API key
 slurm-dashboard-agent \
   --api-url https://dashboard.example.com/api \
   --api-key your-api-key-here \
   --output /data/slurm-usage/DAIC
 
-# Cluster name "DAIC" is extracted from output path
+# The API key is tied to a specific cluster, so no need to specify cluster name
 # Data is saved locally AND uploaded to dashboard
 ```
 
@@ -162,7 +163,7 @@ slurm-dashboard-agent \
 crontab -e
 
 # Add weekly collection with API upload (every Monday at 2 AM)
-# Cluster name is auto-detected from output path
+# Cluster is automatically determined from the API key
 0 2 * * 1 /path/to/.venv/bin/slurm-dashboard-agent --api-url https://dashboard.example.com/api --api-key your-api-key --output /data/slurm-usage/DAIC 2>&1 | logger -t slurm-dashboard-agent
 ```
 
