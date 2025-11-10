@@ -230,6 +230,11 @@ async def get_aggregated_charts(request: FilterRequest, current_user: dict = Dep
         return charts_data
 
     except Exception as e:
+        import logging
+        import traceback
+        logger = logging.getLogger(__name__)
+        logger.error(f"Charts endpoint error: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Error generating charts: {str(e)}")
 
 
