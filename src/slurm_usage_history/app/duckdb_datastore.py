@@ -509,12 +509,24 @@ class DuckDBDataStore(metaclass=Singleton):
             df = df.drop(columns=["WaitingTime [h]"])
         elif "WaitingTime [h]" in df.columns:
             df = df.rename(columns={"WaitingTime [h]": "WaitingTimeHours"})
+        elif "WaitingTime" in df.columns:
+            df = df.rename(columns={"WaitingTime": "WaitingTimeHours"})
 
         if "Elapsed [h]" in df.columns and "ElapsedHours" in df.columns:
             df["ElapsedHours"] = df["ElapsedHours"].fillna(df["Elapsed [h]"])
             df = df.drop(columns=["Elapsed [h]"])
         elif "Elapsed [h]" in df.columns:
             df = df.rename(columns={"Elapsed [h]": "ElapsedHours"})
+        elif "ElapsedHours" not in df.columns and "Start" in df.columns and "End" in df.columns:
+            df["ElapsedHours"] = (pd.to_datetime(df["End"]) - pd.to_datetime(df["Start"])).dt.total_seconds() / 3600.0
+
+        # Normalize resource allocation column names
+        if "AllocNodes" in df.columns and "Nodes" not in df.columns:
+            df = df.rename(columns={"AllocNodes": "Nodes"})
+        if "AllocCPUS" in df.columns and "CPUs" not in df.columns:
+            df = df.rename(columns={"AllocCPUS": "CPUs"})
+        if "AllocGPUS" in df.columns and "GPUs" not in df.columns:
+            df = df.rename(columns={"AllocGPUS": "GPUs"})
 
         # Apply account formatting if requested and available
         if format_accounts and self.account_formatter and "Account" in df.columns:
