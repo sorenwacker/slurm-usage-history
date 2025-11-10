@@ -461,7 +461,7 @@ def generate_job_duration_stacked(df: pd.DataFrame, period_type: str = "month") 
     )
 
     # Count jobs per time period and duration bin
-    grouped = df_copy.groupby([time_column, "DurationBin"]).size().unstack(fill_value=0)
+    grouped = df_copy.groupby([time_column, "DurationBin"], observed=False).size().unstack(fill_value=0)
 
     if grouped.empty:
         return {"x": [], "series": []}
@@ -549,7 +549,7 @@ def generate_waiting_times_stacked(df: pd.DataFrame, period_type: str = "month")
     )
 
     # Count jobs per time period and waiting bin
-    grouped = df_copy.groupby([time_column, "WaitingBin"]).size().unstack(fill_value=0)
+    grouped = df_copy.groupby([time_column, "WaitingBin"], observed=False).size().unstack(fill_value=0)
 
     if grouped.empty:
         return {"x": [], "series": []}
@@ -843,14 +843,16 @@ def generate_gpus_per_job(df: pd.DataFrame) -> dict[str, list]:
 
 def generate_nodes_per_job(df: pd.DataFrame) -> dict[str, list]:
     """Aggregate nodes per job distribution."""
-    if "Nodes" not in df.columns:
+    # Support both Nodes and AllocNodes column names
+    node_col = "AllocNodes" if "AllocNodes" in df.columns else "Nodes"
+    if node_col not in df.columns:
         return {"x": [], "y": []}
 
-    node_jobs = df[df["Nodes"] > 0]
+    node_jobs = df[df[node_col] > 0]
     if node_jobs.empty:
         return {"x": [], "y": []}
 
-    counts = node_jobs["Nodes"].value_counts().sort_index().head(20)
+    counts = node_jobs[node_col].value_counts().sort_index().head(20)
     return {
         "x": counts.index.tolist(),
         "y": counts.values.tolist(),

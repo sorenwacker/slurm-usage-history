@@ -50,7 +50,7 @@ def sample_dataframe():
         'CPUHours': np.random.exponential(10, n_rows),
         'GPUHours': np.random.exponential(5, n_rows),
         'ElapsedHours': np.random.exponential(3, n_rows),
-        'WaitingTime': np.random.exponential(1, n_rows),
+        'WaitingTimeHours': np.random.exponential(1, n_rows),
         'AllocNodes': np.random.choice([1, 2, 3, 4], n_rows, p=[0.7, 0.2, 0.08, 0.02]),
         'AllocCPUS': np.random.choice([1, 2, 4, 8, 16], n_rows),
         'AllocGPUS': np.random.choice([0, 1, 2, 4], n_rows, p=[0.6, 0.3, 0.08, 0.02]),
@@ -58,22 +58,62 @@ def sample_dataframe():
         'Submit': start_dates - pd.to_timedelta(np.random.exponential(1, n_rows), unit='h'),
         'End': start_dates + pd.to_timedelta(np.random.exponential(3, n_rows), unit='h'),
         'StartYearMonth': start_dates.to_period('M').astype(str),
+        'StartYearWeek': start_dates,  # Timeline generator expects datetime, will normalize to week start
         'StartDay': start_dates.date.astype(str),
     })
 
     return df
 
 
-def validate_chart_output(result, min_points=1):
-    """Validate that chart output has correct structure."""
+def validate_chart_output(result, min_points=1, chart_type='bar'):
+    """Validate that chart output has correct structure.
+
+    Args:
+        result: Chart data dictionary
+        min_points: Minimum number of data points expected
+        chart_type: 'bar' for x/y format, 'pie' for labels/values format, 'stacked' for x/series format, 'trends' for x/stats format
+    """
     assert result is not None, "Chart result should not be None"
     assert isinstance(result, dict), "Chart result should be a dictionary"
-    assert 'x' in result, "Chart result should have 'x' key"
-    assert 'y' in result, "Chart result should have 'y' key"
-    assert isinstance(result['x'], list), "x values should be a list"
-    assert isinstance(result['y'], list), "y values should be a list"
-    assert len(result['x']) >= min_points, f"Chart should have at least {min_points} data point(s)"
-    assert len(result['x']) == len(result['y']), "x and y should have same length"
+
+    if chart_type == 'pie':
+        # Pie charts use labels/values
+        assert 'labels' in result, "Pie chart result should have 'labels' key"
+        assert 'values' in result, "Pie chart result should have 'values' key"
+        assert isinstance(result['labels'], list), "labels should be a list"
+        assert isinstance(result['values'], list), "values should be a list"
+        assert len(result['labels']) >= min_points, f"Chart should have at least {min_points} data point(s)"
+        assert len(result['labels']) == len(result['values']), "labels and values should have same length"
+    elif chart_type == 'stacked':
+        # Stacked charts use x/series
+        assert 'x' in result, "Stacked chart result should have 'x' key"
+        assert 'series' in result, "Stacked chart result should have 'series' key"
+        assert isinstance(result['x'], list), "x values should be a list"
+        assert isinstance(result['series'], list), "series should be a list"
+        assert len(result['x']) >= min_points, f"Chart should have at least {min_points} data point(s)"
+        for series in result['series']:
+            assert isinstance(series, dict), "Each series should be a dictionary"
+            assert 'name' in series, "Each series should have a 'name' key"
+            assert 'data' in series, "Each series should have a 'data' key"
+            assert len(series['data']) == len(result['x']), "Series data should match x length"
+    elif chart_type == 'trends':
+        # Trends charts use x/stats
+        assert 'x' in result, "Trends chart result should have 'x' key"
+        assert 'stats' in result, "Trends chart result should have 'stats' key"
+        assert isinstance(result['x'], list), "x values should be a list"
+        assert isinstance(result['stats'], dict), "stats should be a dictionary"
+        assert len(result['x']) >= min_points, f"Chart should have at least {min_points} data point(s)"
+        for stat_name, stat_values in result['stats'].items():
+            assert isinstance(stat_values, list), f"stat '{stat_name}' should be a list"
+            assert len(stat_values) == len(result['x']), f"stat '{stat_name}' should match x length"
+    else:
+        # Bar/line charts use x/y
+        assert 'x' in result, "Chart result should have 'x' key"
+        assert 'y' in result, "Chart result should have 'y' key"
+        assert isinstance(result['x'], list), "x values should be a list"
+        assert isinstance(result['y'], list), "y values should be a list"
+        assert len(result['x']) >= min_points, f"Chart should have at least {min_points} data point(s)"
+        assert len(result['x']) == len(result['y']), "x and y should have same length"
     return True
 
 
@@ -82,9 +122,9 @@ class TestDistributionPlots:
 
     def test_generate_jobs_by_state(self, sample_dataframe):
         result = generate_jobs_by_state(sample_dataframe)
-        assert validate_chart_output(result)
-        assert all(isinstance(x, str) for x in result['x']), "State labels should be strings"
-        assert all(isinstance(y, (int, float)) for y in result['y']), "Values should be numeric"
+        assert validate_chart_output(result, chart_type='pie')
+        assert all(isinstance(label, str) for label in result['labels']), "State labels should be strings"
+        assert all(isinstance(val, (int, float)) for val in result['values']), "Values should be numeric"
 
     def test_generate_jobs_by_partition(self, sample_dataframe):
         result = generate_jobs_by_partition(sample_dataframe)
@@ -129,22 +169,22 @@ class TestDistributionPlots:
     @pytest.mark.parametrize("period_type", ["day", "week", "month"])
     def test_generate_waiting_times_stacked(self, sample_dataframe, period_type):
         result = generate_waiting_times_stacked(sample_dataframe, period_type)
-        assert validate_chart_output(result, min_points=1)
+        assert validate_chart_output(result, min_points=1, chart_type='stacked')
 
     @pytest.mark.parametrize("period_type", ["day", "week", "month"])
     def test_generate_job_duration_stacked(self, sample_dataframe, period_type):
         result = generate_job_duration_stacked(sample_dataframe, period_type)
-        assert validate_chart_output(result, min_points=1)
+        assert validate_chart_output(result, min_points=1, chart_type='stacked')
 
     @pytest.mark.parametrize("period_type", ["day", "week", "month"])
     def test_generate_waiting_times_trends(self, sample_dataframe, period_type):
         result = generate_waiting_times_trends(sample_dataframe, period_type)
-        assert validate_chart_output(result, min_points=1)
+        assert validate_chart_output(result, min_points=1, chart_type='trends')
 
     @pytest.mark.parametrize("period_type", ["day", "week", "month"])
     def test_generate_job_duration_trends(self, sample_dataframe, period_type):
         result = generate_job_duration_trends(sample_dataframe, period_type)
-        assert validate_chart_output(result, min_points=1)
+        assert validate_chart_output(result, min_points=1, chart_type='trends')
 
 
 class TestTimelinePlots:
