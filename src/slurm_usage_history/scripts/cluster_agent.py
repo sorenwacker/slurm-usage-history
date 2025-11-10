@@ -11,6 +11,7 @@ def create_config_command(args):
         "api_url": args.api_url,
         "api_key": args.api_key,
         "cluster_name": args.cluster_name or "",
+        "local_data_path": args.local_data_path or "",
         "timeout": 30,
         "collection_window_days": 7,
     }
@@ -25,6 +26,8 @@ def create_config_command(args):
     print(f"Configuration created at: {config_path}")
     print(f"API URL: {config['api_url']}")
     print(f"Cluster: {config['cluster_name'] or '(auto-detect)'}")
+    if config['local_data_path']:
+        print(f"Local data path: {config['local_data_path']}")
 
 
 def run_command(args):
@@ -89,6 +92,10 @@ def main():
     config_parser.add_argument(
         "--cluster-name",
         help="Cluster name (auto-detected if not provided)",
+    )
+    config_parser.add_argument(
+        "--local-data-path",
+        help="Local path to save extracted data as backup (optional)",
     )
     config_parser.add_argument(
         "-o", "--output",
