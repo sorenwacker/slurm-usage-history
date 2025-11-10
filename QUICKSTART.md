@@ -6,8 +6,8 @@ Get SLURM Dashboard up and running in 5 minutes.
 
 ```bash
 # Create and activate virtual environment
-python3 -m venv ~/slurm-dashboard-env
-source ~/slurm-dashboard-env/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 
 # Install from GitLab
 pip install "slurm-dashboard[all] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
@@ -34,10 +34,10 @@ Create a virtual environment and install the package:
 
 ```bash
 # Create virtual environment
-python3 -m venv ~/slurm-dashboard-env
+python3 -m venv .venv
 
 # Activate it
-source ~/slurm-dashboard-env/bin/activate
+source .venv/bin/activate
 
 # Install package (choose based on needs)
 ```
@@ -68,7 +68,7 @@ pip install "slurm-dashboard[agent] @ git+https://gitlab.ewi.tudelft.nl/sdrwacke
 
 **Note:** Remember to activate the virtual environment before running commands:
 ```bash
-source ~/slurm-dashboard-env/bin/activate
+source .venv/bin/activate
 ```
 
 ### 2. Collect SLURM Data

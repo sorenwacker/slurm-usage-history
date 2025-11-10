@@ -18,10 +18,10 @@ Install directly from the repository:
 **With Python venv (recommended for cluster systems):**
 ```bash
 # Create virtual environment
-python3 -m venv ~/slurm-dashboard-env
+python3 -m venv .venv
 
 # Activate it
-source ~/slurm-dashboard-env/bin/activate
+source .venv/bin/activate
 
 # Install agent
 pip install "slurm-dashboard[agent] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
@@ -33,8 +33,8 @@ slurm-dashboard-agent --help
 **With uv (faster, creates venv automatically):**
 ```bash
 # Create and install in one step
-uv venv ~/slurm-dashboard-env
-source ~/slurm-dashboard-env/bin/activate
+uv venv .venv
+source .venv/bin/activate
 uv pip install "slurm-dashboard[agent] @ git+https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git"
 
 # Verify installation
@@ -84,17 +84,17 @@ You should see parquet files like `2024-W45.parquet`.
 crontab -e
 
 # Add weekly collection (every Monday at 2 AM)
-# Note: Use full path to venv python
-0 2 * * 1 /home/yourusername/slurm-dashboard-env/bin/slurm-dashboard-agent --output /data/slurm-usage/$(hostname) 2>&1 | logger -t slurm-dashboard-agent
+# Note: Use absolute path to venv - adjust based on where you created .venv
+0 2 * * 1 /path/to/your/project/.venv/bin/slurm-dashboard-agent --output /data/slurm-usage/$(hostname) 2>&1 | logger -t slurm-dashboard-agent
 ```
 
 **Alternative: Daily collection (more granular)**
 ```bash
 # Collect daily at 2 AM
-0 2 * * * /home/yourusername/slurm-dashboard-env/bin/slurm-dashboard-agent --output /data/slurm-usage/$(hostname) 2>&1 | logger -t slurm-dashboard-agent
+0 2 * * * /path/to/your/project/.venv/bin/slurm-dashboard-agent --output /data/slurm-usage/$(hostname) 2>&1 | logger -t slurm-dashboard-agent
 ```
 
-**Tip:** Find the full path with `which slurm-dashboard-agent` while your venv is activated.
+**Tip:** Find the absolute path with `which slurm-dashboard-agent` while your venv is activated.
 
 ### 4. Verify Cron Job
 
