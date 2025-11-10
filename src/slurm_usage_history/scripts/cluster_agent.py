@@ -29,16 +29,16 @@ def create_config_command(args):
 
 def run_command(args):
     """Run the cluster agent exporter."""
-    # Import the exporter script
+    # Import the exporter module
     from pathlib import Path
     import subprocess
 
     # Get the exporter script path
-    script_path = Path(__file__).parent.parent.parent.parent / "cluster-agent" / "slurm-usage-history-exporter.py"
+    script_path = Path(__file__).parent / "exporter.py"
 
     if not script_path.exists():
         print(f"ERROR: Exporter script not found at {script_path}", file=sys.stderr)
-        print("Please install from source or use the standalone cluster-agent directory", file=sys.stderr)
+        print("Please reinstall the package with: pip install slurm-dashboard[agent]", file=sys.stderr)
         sys.exit(1)
 
     # Build command arguments
