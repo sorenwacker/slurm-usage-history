@@ -159,7 +159,7 @@ def generate_report_data(
 
         # For week and month aggregations, convert datetime to string for JSON serialization
         if time_column in ["StartYearWeek", "StartYearMonth"]:
-            timeline_stats["date"] = timeline_stats["date"].dt.strftime("%Y-%m-%d")
+            timeline_stats["date"] = pd.to_datetime(timeline_stats["date"]).dt.strftime("%Y-%m-%d")
 
         timeline = convert_numpy_to_native(timeline_stats.to_dict(orient="records"))
 
