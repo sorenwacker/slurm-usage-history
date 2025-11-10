@@ -17,20 +17,32 @@ Web dashboard for SLURM cluster usage analytics powered by DuckDB.
 
 ## Quick Start
 
+### 1. Install
+
 ```bash
-# Install
 pip install slurm-dashboard[all]
-
-# Collect data on SLURM cluster
-slurm-dashboard-agent --output /data/slurm-usage/$(hostname)
-
-# Start dashboard
-export DATA_PATH=/data/slurm-usage
-slurm-dashboard
-# → http://localhost:8100
 ```
 
-See [documentation](https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history) for production deployment and configuration.
+### 2. Collect Data (on SLURM cluster)
+
+```bash
+# Collect job data from SLURM and save to shared storage
+slurm-dashboard-agent --output /shared/slurm-data/$(hostname)
+```
+
+This extracts job data from SLURM using `sacct` and saves it as Parquet files.
+
+### 3. Start Dashboard (on dashboard server)
+
+```bash
+# Point to the data directory and start the web server
+export DATA_PATH=/shared/slurm-data
+slurm-dashboard
+```
+
+Access at **http://localhost:8100**
+
+See [documentation](https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history) for production deployment with SAML, systemd, and multi-cluster setup.
 
 ## Development
 
