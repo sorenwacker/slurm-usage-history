@@ -3,7 +3,8 @@ from pathlib import Path
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
-from ..core.auth import verify_admin_user, verify_api_key
+from ..core.admin_auth import get_current_admin
+from ..core.auth import verify_api_key
 from ..core.config import get_settings
 from ..db.clusters import get_cluster_db
 from ..models.data_models import DataIngestionRequest, DataIngestionResponse
@@ -105,7 +106,7 @@ async def ingest_data(
 
 @router.post("/reload")
 async def reload_datastore(
-    user_info: dict = Depends(verify_admin_user),
+    admin: dict = Depends(get_current_admin),
 ) -> dict:
     """Manually trigger datastore reload.
 
@@ -121,7 +122,7 @@ async def reload_datastore(
         import logging
         logger = logging.getLogger(__name__)
 
-        logger.info(f"Admin {user_info.get('email')} triggered manual datastore reload")
+        logger.info(f"Admin {admin.get('username', 'unknown')} triggered manual datastore reload")
         datastore = get_datastore()
         datastore.load_data()
 
