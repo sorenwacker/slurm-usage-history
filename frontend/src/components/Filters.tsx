@@ -209,6 +209,9 @@ const Filters: React.FC<FiltersProps> = ({
   const [qosSearch, setQosSearch] = useState('');
   const [stateSearch, setStateSearch] = useState('');
 
+  // Global search for selecting across all categories
+  const [globalSearch, setGlobalSearch] = useState('');
+
   const dateRange = metadata && selectedHostname ? metadata.date_ranges[selectedHostname] : null;
 
   const hasActiveFilters =
@@ -224,6 +227,48 @@ const Filters: React.FC<FiltersProps> = ({
     setSelectedUsers([]);
     setSelectedQos([]);
     setSelectedStates([]);
+  };
+
+  // Select all items matching the global search pattern across all categories
+  const selectAllMatching = () => {
+    if (!globalSearch.trim() || !metadata || !selectedHostname) return;
+
+    const pattern = globalSearch.toLowerCase();
+
+    // Find matching items in each category
+    const matchingPartitions = (metadata.partitions[selectedHostname] || [])
+      .filter(item => item.toLowerCase().includes(pattern));
+    const matchingAccounts = (metadata.accounts[selectedHostname] || [])
+      .filter(item => item.toLowerCase().includes(pattern));
+    const matchingUsers = (metadata.users[selectedHostname] || [])
+      .filter(item => item.toLowerCase().includes(pattern));
+    const matchingQos = (metadata.qos[selectedHostname] || [])
+      .filter(item => item.toLowerCase().includes(pattern));
+    const matchingStates = (metadata.states[selectedHostname] || [])
+      .filter(item => item.toLowerCase().includes(pattern));
+
+    // Add matching items to existing selections (union)
+    setSelectedPartitions([...new Set([...selectedPartitions, ...matchingPartitions])]);
+    setSelectedAccounts([...new Set([...selectedAccounts, ...matchingAccounts])]);
+    setSelectedUsers([...new Set([...selectedUsers, ...matchingUsers])]);
+    setSelectedQos([...new Set([...selectedQos, ...matchingQos])]);
+    setSelectedStates([...new Set([...selectedStates, ...matchingStates])]);
+  };
+
+  // Count how many items match the global search
+  const countMatching = (): number => {
+    if (!globalSearch.trim() || !metadata || !selectedHostname) return 0;
+
+    const pattern = globalSearch.toLowerCase();
+    let count = 0;
+
+    count += (metadata.partitions[selectedHostname] || []).filter(item => item.toLowerCase().includes(pattern)).length;
+    count += (metadata.accounts[selectedHostname] || []).filter(item => item.toLowerCase().includes(pattern)).length;
+    count += (metadata.users[selectedHostname] || []).filter(item => item.toLowerCase().includes(pattern)).length;
+    count += (metadata.qos[selectedHostname] || []).filter(item => item.toLowerCase().includes(pattern)).length;
+    count += (metadata.states[selectedHostname] || []).filter(item => item.toLowerCase().includes(pattern)).length;
+
+    return count;
   };
 
   return (
@@ -353,6 +398,56 @@ const Filters: React.FC<FiltersProps> = ({
           </div>
         </div>
       )}
+
+      {/* Global search - select matching items across all categories */}
+      <div className="filter-group" style={{ background: '#f8f9fa', padding: '0.75rem', borderRadius: '4px', border: '1px solid #dee2e6' }}>
+        <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#495057', marginBottom: '0.5rem', display: 'block' }}>
+          Quick Select Across All Categories
+        </label>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="e.g. ewi, gpu, completed..."
+            value={globalSearch}
+            onChange={(e) => setGlobalSearch(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                selectAllMatching();
+              }
+            }}
+            style={{
+              flex: 1,
+              padding: '0.5rem',
+              borderRadius: '4px',
+              border: '1px solid #ccc',
+              fontSize: '0.875rem',
+            }}
+          />
+          <button
+            type="button"
+            onClick={selectAllMatching}
+            disabled={!globalSearch.trim()}
+            style={{
+              fontSize: '0.75rem',
+              padding: '0.5rem 0.8rem',
+              background: globalSearch.trim() ? '#28a745' : '#ccc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: globalSearch.trim() ? 'pointer' : 'not-allowed',
+              fontWeight: 500,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Select All{countMatching() > 0 ? ` (${countMatching()})` : ''}
+          </button>
+        </div>
+        {globalSearch.trim() && countMatching() === 0 && (
+          <div style={{ fontSize: '0.75rem', color: '#dc3545', marginTop: '0.5rem' }}>
+            No items match "{globalSearch}"
+          </div>
+        )}
+      </div>
 
       {/* Separator and Clear All button */}
       {hasActiveFilters && (
