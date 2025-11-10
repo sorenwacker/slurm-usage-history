@@ -219,7 +219,7 @@ class SlurmDataExtractor:
         for _, row in df.iterrows():
             job = {
                 'JobID': str(row['JobID']),
-                'User': str(row['User']),
+                'User': str(row['User']) if pd.notna(row['User']) else 'unknown',
                 'Account': str(row['Account']) if pd.notna(row['Account']) else 'unknown',
                 'Partition': str(row['Partition']) if pd.notna(row['Partition']) else 'unknown',
                 'State': str(row['State']),
