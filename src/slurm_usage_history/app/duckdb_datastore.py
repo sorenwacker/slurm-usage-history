@@ -520,6 +520,16 @@ class DuckDBDataStore(metaclass=Singleton):
         elif "ElapsedHours" not in df.columns and "Start" in df.columns and "End" in df.columns:
             df["ElapsedHours"] = (pd.to_datetime(df["End"]) - pd.to_datetime(df["Start"])).dt.total_seconds() / 3600.0
 
+        # Add derived time period columns based on Start time (for trend charts)
+        if "Start" in df.columns:
+            start_dt = pd.to_datetime(df["Start"])
+            if "StartYearMonth" not in df.columns:
+                df["StartYearMonth"] = start_dt.dt.to_period("M").astype(str)
+            if "StartYearWeek" not in df.columns:
+                df["StartYearWeek"] = start_dt.dt.to_period("W").apply(lambda r: r.start_time).dt.strftime("%Y-%m-%d")
+            if "StartYear" not in df.columns:
+                df["StartYear"] = start_dt.dt.year
+
         # Normalize resource allocation column names
         if "AllocNodes" in df.columns and "Nodes" not in df.columns:
             df = df.rename(columns={"AllocNodes": "Nodes"})
