@@ -10,7 +10,14 @@ from importlib.metadata import Distribution, version
 
 
 def _is_editable() -> bool:
-    dist = Distribution.from_name("slurm-usage-history")
+    try:
+        dist = Distribution.from_name("slurm-dashboard")
+    except Exception:
+        # Fallback to old name for backward compatibility
+        try:
+            dist = Distribution.from_name("slurm-usage-history")
+        except Exception:
+            return False
 
     if sys.version_info >= (3, 13):
         editable = dist.origin.dir_info.editable

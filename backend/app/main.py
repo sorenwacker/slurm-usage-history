@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from .api import admin, charts, config_admin, dashboard, data, reports, saml
+from .api import admin, agent, charts, config_admin, dashboard, data, reports, saml
 from .core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -53,6 +53,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(agent.router, prefix=f"{settings.api_prefix}", tags=["Agent"])
 app.include_router(data.router, prefix=f"{settings.api_prefix}/data", tags=["Data Ingestion"])
 app.include_router(dashboard.router, prefix=f"{settings.api_prefix}/dashboard", tags=["Dashboard"])
 app.include_router(charts.router, prefix=f"{settings.api_prefix}/dashboard", tags=["Charts"])
