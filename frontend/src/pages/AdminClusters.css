@@ -366,6 +366,16 @@
   color: #c82333;
 }
 
+.clusters-action-btn.action-secondary {
+  color: #6c757d;
+  display: inline-block;
+  text-align: center;
+}
+
+.clusters-action-btn.action-secondary:hover:not(:disabled) {
+  color: #5a6268;
+}
+
 .clusters-modal-overlay {
   position: fixed;
   inset: 0;

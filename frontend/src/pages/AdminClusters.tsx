@@ -232,6 +232,13 @@ export function AdminClusters() {
                     </td>
                     <td>
                       <div className="clusters-actions-menu">
+                        <a
+                          href={`/admin/config?cluster=${cluster.name}`}
+                          className="clusters-action-btn action-secondary"
+                          style={{ textDecoration: 'none' }}
+                        >
+                          Configure
+                        </a>
                         <button
                           onClick={() => handleToggleActive(cluster)}
                           className="clusters-action-btn action-primary"

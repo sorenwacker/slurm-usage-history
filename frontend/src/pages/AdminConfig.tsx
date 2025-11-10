@@ -88,6 +88,16 @@ export function AdminConfig() {
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
+  // Read cluster from URL query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const clusterParam = params.get('cluster');
+    if (clusterParam) {
+      setSelectedCluster(clusterParam);
+      setActiveTab('yaml'); // Automatically open YAML tab
+    }
+  }, []);
+
   const getAuthHeaders = (): HeadersInit => {
     const token = localStorage.getItem('admin_token');
     if (!token) {
