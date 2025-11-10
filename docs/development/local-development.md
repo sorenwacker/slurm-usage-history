@@ -188,6 +188,40 @@ docker-compose -f docker-compose.dev.yml restart saml-idp
 
 ## Testing
 
+### Automated Tests
+
+Run the test suite using pytest:
+
+```bash
+# Install with dev dependencies
+uv pip install -e ".[all,dev]"
+
+# Run all tests
+uv run pytest
+
+# Run tests with coverage
+uv run pytest --cov=slurm_usage_history
+
+# Run specific test file
+uv run pytest tests/test_chart_generation.py
+
+# Run with verbose output
+uv run pytest -v
+
+# Run tests in parallel (faster)
+uv run pytest -n auto
+```
+
+The test suite includes:
+- **Chart generation tests** - validates all chart output formats (pie, bar, stacked, trends)
+- **Data processing tests** - ensures correct data transformations
+- **API endpoint tests** - verifies REST API functionality
+
+Tests are configured in `pyproject.toml` with:
+- Warnings treated as errors for strict validation
+- Coverage reporting enabled
+- Automatic test discovery
+
 ### Manual Testing
 
 1. Login flow: Visit http://localhost:5173 → should redirect to SAML IdP

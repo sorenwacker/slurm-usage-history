@@ -50,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DuckDB extension conflicts** between gunicorn workers
 - **Account formatter** method name error
 - **Week normalization** for StartYearWeek timestamps
+- **Test suite compatibility** with pandas FutureWarnings and chart format validation
+- **Chart generation tests** now properly validate pie, bar, stacked, and trends formats
 
 ### Performance
 - **Memory**: 13GB → 1.1GB (92% reduction)
