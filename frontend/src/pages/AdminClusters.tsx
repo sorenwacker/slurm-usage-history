@@ -233,7 +233,7 @@ export function AdminClusters() {
                       <div className="clusters-actions-menu">
                         <a
                           href={`/admin/config?cluster=${cluster.name}`}
-                          className="clusters-action-btn action-secondary"
+                          className="clusters-action-btn action-config"
                           style={{ textDecoration: 'none' }}
                         >
                           Configure
