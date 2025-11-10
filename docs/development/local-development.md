@@ -331,4 +331,4 @@ docker-compose -f docker-compose.dev.yml down -v
 
 - [Production Deployment](../deployment/saml-setup.md)
 - [Configuration Guide](../user-guide/configuration.md)
-- [API Documentation](../api/endpoints.md)
+- [API Documentation](http://localhost:8100/docs) - Interactive API docs when running locally
