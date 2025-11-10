@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi, reportsApi, authApi } from '../api/client';
 import Header from '../components/Header';
@@ -20,6 +20,7 @@ const Dashboard: React.FC = () => {
     queryFn: authApi.getCurrentUser,
   });
   const [selectedHostname, setSelectedHostname] = useState<string>('');
+  const previousHostname = useRef<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [selectedPartitions, setSelectedPartitions] = useState<string[]>([]);
@@ -73,6 +74,7 @@ const Dashboard: React.FC = () => {
     queryFn: () => dashboardApi.getMetadata({}),
     refetchOnMount: true,
     staleTime: 0,
+    placeholderData: (previousData) => previousData,
   });
 
   // Fetch metadata - refetch when hostname or date range changes to update filter options
@@ -85,6 +87,7 @@ const Dashboard: React.FC = () => {
     }),
     refetchOnMount: true,
     staleTime: 0,
+    placeholderData: (previousData) => previousData,
   });
 
   // Combine metadata: use full cluster list from allClustersMetadata, but filtered data from metadata
@@ -117,14 +120,18 @@ const Dashboard: React.FC = () => {
     }
   }, [allClustersMetadata, selectedHostname]);
 
-  // Update dates when hostname changes
+  // Update dates when hostname changes (but not on every metadata refetch)
   useEffect(() => {
-    if (metadata && selectedHostname) {
-      const dateRange = metadata.date_ranges[selectedHostname];
-      if (dateRange && dateRange.min_date && dateRange.max_date) {
-        // Default to all available data for new hostname
-        setStartDate(dateRange.min_date);
-        setEndDate(dateRange.max_date);
+    // Only run when hostname actually changes
+    if (selectedHostname && selectedHostname !== previousHostname.current) {
+      // Get the latest metadata for the new hostname
+      if (allClustersMetadata && allClustersMetadata.date_ranges[selectedHostname]) {
+        const dateRange = allClustersMetadata.date_ranges[selectedHostname];
+        if (dateRange.min_date && dateRange.max_date) {
+          // Default to all available data for new hostname
+          setStartDate(dateRange.min_date);
+          setEndDate(dateRange.max_date);
+        }
       }
       // Reset filters when changing hostname
       setSelectedPartitions([]);
@@ -132,8 +139,11 @@ const Dashboard: React.FC = () => {
       setSelectedUsers([]);
       setSelectedQos([]);
       setSelectedStates([]);
+
+      // Update the ref to track current hostname
+      previousHostname.current = selectedHostname;
     }
-  }, [selectedHostname, metadata]);
+  }, [selectedHostname, allClustersMetadata]);
 
   // Report-related logic
   const reportDateRange = metadata && reportHostname ? metadata.date_ranges[reportHostname] : null;
