@@ -45,6 +45,14 @@ async def ingest_data(
             if col in df.columns:
                 df[col] = pd.to_datetime(df[col])
 
+        # Normalize column names for consistency
+        rename_map = {
+            "AllocNodes": "Nodes",
+            "AllocCPUS": "CPUs",
+            "AllocGPUS": "GPUs"
+        }
+        df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
+
         # Add derived columns for efficient querying
         if "Submit" in df.columns:
             df["SubmitDay"] = df["Submit"].dt.normalize()
@@ -56,10 +64,17 @@ async def ingest_data(
 
         if "Start" in df.columns:
             df["StartDay"] = df["Start"].dt.normalize()
+            df["StartYearMonth"] = df["Start"].dt.to_period("M").astype(str)
+            df["StartYearWeek"] = (
+                df["Start"].dt.to_period("W").apply(lambda r: r.start_time).dt.strftime("%Y-%m-%d")
+            )
+            df["StartYear"] = df["Start"].dt.year
 
-        # Calculate waiting time if both Submit and Start exist
+        # Calculate timing columns
         if "Submit" in df.columns and "Start" in df.columns:
-            df["WaitingTime"] = (df["Start"] - df["Submit"]).dt.total_seconds() / 3600.0  # hours
+            df["WaitingTimeHours"] = (df["Start"] - df["Submit"]).dt.total_seconds() / 3600.0
+        if "Start" in df.columns and "End" in df.columns:
+            df["ElapsedHours"] = (df["End"] - df["Start"]).dt.total_seconds() / 3600.0
 
         # Group by year and append to yearly files (instead of creating timestamped files)
         import logging

@@ -468,13 +468,22 @@ class DuckDBDataStore(metaclass=Singleton):
         # Build and execute query
         # Note: Some parquet files have NodeList as VARCHAR[] while others have it as VARCHAR
         # Cast NodeList to VARCHAR to normalize both types (arrays become strings, strings stay strings)
+        # Also handle old files that may have old column names (WaitingTime, AllocNodes, etc.)
         query = f"""
         SELECT
-            * EXCLUDE (NodeList),
+            * EXCLUDE (NodeList, WaitingTime, AllocNodes, AllocCPUS, AllocGPUS),
             CASE
                 WHEN typeof(NodeList) = 'VARCHAR[]' THEN array_to_string(NodeList, ',')
                 ELSE CAST(NodeList AS VARCHAR)
-            END AS NodeList
+            END AS NodeList,
+            COALESCE(WaitingTimeHours, WaitingTime, 0.0) AS WaitingTimeHours,
+            COALESCE(Nodes, AllocNodes, 0) AS Nodes,
+            COALESCE(CPUs, AllocCPUS, 0) AS CPUs,
+            COALESCE(GPUs, AllocGPUS, 0) AS GPUs,
+            COALESCE(ElapsedHours, date_diff('second', Start, "End") / 3600.0) AS ElapsedHours,
+            COALESCE(StartYearMonth, strftime(Start, '%Y-%m')) AS StartYearMonth,
+            COALESCE(StartYearWeek, strftime(date_trunc('week', Start), '%Y-%m-%d')) AS StartYearWeek,
+            COALESCE(StartYear, CAST(strftime(Start, '%Y') AS INTEGER)) AS StartYear
         FROM read_parquet('{file_pattern}', union_by_name=true, binary_as_string=true)
         WHERE {where_sql}
         """
@@ -503,40 +512,21 @@ class DuckDBDataStore(metaclass=Singleton):
         elif "GPU-hours" in df.columns:
             df = df.rename(columns={"GPU-hours": "GPUHours"})
 
-        # Normalize timing column names
-        if "WaitingTime [h]" in df.columns and "WaitingTimeHours" in df.columns:
-            df["WaitingTimeHours"] = df["WaitingTimeHours"].fillna(df["WaitingTime [h]"])
-            df = df.drop(columns=["WaitingTime [h]"])
-        elif "WaitingTime [h]" in df.columns:
-            df = df.rename(columns={"WaitingTime [h]": "WaitingTimeHours"})
-        elif "WaitingTime" in df.columns:
-            df = df.rename(columns={"WaitingTime": "WaitingTimeHours"})
+        # Handle legacy column name variations (for backward compatibility with old exports)
+        # Most normalization is now done in the SQL query for performance
+        if "WaitingTime [h]" in df.columns:
+            if "WaitingTimeHours" in df.columns:
+                df["WaitingTimeHours"] = df["WaitingTimeHours"].fillna(df["WaitingTime [h]"])
+                df = df.drop(columns=["WaitingTime [h]"])
+            else:
+                df = df.rename(columns={"WaitingTime [h]": "WaitingTimeHours"})
 
-        if "Elapsed [h]" in df.columns and "ElapsedHours" in df.columns:
-            df["ElapsedHours"] = df["ElapsedHours"].fillna(df["Elapsed [h]"])
-            df = df.drop(columns=["Elapsed [h]"])
-        elif "Elapsed [h]" in df.columns:
-            df = df.rename(columns={"Elapsed [h]": "ElapsedHours"})
-        elif "ElapsedHours" not in df.columns and "Start" in df.columns and "End" in df.columns:
-            df["ElapsedHours"] = (pd.to_datetime(df["End"]) - pd.to_datetime(df["Start"])).dt.total_seconds() / 3600.0
-
-        # Add derived time period columns based on Start time (for trend charts)
-        if "Start" in df.columns:
-            start_dt = pd.to_datetime(df["Start"])
-            if "StartYearMonth" not in df.columns:
-                df["StartYearMonth"] = start_dt.dt.to_period("M").astype(str)
-            if "StartYearWeek" not in df.columns:
-                df["StartYearWeek"] = start_dt.dt.to_period("W").apply(lambda r: r.start_time).dt.strftime("%Y-%m-%d")
-            if "StartYear" not in df.columns:
-                df["StartYear"] = start_dt.dt.year
-
-        # Normalize resource allocation column names
-        if "AllocNodes" in df.columns and "Nodes" not in df.columns:
-            df = df.rename(columns={"AllocNodes": "Nodes"})
-        if "AllocCPUS" in df.columns and "CPUs" not in df.columns:
-            df = df.rename(columns={"AllocCPUS": "CPUs"})
-        if "AllocGPUS" in df.columns and "GPUs" not in df.columns:
-            df = df.rename(columns={"AllocGPUS": "GPUs"})
+        if "Elapsed [h]" in df.columns:
+            if "ElapsedHours" in df.columns:
+                df["ElapsedHours"] = df["ElapsedHours"].fillna(df["Elapsed [h]"])
+                df = df.drop(columns=["Elapsed [h]"])
+            else:
+                df = df.rename(columns={"Elapsed [h]": "ElapsedHours"})
 
         # Apply account formatting if requested and available
         if format_accounts and self.account_formatter and "Account" in df.columns:
