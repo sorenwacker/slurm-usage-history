@@ -2,7 +2,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.backend
+      dockerfile: docker/Dockerfile.backend
     container_name: slurm-usage-backend
     ports:
       - "8100:8100"
@@ -18,7 +18,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.frontend
+      dockerfile: docker/Dockerfile.frontend
       args:
         - VITE_API_URL=http://localhost:8100
     container_name: slurm-usage-frontend

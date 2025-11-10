@@ -5,7 +5,7 @@ services:
   saml-idp:
     build:
       context: .
-      dockerfile: Dockerfile.saml-idp
+      dockerfile: docker/Dockerfile.saml-idp
     container_name: slurm-saml-idp
     ports:
       - "8080:8080"
@@ -19,7 +19,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.backend.dev
+      dockerfile: docker/Dockerfile.backend.dev
     container_name: slurm-backend-dev
     ports:
       - "8100:8100"
@@ -54,7 +54,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: ../Dockerfile.frontend.dev
+      dockerfile: ../docker/Dockerfile.frontend.dev
     container_name: slurm-frontend-dev
     ports:
       - "5173:3100"
