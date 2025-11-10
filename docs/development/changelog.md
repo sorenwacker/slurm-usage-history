@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Placeholder for future features
+
+## [0.3.0-rc1] - 2024-11-10
+
+Release Candidate for v0.3.0 - ready for testing and feedback.
+
+### Added
 - Modern **DuckDB-powered backend** for 95% memory reduction (13GB → 1.1GB)
 - **React + TypeScript frontend** with Vite build system
 - **FastAPI backend** replacing legacy Flask/Dash
