@@ -1,15 +1,10 @@
 import React from 'react';
-
-interface UserInfo {
-  username?: string;
-  email?: string;
-  is_admin?: boolean;
-}
+import type { UserInfo } from '../api/client';
 
 interface HeaderProps {
   activeTab?: 'overview' | 'reports';
   onTabChange?: (tab: 'overview' | 'reports') => void;
-  userInfo?: UserInfo | null;
+  userInfo?: UserInfo;
 }
 
 const Header: React.FC<HeaderProps> = ({ activeTab = 'overview', onTabChange, userInfo }) => {
