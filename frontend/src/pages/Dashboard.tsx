@@ -102,25 +102,16 @@ const Dashboard: React.FC = () => {
     };
   }, [allClustersMetadata, metadata]);
 
-  // Helper function to calculate date 6 weeks ago from max date
-  const calculateStartDate = (maxDate: string): string => {
-    const date = new Date(maxDate);
-    // Go back 6 weeks (42 days)
-    date.setDate(date.getDate() - 42);
-    return date.toISOString().split('T')[0];
-  };
-
   // Set initial hostname and dates when metadata loads
   useEffect(() => {
     if (allClustersMetadata && allClustersMetadata.hostnames.length > 0 && !selectedHostname) {
       const firstHostname = allClustersMetadata.hostnames[0];
       setSelectedHostname(firstHostname);
 
-      // Set date range - default to last 6 weeks
+      // Set date range - default to all available data
       const dateRange = allClustersMetadata.date_ranges[firstHostname];
-      if (dateRange && dateRange.max_date) {
-        const calculatedStartDate = calculateStartDate(dateRange.max_date);
-        setStartDate(calculatedStartDate);
+      if (dateRange && dateRange.min_date && dateRange.max_date) {
+        setStartDate(dateRange.min_date);
         setEndDate(dateRange.max_date);
       }
     }
@@ -130,10 +121,9 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     if (metadata && selectedHostname) {
       const dateRange = metadata.date_ranges[selectedHostname];
-      if (dateRange && dateRange.max_date) {
-        // Default to last 6 weeks for new hostname
-        const calculatedStartDate = calculateStartDate(dateRange.max_date);
-        setStartDate(calculatedStartDate);
+      if (dateRange && dateRange.min_date && dateRange.max_date) {
+        // Default to all available data for new hostname
+        setStartDate(dateRange.min_date);
         setEndDate(dateRange.max_date);
       }
       // Reset filters when changing hostname
