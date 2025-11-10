@@ -1,13 +1,17 @@
 stages:
   - test
+  - build
   - deploy
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  UV_CACHE_DIR: "$CI_PROJECT_DIR/.cache/uv"
 
 cache:
   paths:
     - .cache/pip
+    - .cache/uv
+    - frontend/node_modules
 
 # Test that documentation builds without errors
 test:docs:
@@ -24,6 +28,60 @@ test:docs:
       - .gitlab-ci.yml
   except:
     - main
+
+# Test chart generation functions
+test:chart-generation:
+  stage: test
+  image: python:3.10
+  before_script:
+    - pip install uv
+    - uv sync
+  script:
+    - uv run pytest tests/test_chart_generation.py -v
+  artifacts:
+    when: always
+    reports:
+      junit: test-results.xml
+
+# Test backend API
+test:backend:
+  stage: test
+  image: python:3.10
+  before_script:
+    - pip install uv
+    - uv sync
+  script:
+    - uv run pytest tests/ -v --ignore=tests/test_chart_generation.py
+  allow_failure: true
+
+# Frontend type checking
+test:frontend-types:
+  stage: test
+  image: node:20
+  before_script:
+    - cd frontend
+    - npm ci
+  script:
+    - npx tsc --noEmit
+
+# Build frontend
+build:frontend:
+  stage: build
+  image: node:20
+  needs:
+    - test:frontend-types
+  before_script:
+    - cd frontend
+    - npm ci
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist/
+    expire_in: 1 week
+  only:
+    - main
+    - merge_requests
 
 # Build and deploy documentation to GitLab Pages
 # Documentation will be available at: https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history
