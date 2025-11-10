@@ -624,11 +624,6 @@ def main() -> None:
         type=str,
         help="API key for authentication with the dashboard",
     )
-    parser.add_argument(
-        "--cluster",
-        type=str,
-        help="Cluster name (required for API uploads, e.g., DAIC)",
-    )
 
     # Legacy support for older interface
     parser.add_argument(
@@ -671,10 +666,14 @@ def main() -> None:
 
     # Validate API upload configuration
     if args.api_url or args.api_key:
-        if not (args.api_url and args.api_key and args.cluster):
+        if not (args.api_url and args.api_key):
             parser.error(
-                "For API uploads, --api-url, --api-key, and --cluster are all required"
+                "For API uploads, both --api-url and --api-key are required"
             )
+
+    # Extract cluster name from output directory path
+    # E.g., /data/slurm-usage/DAIC -> DAIC
+    cluster_name = Path(args.output_dir).name
 
     # Create instances of fetcher and formatter
     data_fetcher = UsageDataFetcher()
@@ -686,7 +685,7 @@ def main() -> None:
         data_formatter,
         api_url=args.api_url,
         api_key=args.api_key,
-        cluster_name=args.cluster,
+        cluster_name=cluster_name,
     )
     exporter.fetch_data_weekly(
         from_year=from_year,

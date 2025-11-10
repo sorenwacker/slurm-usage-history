@@ -126,7 +126,6 @@ Upload data directly to dashboard via HTTPS API - no shared filesystem required.
 Contact your dashboard administrator for:
 - Dashboard API URL (e.g., `https://dashboard.example.com/api`)
 - API key for authentication
-- Your cluster name (e.g., `DAIC`)
 
 Or generate an API key on the dashboard server:
 
@@ -146,13 +145,13 @@ API_KEYS=your-generated-key-here
 # Activate venv
 source .venv/bin/activate
 
-# Test upload with API
+# Test upload with API (cluster name auto-detected from output path)
 slurm-dashboard-agent \
-  --cluster DAIC \
   --api-url https://dashboard.example.com/api \
   --api-key your-api-key-here \
-  --output /tmp/slurm-data
+  --output /data/slurm-usage/DAIC
 
+# Cluster name "DAIC" is extracted from output path
 # Data is saved locally AND uploaded to dashboard
 ```
 
@@ -163,7 +162,8 @@ slurm-dashboard-agent \
 crontab -e
 
 # Add weekly collection with API upload (every Monday at 2 AM)
-0 2 * * 1 /path/to/.venv/bin/slurm-dashboard-agent --cluster DAIC --api-url https://dashboard.example.com/api --api-key your-api-key --output /tmp/slurm-data 2>&1 | logger -t slurm-dashboard-agent
+# Cluster name is auto-detected from output path
+0 2 * * 1 /path/to/.venv/bin/slurm-dashboard-agent --api-url https://dashboard.example.com/api --api-key your-api-key --output /data/slurm-usage/DAIC 2>&1 | logger -t slurm-dashboard-agent
 ```
 
 **Advantages of API-based deployment:**
