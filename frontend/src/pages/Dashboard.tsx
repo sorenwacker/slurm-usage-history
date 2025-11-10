@@ -71,6 +71,8 @@ const Dashboard: React.FC = () => {
   const { data: allClustersMetadata } = useQuery({
     queryKey: ['allClusters'],
     queryFn: () => dashboardApi.getMetadata({}),
+    refetchOnMount: true,
+    staleTime: 0,
   });
 
   // Fetch metadata - refetch when hostname or date range changes to update filter options
@@ -81,6 +83,8 @@ const Dashboard: React.FC = () => {
       start_date: startDate || undefined,
       end_date: endDate || undefined,
     }),
+    refetchOnMount: true,
+    staleTime: 0,
   });
 
   // Combine metadata: use full cluster list from allClustersMetadata, but filtered data from metadata
