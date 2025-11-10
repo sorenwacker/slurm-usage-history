@@ -527,9 +527,9 @@ class DuckDBDataStore(metaclass=Singleton):
         # Start time period columns (for trend charts)
         if "Start" in df.columns:
             if "StartYearMonth" not in df.columns:
-                df["StartYearMonth"] = pd.to_datetime(df["Start"]).dt.to_period("M").astype(str)
+                df["StartYearMonth"] = pd.to_datetime(df["Start"]).dt.to_period("M").apply(lambda r: r.start_time)
             if "StartYearWeek" not in df.columns:
-                df["StartYearWeek"] = pd.to_datetime(df["Start"]).dt.to_period("W").apply(lambda r: r.start_time).dt.strftime("%Y-%m-%d")
+                df["StartYearWeek"] = pd.to_datetime(df["Start"]).dt.to_period("W").apply(lambda r: r.start_time)
             if "StartYear" not in df.columns:
                 df["StartYear"] = pd.to_datetime(df["Start"]).dt.year
 
