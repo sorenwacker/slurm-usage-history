@@ -46,12 +46,54 @@ See [documentation](https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history) 
 
 ## Development
 
+### Setup
+
 ```bash
 git clone https://github.com/tudelft-reit/slurm-dashboard.git
 cd slurm-dashboard
 uv pip install -e ".[all,dev]"
 ./build_frontend.sh
 uv run pytest
+```
+
+### Generate Test Data
+
+Create synthetic cluster data for local development:
+
+```bash
+# Generate test data for a cluster (creates data/TestCluster/weekly-data/*.parquet)
+python scripts/generate_test_cluster_data.py --cluster TestCluster
+
+# Customize date range and job volume
+python scripts/generate_test_cluster_data.py \
+  --cluster MyCluster \
+  --start-date 2024-01-01 \
+  --end-date 2024-12-31 \
+  --jobs-per-day 100
+```
+
+### Run Development Environment
+
+Use Docker Compose for local development with hot-reload:
+
+```bash
+# Build and start containers
+docker-compose build
+docker-compose up -d
+
+# View logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+```
+
+Access the dashboard:
+- **Frontend UI**: http://localhost:3100
+- **Backend API**: http://localhost:8100
+- **API Docs**: http://localhost:8100/docs
+
+Stop containers:
+```bash
+docker-compose down
 ```
 
 ## License & Contact
