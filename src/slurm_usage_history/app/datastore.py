@@ -14,6 +14,8 @@ except ImportError:
     formatter = None
 from ..tools import timeit
 
+logger = logging.getLogger(__name__)
+
 
 class Singleton(type):
     """Metaclass to implement the Singleton pattern.
@@ -307,7 +309,7 @@ class PandasDataStore(metaclass=Singleton):
                 self.hosts[hostname][key] = []
 
         # Store file timestamps for future change detection
-        host_dir = self.directory / hostname / "data"
+        host_dir = self.directory / hostname / "weekly-data"
         self._file_timestamps[hostname] = {}
         for file_path in host_dir.glob("*.parquet"):
             self._file_timestamps[hostname][file_path] = file_path.stat().st_mtime
@@ -324,7 +326,7 @@ class PandasDataStore(metaclass=Singleton):
         Raises:
             FileNotFoundError: If the directory or Parquet files are not found.
         """
-        host_dir = self.directory / hostname / "data"
+        host_dir = self.directory / hostname / "weekly-data"
         if not host_dir.exists() or not host_dir.is_dir():
             msg = f"Directory not found for hostname: {hostname}"
             raise FileNotFoundError(msg)
@@ -423,7 +425,7 @@ class PandasDataStore(metaclass=Singleton):
         Returns:
             True if there are updates, False otherwise.
         """
-        host_dir = self.directory / hostname / "data"
+        host_dir = self.directory / hostname / "weekly-data"
         if not host_dir.exists() or not host_dir.is_dir():
             return False
 

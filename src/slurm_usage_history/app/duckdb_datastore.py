@@ -159,7 +159,7 @@ class DuckDBDataStore(metaclass=Singleton):
         Args:
             hostname: The hostname to load metadata for
         """
-        host_dir = self.directory / hostname / "data"
+        host_dir = self.directory / hostname / "weekly-data"
         if not host_dir.exists() or not host_dir.is_dir():
             logger.warning(f"Directory not found for hostname: {hostname}")
             return

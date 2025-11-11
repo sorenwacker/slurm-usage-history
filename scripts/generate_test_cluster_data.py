@@ -492,7 +492,7 @@ def main():
         output_dir = args.output_dir
     else:
         script_dir = Path(__file__).parent.parent
-        output_dir = script_dir / "data" / args.cluster / "data"
+        output_dir = script_dir / "data" / args.cluster / "weekly-data"
 
     # Generate data
     print(f"=== Synthetic Cluster Data Generator ===")

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 def consolidate_cluster_data(data_dir: Path):
     """Consolidate all timestamped files into yearly files"""
 
-    weekly_data_dir = data_dir / "data"
+    weekly_data_dir = data_dir / "weekly-data"
     if not weekly_data_dir.exists():
         logger.warning(f"Directory does not exist: {weekly_data_dir}")
         return
