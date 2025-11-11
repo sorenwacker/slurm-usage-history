@@ -16,8 +16,8 @@ COPY backend ./backend
 # Set version for setuptools-scm
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=1.0.0
 
-# Install dependencies
-RUN uv sync --frozen --no-dev
+# Install dependencies with web extras (for FastAPI/uvicorn)
+RUN uv sync --frozen --no-dev --all-extras
 
 # Expose port
 EXPOSE 8100
