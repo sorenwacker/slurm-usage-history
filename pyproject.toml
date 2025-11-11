@@ -101,10 +101,10 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history"
-Documentation = "https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history/-/blob/main/README.md"
-Repository = "https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history"
-Issues = "https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history/-/issues"
+Homepage = "https://github.com/tudelft-reit/slurm-dashboard"
+Documentation = "https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history"
+Repository = "https://github.com/tudelft-reit/slurm-dashboard"
+Issues = "https://github.com/tudelft-reit/slurm-dashboard/issues"
 
 [project.scripts]
 # Main CLI (combines all functionality)
