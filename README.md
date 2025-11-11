@@ -5,7 +5,7 @@ Web dashboard for SLURM cluster usage analytics powered by DuckDB.
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-**[Documentation](https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history)** | **[GitHub Mirror](https://github.com/sorenwacker/slurm-dashboard)**
+**[Documentation](https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history)** | **[GitHub Mirror](https://github.com/tudelft-reit/slurm-dashboard)**
 
 ## Key Features
 
@@ -47,8 +47,8 @@ See [documentation](https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history) 
 ## Development
 
 ```bash
-git clone https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history.git
-cd slurm-usage-history
+git clone https://github.com/tudelft-reit/slurm-dashboard.git
+cd slurm-dashboard
 uv pip install -e ".[all,dev]"
 ./build_frontend.sh
 uv run pytest
@@ -56,4 +56,4 @@ uv run pytest
 
 ## License & Contact
 
-GPL-3.0-or-later | [Issues](https://gitlab.ewi.tudelft.nl/sdrwacker/slurm-usage-history/-/issues) | s.wacker@tudelft.nl | TU Delft REIT
+GPL-3.0-or-later | [Issues](https://github.com/tudelft-reit/slurm-dashboard/issues) | s.wacker@tudelft.nl | TU Delft REIT
