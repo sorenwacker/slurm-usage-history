@@ -100,13 +100,17 @@ export function AdminConfig() {
 
   const getAuthHeaders = (): HeadersInit => {
     const token = localStorage.getItem('admin_token');
-    if (!token) {
-      throw new Error('Not authenticated');
-    }
-    return {
-      'Authorization': `Bearer ${token}`,
+    const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
+
+    // Add Bearer token if admin_token exists (username/password login)
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    // If no token, rely on cookie-based SAML authentication
+
+    return headers;
   };
 
   useEffect(() => {
@@ -122,6 +126,7 @@ export function AdminConfig() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/admin/config`, {
         headers: getAuthHeaders(),
+        credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to load configuration');
       const data = await response.json();
@@ -152,6 +157,7 @@ export function AdminConfig() {
       const response = await fetch(`${API_BASE_URL}/api/admin/config/${clusterName}/auto-generate`, {
         method: 'POST',
         headers: getAuthHeaders(),
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -177,6 +183,7 @@ export function AdminConfig() {
       const response = await fetch(`${API_BASE_URL}/api/admin/config/reload`, {
         method: 'POST',
         headers: getAuthHeaders(),
+        credentials: 'include',
       });
 
       if (!response.ok) throw new Error('Failed to reload configuration');

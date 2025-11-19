@@ -58,13 +58,17 @@ export interface APIKeyRotateResponse {
 class AdminClient {
   private getAuthHeaders(): HeadersInit {
     const token = localStorage.getItem('admin_token');
-    if (!token) {
-      throw new Error('Not authenticated');
-    }
-    return {
-      'Authorization': `Bearer ${token}`,
+    const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
+
+    // Add Bearer token if admin_token exists (username/password login)
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    // If no token, rely on cookie-based SAML authentication
+
+    return headers;
   }
 
   async login(username: string, password: string): Promise<AdminLoginResponse> {
