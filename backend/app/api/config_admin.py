@@ -97,6 +97,58 @@ async def auto_generate_cluster_configuration(cluster_name: str):
         if df.empty:
             raise HTTPException(status_code=404, detail=f"No data found for cluster {cluster_name}")
 
+        def expand_slurm_nodelist(nodelist_str: str) -> set[str]:
+            """Expand SLURM compact node list notation.
+
+            Examples:
+                'node[01-03]' -> {'node01', 'node02', 'node03'}
+                'gpu[1,3,5]' -> {'gpu1', 'gpu3', 'gpu5'}
+                'node01,node02' -> {'node01', 'node02'}
+            """
+            import re
+            nodes = set()
+
+            # Split by comma first
+            parts = [p.strip() for p in nodelist_str.split(',')]
+
+            for part in parts:
+                if not part:
+                    continue
+
+                # Check for bracket notation: prefix[range] or prefix[list]
+                match = re.match(r'^([a-zA-Z_-]+)\[([^\]]+)\]$', part)
+                if match:
+                    prefix = match.group(1)
+                    range_part = match.group(2)
+
+                    # Check if it's a range (e.g., "01-05")
+                    if '-' in range_part and range_part.count('-') == 1:
+                        try:
+                            start_str, end_str = range_part.split('-')
+                            # Detect if it's zero-padded
+                            padding = len(start_str) if start_str[0] == '0' else 0
+                            start = int(start_str)
+                            end = int(end_str)
+                            for i in range(start, end + 1):
+                                if padding:
+                                    nodes.add(f"{prefix}{i:0{padding}d}")
+                                else:
+                                    nodes.add(f"{prefix}{i}")
+                        except ValueError:
+                            # Not a valid range, add as-is
+                            nodes.add(part)
+                    else:
+                        # It's a comma-separated list in brackets
+                        for item in range_part.split(','):
+                            item = item.strip()
+                            if item:
+                                nodes.add(f"{prefix}{item}")
+                else:
+                    # No bracket notation, add as-is
+                    nodes.add(part)
+
+            return nodes
+
         # Generate node labels from unique node names
         node_labels = {}
         if "NodeList" in df.columns:
@@ -104,11 +156,9 @@ async def auto_generate_cluster_configuration(cluster_name: str):
             all_nodes = set()
             for nodelist in df["NodeList"].dropna():
                 if isinstance(nodelist, str):
-                    # String may contain comma-separated node names
-                    for node in nodelist.split(','):
-                        node = node.strip()
-                        if node:
-                            all_nodes.add(node)
+                    # Expand SLURM compact notation
+                    expanded = expand_slurm_nodelist(nodelist)
+                    all_nodes.update(expanded)
                 elif isinstance(nodelist, (list, tuple)):
                     # It's a list/tuple of nodes
                     for node in nodelist:
