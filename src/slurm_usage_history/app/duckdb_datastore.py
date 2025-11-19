@@ -218,7 +218,17 @@ class DuckDBDataStore(metaclass=Singleton):
                         ORDER BY {col}
                         """
                     ).fetchall()
-                    self.hosts[hostname][key] = [val[0] for val in unique_values]
+
+                    # Special handling for Partition: split comma-separated values
+                    if col == "Partition":
+                        partition_set = set()
+                        for val in unique_values:
+                            # Split by comma and strip whitespace
+                            partitions = [p.strip() for p in val[0].split(',') if p.strip()]
+                            partition_set.update(partitions)
+                        self.hosts[hostname][key] = sorted(list(partition_set))
+                    else:
+                        self.hosts[hostname][key] = [val[0] for val in unique_values]
                 except Exception as e:
                     logger.warning(f"Could not load unique values for {col}: {e}")
                     self.hosts[hostname][key] = []
@@ -448,8 +458,15 @@ class DuckDBDataStore(metaclass=Singleton):
         if end_date:
             where_clauses.append(f"Submit <= '{end_date}'")
         if partitions:
-            partition_list = "', '".join(partitions)
-            where_clauses.append(f"Partition IN ('{partition_list}')")
+            # Handle comma-separated partitions: match if any selected partition appears in the list
+            partition_conditions = []
+            for partition in partitions:
+                # Match if partition appears as whole word in comma-separated list
+                # Using list_contains with string_split for accurate matching
+                partition_conditions.append(
+                    f"list_contains(string_split(Partition, ','), '{partition}')"
+                )
+            where_clauses.append(f"({' OR '.join(partition_conditions)})")
         if accounts:
             account_list = "', '".join(accounts)
             where_clauses.append(f"Account IN ('{account_list}')")
