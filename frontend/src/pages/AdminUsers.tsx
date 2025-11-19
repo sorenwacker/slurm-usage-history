@@ -262,7 +262,7 @@ export function AdminUsers() {
         <div className="admin-table-container" style={{ marginBottom: '2rem' }}>
           <div style={{ padding: '1.5rem', borderBottom: '1px solid #dee2e6' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span>👤</span> Admin Emails
+              <span>☺</span> Admin Emails
             </h2>
             <p style={{ fontSize: '0.875rem', color: '#6c757d', marginBottom: '1rem' }}>
               Users with these email addresses have standard administrative access
@@ -345,7 +345,7 @@ export function AdminUsers() {
             className="admin-btn admin-btn-primary"
             style={{ padding: '0.75rem 1.5rem' }}
           >
-            {saving ? 'Saving...' : '💾 Save Changes'}
+            {saving ? 'Saving...' : '⎗ Save Changes'}
           </button>
           <button
             onClick={loadEmails}

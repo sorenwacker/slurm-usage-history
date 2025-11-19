@@ -413,11 +413,11 @@ export function AdminConfig() {
             {/* Tab Navigation */}
             <div className="admin-tabs">
               {[
-                { id: 'overview', label: 'Overview', icon: '📊' },
-                { id: 'nodes', label: `Nodes (${stats?.totalNodes || 0})`, icon: '🖥️' },
-                { id: 'accounts', label: `Accounts (${stats?.totalAccounts || 0})`, icon: '👥' },
-                { id: 'partitions', label: `Partitions (${stats?.totalPartitions || 0})`, icon: '📦' },
-                { id: 'yaml', label: 'Edit YAML', icon: '📝' },
+                { id: 'overview', label: 'Overview', icon: '⊞' },
+                { id: 'nodes', label: `Nodes (${stats?.totalNodes || 0})`, icon: '▪' },
+                { id: 'accounts', label: `Accounts (${stats?.totalAccounts || 0})`, icon: '☰' },
+                { id: 'partitions', label: `Partitions (${stats?.totalPartitions || 0})`, icon: '▤' },
+                { id: 'yaml', label: 'Edit YAML', icon: '✎' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -658,7 +658,7 @@ export function AdminConfig() {
               <div className="admin-table-container" style={{ padding: '1.5rem' }}>
                 <div style={{ marginBottom: '1rem' }}>
                   <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span>📝</span> Edit YAML Configuration
+                    <span>✎</span> Edit YAML Configuration
                   </h2>
                   <p style={{ fontSize: '0.875rem', color: '#6c757d' }}>
                     Edit the YAML configuration for <strong>{selectedCluster}</strong> cluster. Changes will be saved to config/clusters.yaml
@@ -697,7 +697,7 @@ export function AdminConfig() {
                     disabled={saving}
                     className="admin-btn admin-btn-success"
                   >
-                    {saving ? 'Saving...' : '💾 Save Configuration'}
+                    {saving ? 'Saving...' : '⎗ Save Configuration'}
                   </button>
                   <button
                     onClick={() => {
