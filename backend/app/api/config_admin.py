@@ -119,30 +119,39 @@ async def auto_generate_cluster_configuration(cluster_name: str):
                 match = re.match(r'^([a-zA-Z_-]+)\[([^\]]+)\]$', part)
                 if match:
                     prefix = match.group(1)
-                    range_part = match.group(2)
+                    bracket_content = match.group(2)
 
-                    # Check if it's a range (e.g., "01-05")
-                    if '-' in range_part and range_part.count('-') == 1:
-                        try:
-                            start_str, end_str = range_part.split('-')
-                            # Detect if it's zero-padded
-                            padding = len(start_str) if start_str[0] == '0' else 0
-                            start = int(start_str)
-                            end = int(end_str)
-                            for i in range(start, end + 1):
-                                if padding:
-                                    nodes.add(f"{prefix}{i:0{padding}d}")
-                                else:
-                                    nodes.add(f"{prefix}{i}")
-                        except ValueError:
-                            # Not a valid range, add as-is
-                            nodes.add(part)
-                    else:
-                        # It's a comma-separated list in brackets
-                        for item in range_part.split(','):
-                            item = item.strip()
-                            if item:
+                    # Split by comma to handle mixed notation like gpu[4,5-6,9]
+                    items = [item.strip() for item in bracket_content.split(',')]
+
+                    for item in items:
+                        if not item:
+                            continue
+
+                        # Check if this item is a range (e.g., "5-6")
+                        if '-' in item:
+                            parts = item.split('-')
+                            if len(parts) == 2:
+                                try:
+                                    start_str, end_str = parts
+                                    # Detect if it's zero-padded
+                                    padding = len(start_str) if start_str and start_str[0] == '0' else 0
+                                    start = int(start_str)
+                                    end = int(end_str)
+                                    for i in range(start, end + 1):
+                                        if padding:
+                                            nodes.add(f"{prefix}{i:0{padding}d}")
+                                        else:
+                                            nodes.add(f"{prefix}{i}")
+                                except (ValueError, IndexError):
+                                    # Not a valid range, add as-is
+                                    nodes.add(f"{prefix}{item}")
+                            else:
+                                # Multiple dashes or invalid format, add as-is
                                 nodes.add(f"{prefix}{item}")
+                        else:
+                            # Single item, not a range
+                            nodes.add(f"{prefix}{item}")
                 else:
                     # No bracket notation, add as-is
                     nodes.add(part)
