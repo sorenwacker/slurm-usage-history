@@ -66,6 +66,16 @@ async def health_check() -> HealthResponse:
         )
 
 
+@router.get("/version")
+async def get_version() -> dict:
+    """Get application version."""
+    try:
+        from _version import __version__
+        return {"version": __version__}
+    except ImportError:
+        return {"version": "unknown"}
+
+
 @router.get("/metadata", response_model=MetadataResponse)
 async def get_metadata(
     hostname: Optional[str] = Query(None, description="Filter metadata for specific hostname"),
