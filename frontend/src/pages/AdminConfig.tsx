@@ -345,7 +345,7 @@ export function AdminConfig() {
               >
                 {config && Object.keys(config.clusters).map((cluster) => (
                   <option key={cluster} value={cluster}>
-                    {cluster} - {config.clusters[cluster].display_name || cluster}
+                    {config.clusters[cluster].display_name || cluster}
                   </option>
                 ))}
               </select>
