@@ -66,6 +66,20 @@ async def upload_data(
             f"file={file.filename}, size={len(contents)} bytes"
         )
 
+        # Trigger immediate data reload and cache invalidation
+        try:
+            from ..datastore_singleton import get_datastore
+            from .charts import clear_chart_cache
+
+            datastore = get_datastore()
+            updated = datastore.check_for_updates()
+            clear_chart_cache()
+
+            if updated:
+                logger.info(f"Data reloaded after upload for cluster={cluster_name}")
+        except Exception as e:
+            logger.warning(f"Failed to trigger immediate reload: {e}")
+
         return {
             "status": "success",
             "message": f"File uploaded successfully: {file.filename}",
