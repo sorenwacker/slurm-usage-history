@@ -155,13 +155,19 @@ async def auto_generate_cluster_configuration(cluster_name: str):
         # Generate partition labels
         partition_labels = {}
         if "Partition" in df.columns:
-            unique_partitions = df["Partition"].dropna().unique()
-            for partition in sorted(unique_partitions):
-                if partition and isinstance(partition, str):
-                    partition_labels[partition] = {
-                        "display_name": f"{partition.capitalize()} Partition",
-                        "description": f"{partition} partition",
-                    }
+            # Split comma-separated partitions to get individual partitions
+            all_partitions = set()
+            for partition_str in df["Partition"].dropna().unique():
+                if partition_str and isinstance(partition_str, str):
+                    # Split by comma and strip whitespace
+                    partitions = [p.strip() for p in partition_str.split(',') if p.strip()]
+                    all_partitions.update(partitions)
+
+            for partition in sorted(all_partitions):
+                partition_labels[partition] = {
+                    "display_name": f"{partition.capitalize()} Partition",
+                    "description": f"{partition} partition",
+                }
 
         # Create cluster configuration
         cluster_config = {
