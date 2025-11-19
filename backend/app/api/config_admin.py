@@ -229,9 +229,18 @@ async def auto_generate_cluster_configuration(cluster_name: str):
             # Add new cluster configuration
             config_data["clusters"][cluster_name] = cluster_config
 
-        # Write back to file
-        with open(config_path, "w") as f:
+        # Write back to file using atomic write (temp file + rename)
+        import tempfile
+        import os
+
+        # Create temp file in the same directory to ensure same filesystem
+        config_dir = config_path.parent
+        with tempfile.NamedTemporaryFile(mode='w', dir=config_dir, delete=False, suffix='.yaml') as f:
+            temp_path = f.name
             yaml.dump(config_data, f, default_flow_style=False, sort_keys=False)
+
+        # Atomically replace the original file
+        os.replace(temp_path, config_path)
 
         # Reload configuration
         reload_cluster_config()
