@@ -3,6 +3,68 @@ import argparse
 import json
 import sys
 from pathlib import Path
+import requests
+
+
+def setup_command(args):
+    """Setup agent using deploy key."""
+    api_url = args.api_url.rstrip('/')
+    deploy_key = args.deploy_key
+
+    print(f"Exchanging deploy key with {api_url}...")
+
+    try:
+        # Exchange deploy key for API key
+        response = requests.post(
+            f"{api_url}/api/agent/exchange-deploy-key",
+            data={"deploy_key": deploy_key},
+            timeout=30
+        )
+
+        if response.status_code != 200:
+            print(f"ERROR: Failed to exchange deploy key: {response.text}", file=sys.stderr)
+            sys.exit(1)
+
+        result = response.json()
+        api_key = result.get("api_key")
+        cluster_name = result.get("cluster_name")
+
+        if not api_key:
+            print("ERROR: No API key returned from server", file=sys.stderr)
+            sys.exit(1)
+
+        print(f"Successfully authenticated as cluster: {cluster_name}")
+
+        # Create configuration
+        config = {
+            "api_url": api_url,
+            "api_key": api_key,
+            "cluster_name": cluster_name,
+            "local_data_path": args.local_data_path or "",
+            "timeout": 30,
+            "collection_window_days": 7,
+        }
+
+        config_path = Path(args.output)
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(config_path, 'w') as f:
+            json.dump(config, f, indent=2)
+
+        config_path.chmod(0o600)
+
+        print(f"\nConfiguration created at: {config_path}")
+        print(f"Cluster: {cluster_name}")
+        print(f"API URL: {api_url}")
+        print("\nSetup complete! You can now run:")
+        print(f"  slurm-dashboard run --config {config_path}")
+
+    except requests.exceptions.RequestException as e:
+        print(f"ERROR: Failed to connect to dashboard: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"ERROR: Setup failed: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def create_config_command(args):
@@ -73,6 +135,32 @@ def main():
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # setup command (recommended for first-time setup)
+    setup_parser = subparsers.add_parser(
+        "setup",
+        help="Setup agent using deploy key (recommended for first-time setup)",
+    )
+    setup_parser.add_argument(
+        "--api-url",
+        required=True,
+        help="Dashboard API URL (e.g., https://dashboard.daic.tudelft.nl)",
+    )
+    setup_parser.add_argument(
+        "--deploy-key",
+        required=True,
+        help="One-time deployment key from dashboard admin",
+    )
+    setup_parser.add_argument(
+        "--local-data-path",
+        help="Local path to save extracted data as backup (optional)",
+    )
+    setup_parser.add_argument(
+        "-o", "--output",
+        default="config.json",
+        help="Output configuration file path (default: config.json)",
+    )
+    setup_parser.set_defaults(func=setup_command)
 
     # create-config command
     config_parser = subparsers.add_parser(

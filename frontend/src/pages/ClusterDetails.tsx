@@ -179,23 +179,60 @@ export function ClusterDetails() {
         {/* Deploy Key Modal */}
         {newDeployKey && (
           <div className="clusters-modal-overlay">
-            <div className="clusters-modal">
+            <div className="clusters-modal" style={{ maxWidth: '800px' }}>
               <h3 className="clusters-modal-title">One-Time Deploy Key Generated</h3>
               <p className="clusters-modal-text">
-                This deploy key can only be used ONCE to fetch the actual API key on agent first run.
-                The agent will automatically exchange this key for the permanent API key and save it in the configuration.
-                This key expires in 7 days.
+                Run this command on your cluster to set up the agent. The deploy key will be automatically exchanged for a permanent API key.
               </p>
-              <div className="clusters-modal-code">
-                <code>{newDeployKey}</code>
-              </div>
-              <div className="clusters-modal-actions">
-                <button
-                  onClick={() => copyToClipboard(newDeployKey)}
-                  className="clusters-form-submit"
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: '#333' }}>Installation Command:</h4>
+                <div
+                  className="clusters-modal-code"
+                  style={{
+                    backgroundColor: '#1e1e1e',
+                    padding: '1rem',
+                    borderRadius: '4px',
+                    overflow: 'auto'
+                  }}
                 >
-                  Copy to Clipboard
+                  <code style={{ color: '#d4d4d4', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                    {`pip install slurm-usage-history[agent] && \\
+slurm-dashboard setup \\
+  --api-url ${window.location.origin} \\
+  --deploy-key ${newDeployKey}`}
+                  </code>
+                </div>
+                <button
+                  onClick={() => copyToClipboard(
+                    `pip install slurm-usage-history[agent] && slurm-dashboard setup --api-url ${window.location.origin} --deploy-key ${newDeployKey}`
+                  )}
+                  style={{
+                    marginTop: '0.5rem',
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.85rem',
+                    backgroundColor: '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Copy Command
                 </button>
+              </div>
+
+              <div style={{ borderTop: '1px solid #ddd', paddingTop: '1rem', marginTop: '1rem' }}>
+                <h4 style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: '#666' }}>Deploy Key (for manual setup):</h4>
+                <div className="clusters-modal-code">
+                  <code style={{ fontSize: '0.75rem' }}>{newDeployKey}</code>
+                </div>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#666' }}>
+                  This key expires in 7 days and can only be used once.
+                </div>
+              </div>
+
+              <div className="clusters-modal-actions">
                 <button
                   onClick={() => setNewDeployKey(null)}
                   className="clusters-form-cancel"
