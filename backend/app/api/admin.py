@@ -444,18 +444,34 @@ async def rotate_api_key(
 async def get_admin_emails(admin: str = Depends(get_current_admin)):
     """Get current admin and superadmin email lists.
 
+    Reads from database first, falls back to environment variables.
     Requires admin authentication.
     """
-    settings = get_settings()
+    from pathlib import Path
+    import json
 
     admin_emails = []
     superadmin_emails = []
 
-    if settings.admin_emails:
-        admin_emails = [email.strip() for email in settings.admin_emails.split(",") if email.strip()]
+    # Try reading from database first
+    db_path = Path("data/clusters.json")
+    if db_path.exists():
+        try:
+            with open(db_path, 'r') as f:
+                data = json.load(f)
+            if "admin_users" in data:
+                admin_emails = data["admin_users"].get("admin_emails", [])
+                superadmin_emails = data["admin_users"].get("superadmin_emails", [])
+        except Exception:
+            pass  # Fall back to environment variables
 
-    if settings.superadmin_emails:
-        superadmin_emails = [email.strip() for email in settings.superadmin_emails.split(",") if email.strip()]
+    # Fall back to environment variables if database doesn't have them
+    if not admin_emails and not superadmin_emails:
+        settings = get_settings()
+        if settings.admin_emails:
+            admin_emails = [email.strip() for email in settings.admin_emails.split(",") if email.strip()]
+        if settings.superadmin_emails:
+            superadmin_emails = [email.strip() for email in settings.superadmin_emails.split(",") if email.strip()]
 
     return {
         "admin_emails": admin_emails,
@@ -471,72 +487,53 @@ async def update_admin_emails(
 ):
     """Update admin and superadmin email lists.
 
-    Updates the .env file with new email lists.
+    Stores admin emails in the database.
     Requires admin authentication.
     """
-    import os
     from pathlib import Path
+    import json
 
-    # Find .env file
-    env_file = Path(".env")
-    if not env_file.exists():
-        # Try parent directory
-        env_file = Path("../.env")
-        if not env_file.exists():
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=".env file not found",
-            )
-
-    # Read current .env content
-    try:
-        with open(env_file, 'r') as f:
-            lines = f.readlines()
-    except Exception as e:
+    # Use cluster database file for admin emails
+    db_path = Path("data/clusters.json")
+    if not db_path.exists():
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to read .env file: {str(e)}",
+            detail="Database file not found",
         )
 
-    # Update lines
-    admin_emails_str = ",".join(admin_emails)
-    superadmin_emails_str = ",".join(superadmin_emails)
-
-    admin_emails_found = False
-    superadmin_emails_found = False
-    new_lines = []
-
-    for line in lines:
-        if line.startswith("ADMIN_EMAILS="):
-            new_lines.append(f"ADMIN_EMAILS={admin_emails_str}\n")
-            admin_emails_found = True
-        elif line.startswith("SUPERADMIN_EMAILS="):
-            new_lines.append(f"SUPERADMIN_EMAILS={superadmin_emails_str}\n")
-            superadmin_emails_found = True
-        else:
-            new_lines.append(line)
-
-    # Add if not found
-    if not admin_emails_found:
-        new_lines.append(f"ADMIN_EMAILS={admin_emails_str}\n")
-    if not superadmin_emails_found:
-        new_lines.append(f"SUPERADMIN_EMAILS={superadmin_emails_str}\n")
-
-    # Write back
+    # Read current database
     try:
-        with open(env_file, 'w') as f:
-            f.writelines(new_lines)
+        with open(db_path, 'r') as f:
+            data = json.load(f)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to write .env file: {str(e)}",
+            detail=f"Failed to read database: {str(e)}",
+        )
+
+    # Ensure admin_users section exists
+    if "admin_users" not in data:
+        data["admin_users"] = {}
+
+    # Update admin emails
+    data["admin_users"]["admin_emails"] = admin_emails
+    data["admin_users"]["superadmin_emails"] = superadmin_emails
+
+    # Write back to database
+    try:
+        with open(db_path, 'w') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to write database: {str(e)}",
         )
 
     logger.info(f"Admin emails updated by {admin}: {len(admin_emails)} admins, {len(superadmin_emails)} superadmins")
 
     return {
         "status": "success",
-        "message": "Admin emails updated successfully. Changes will take effect after backend restart.",
+        "message": "Admin emails updated successfully",
         "admin_emails": admin_emails,
         "superadmin_emails": superadmin_emails,
     }

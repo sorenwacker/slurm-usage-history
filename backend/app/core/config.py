@@ -78,32 +78,62 @@ class Settings(BaseSettings):
     def get_admin_email_roles(self) -> dict[str, str]:
         """Parse admin emails with roles from configuration.
 
+        Reads from database first, falls back to environment variables.
         Returns: {"email@example.com": "admin"|"superadmin", ...}
         """
         from ..models.admin_models import AdminRole
+        from pathlib import Path
+        import json
 
         email_roles = {}
 
-        # First, add all superadmin emails
-        if self.superadmin_emails:
-            for email in self.superadmin_emails.split(","):
-                email = email.strip()
-                if email:
-                    email_roles[email.lower()] = AdminRole.SUPERADMIN
+        # Try reading from database first
+        db_path = Path("data/clusters.json")
+        db_admin_emails = []
+        db_superadmin_emails = []
 
-        # Then add emails from admin_emails (format: email:role)
-        if self.admin_emails:
-            for entry in self.admin_emails.split(","):
-                entry = entry.strip()
-                if ":" in entry:
-                    email, role = entry.split(":", 1)
-                    email = email.strip().lower()
-                    role = role.strip().lower()
-                    if role in ["admin", "superadmin"]:
-                        email_roles[email] = AdminRole.SUPERADMIN if role == "superadmin" else AdminRole.ADMIN
-                elif entry:
-                    # If no role specified, default to admin
-                    email_roles[entry.lower()] = AdminRole.ADMIN
+        if db_path.exists():
+            try:
+                with open(db_path, 'r') as f:
+                    data = json.load(f)
+                if "admin_users" in data:
+                    db_admin_emails = data["admin_users"].get("admin_emails", [])
+                    db_superadmin_emails = data["admin_users"].get("superadmin_emails", [])
+            except Exception:
+                pass  # Fall back to environment variables
+
+        # Add superadmin emails from database
+        for email in db_superadmin_emails:
+            if email:
+                email_roles[email.lower()] = AdminRole.SUPERADMIN
+
+        # Add admin emails from database
+        for email in db_admin_emails:
+            if email:
+                email_roles[email.lower()] = AdminRole.ADMIN
+
+        # Fall back to environment variables if database doesn't have them
+        if not email_roles:
+            # First, add all superadmin emails from env
+            if self.superadmin_emails:
+                for email in self.superadmin_emails.split(","):
+                    email = email.strip()
+                    if email:
+                        email_roles[email.lower()] = AdminRole.SUPERADMIN
+
+            # Then add emails from admin_emails (format: email:role)
+            if self.admin_emails:
+                for entry in self.admin_emails.split(","):
+                    entry = entry.strip()
+                    if ":" in entry:
+                        email, role = entry.split(":", 1)
+                        email = email.strip().lower()
+                        role = role.strip().lower()
+                        if role in ["admin", "superadmin"]:
+                            email_roles[email] = AdminRole.SUPERADMIN if role == "superadmin" else AdminRole.ADMIN
+                    elif entry:
+                        # If no role specified, default to admin
+                        email_roles[entry.lower()] = AdminRole.ADMIN
 
         return email_roles
 
