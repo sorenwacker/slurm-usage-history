@@ -403,7 +403,17 @@ class DuckDBDataStore(metaclass=Singleton):
                     ORDER BY {col}
                     """
                 ).fetchall()
-                result[key] = [val[0] for val in unique_values]
+
+                # Special handling for Partition: split comma-separated values
+                if col == "Partition":
+                    partition_set = set()
+                    for val in unique_values:
+                        # Split by comma and strip whitespace
+                        partitions = [p.strip() for p in val[0].split(',') if p.strip()]
+                        partition_set.update(partitions)
+                    result[key] = sorted(list(partition_set))
+                else:
+                    result[key] = [val[0] for val in unique_values]
             except Exception as e:
                 logger.warning(f"Could not load unique values for {col} in period: {e}")
                 result[key] = []
