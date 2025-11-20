@@ -115,8 +115,12 @@ async def auto_generate_cluster_configuration(cluster_name: str):
                 if not part:
                     continue
 
+                # Skip obviously invalid entries (just numbers, ranges, or fragments with brackets)
+                if re.match(r'^[\d\-\[\]]+$', part):  # Just numbers/ranges/brackets without letters
+                    continue
+
                 # Check for bracket notation: prefix[range] or prefix[list]
-                match = re.match(r'^([a-zA-Z_-]+)\[([^\]]+)\]$', part)
+                match = re.match(r'^([a-zA-Z][a-zA-Z0-9_-]*)\[([^\]]+)\]$', part)
                 if match:
                     prefix = match.group(1)
                     bracket_content = match.group(2)
@@ -130,10 +134,10 @@ async def auto_generate_cluster_configuration(cluster_name: str):
 
                         # Check if this item is a range (e.g., "5-6")
                         if '-' in item:
-                            parts = item.split('-')
-                            if len(parts) == 2:
+                            range_parts = item.split('-')
+                            if len(range_parts) == 2:
                                 try:
-                                    start_str, end_str = parts
+                                    start_str, end_str = range_parts
                                     # Detect if it's zero-padded
                                     padding = len(start_str) if start_str and start_str[0] == '0' else 0
                                     start = int(start_str)
@@ -144,17 +148,17 @@ async def auto_generate_cluster_configuration(cluster_name: str):
                                         else:
                                             nodes.add(f"{prefix}{i}")
                                 except (ValueError, IndexError):
-                                    # Not a valid range, add as-is
-                                    nodes.add(f"{prefix}{item}")
-                            else:
-                                # Multiple dashes or invalid format, add as-is
-                                nodes.add(f"{prefix}{item}")
+                                    # Not a valid range, skip it
+                                    pass
+                            # else: invalid format, skip it
                         else:
                             # Single item, not a range
                             nodes.add(f"{prefix}{item}")
                 else:
-                    # No bracket notation, add as-is
-                    nodes.add(part)
+                    # No bracket notation - only add if it looks like a valid node name
+                    if re.match(r'^[a-zA-Z][a-zA-Z0-9_-]*$', part):
+                        nodes.add(part)
+                    # else: skip invalid entries
 
             return nodes
 
@@ -256,37 +260,27 @@ async def auto_generate_cluster_configuration(cluster_name: str):
 
         # Check if cluster already exists
         if cluster_name in config_data["clusters"]:
-            # Merge with existing configuration (don't overwrite existing labels)
+            # Preserve custom metadata and display settings, but replace auto-generated labels
             existing = config_data["clusters"][cluster_name]
 
-            # Merge node labels (add new ones, keep existing)
-            if "node_labels" in existing:
-                for node, config in node_labels.items():
-                    if node not in existing["node_labels"]:
-                        existing["node_labels"][node] = config
-            else:
-                existing["node_labels"] = node_labels
+            # Preserve custom fields if they look manually edited (not auto-generated)
+            if "display_name" in existing and existing["display_name"] != f"{cluster_name} Cluster":
+                cluster_config["display_name"] = existing["display_name"]
+            if "description" in existing and "Auto-generated" not in existing["description"]:
+                cluster_config["description"] = existing["description"]
+            if "metadata" in existing:
+                # Merge metadata - keep existing values unless they're "Unknown"
+                for key, value in existing["metadata"].items():
+                    if value and value != "Unknown" and value != "unknown@example.com":
+                        if "metadata" not in cluster_config:
+                            cluster_config["metadata"] = {}
+                        cluster_config["metadata"][key] = value
 
-            # Merge account labels
-            if "account_labels" in existing:
-                for account, config in account_labels.items():
-                    if account not in existing["account_labels"]:
-                        existing["account_labels"][account] = config
-            else:
-                existing["account_labels"] = account_labels
+            # Replace labels with newly generated ones (this cleans up invalid entries)
+            # Node, account, and partition labels are completely regenerated
 
-            # Merge partition labels
-            if "partition_labels" in existing:
-                for partition, config in partition_labels.items():
-                    if partition not in existing["partition_labels"]:
-                        existing["partition_labels"][partition] = config
-            else:
-                existing["partition_labels"] = partition_labels
-
-            cluster_config = existing
-        else:
-            # Add new cluster configuration
-            config_data["clusters"][cluster_name] = cluster_config
+        # Set the cluster configuration (replacing existing or adding new)
+        config_data["clusters"][cluster_name] = cluster_config
 
         # Write back to file using atomic write (temp file + rename)
         import tempfile
@@ -611,6 +605,82 @@ async def generate_demo_cluster():
             status_code=500,
             detail=f"Error generating demo cluster: {str(e)}\n{traceback.format_exc()}"
         )
+
+
+@router.post("/config/{cluster_name}/cleanup-invalid-nodes")
+async def cleanup_invalid_nodes(cluster_name: str):
+    """Clean up invalid nodes from cluster configuration.
+
+    Removes nodes that are just numbers, ranges, or contain brackets (malformed SLURM notation).
+
+    Args:
+        cluster_name: Name of the cluster to clean
+
+    Returns:
+        Statistics about cleaned nodes
+    """
+    try:
+        import re
+
+        config_path = get_config_path()
+        if not config_path.exists():
+            raise HTTPException(status_code=404, detail="Config file not found")
+
+        # Load config
+        with open(config_path, "r") as f:
+            config_data = yaml.safe_load(f) or {}
+
+        if cluster_name not in config_data.get("clusters", {}):
+            raise HTTPException(status_code=404, detail=f"Cluster {cluster_name} not found")
+
+        # Get nodes
+        cluster_config = config_data["clusters"][cluster_name]
+        nodes = cluster_config.get("node_labels", {})
+        original_count = len(nodes)
+
+        # Filter out invalid nodes
+        valid_nodes = {}
+        invalid_nodes = []
+        for node_name, node_info in nodes.items():
+            # Skip invalid: just numbers/ranges/brackets without letters
+            if re.match(r'^[\d\-\[\]]+$', node_name) or ']' in node_name or '[' in node_name:
+                invalid_nodes.append(node_name)
+                continue
+            # Keep only nodes starting with letter
+            if re.match(r'^[a-zA-Z][a-zA-Z0-9_-]*$', node_name):
+                valid_nodes[node_name] = node_info
+            else:
+                invalid_nodes.append(node_name)
+
+        # Update config
+        config_data["clusters"][cluster_name]["node_labels"] = valid_nodes
+
+        # Write atomically
+        import tempfile, os
+        config_dir = config_path.parent
+        with tempfile.NamedTemporaryFile(mode='w', dir=config_dir, delete=False, suffix='.yaml') as f:
+            temp_path = f.name
+            yaml.dump(config_data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        os.replace(temp_path, config_path)
+
+        # Reload
+        reload_cluster_config()
+
+        return {
+            "status": "success",
+            "message": f"Cleaned up {len(invalid_nodes)} invalid nodes",
+            "stats": {
+                "original_count": original_count,
+                "removed_count": len(invalid_nodes),
+                "remaining_count": len(valid_nodes),
+                "sample_removed": invalid_nodes[:10] if invalid_nodes else []
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        raise HTTPException(status_code=500, detail=f"Error cleaning up nodes: {str(e)}\n{traceback.format_exc()}")
 
 
 @router.delete("/config/{cluster_name}/cleanup")

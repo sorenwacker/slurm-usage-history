@@ -175,37 +175,6 @@ export function AdminConfig() {
     }
   };
 
-  const handleGenerateDemoCluster = async () => {
-    if (!confirm('Generate a demo cluster with 2 years of synthetic data? This will create a new DemoCluster with realistic job patterns, seasonal variations, and simulated outages.')) {
-      return;
-    }
-
-    setAutoGenerating(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/generate-demo-cluster`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to generate demo cluster');
-      }
-
-      const result = await response.json();
-      setSuccess(`Demo cluster generated! ${result.stats.total_jobs.toLocaleString()} jobs, ${result.stats.users} users, ${result.stats.nodes} nodes. Date range: ${result.stats.date_range}`);
-      await loadConfig();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate demo cluster');
-    } finally {
-      setAutoGenerating(false);
-    }
-  };
-
   const handleReload = async () => {
     setError('');
     setSuccess('');
@@ -399,14 +368,6 @@ export function AdminConfig() {
                 className="admin-btn admin-btn-secondary"
               >
                 <span>📥</span> Export
-              </button>
-              <button
-                onClick={handleGenerateDemoCluster}
-                disabled={autoGenerating}
-                className="admin-btn admin-btn-info"
-                title="Generate a demo cluster with 2 years of synthetic data"
-              >
-                <span>🎭</span> {autoGenerating ? 'Generating...' : 'Create Demo'}
               </button>
             </div>
           </div>

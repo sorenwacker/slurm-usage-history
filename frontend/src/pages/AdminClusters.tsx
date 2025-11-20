@@ -166,9 +166,6 @@ export function AdminClusters() {
             <button onClick={handleReloadData} disabled={reloading}>
               {reloading ? 'Reloading...' : 'Reload Data'}
             </button>
-            <button onClick={handleGenerateDemoCluster} disabled={generatingDemo} style={{ background: '#17a2b8' }}>
-              {generatingDemo ? 'Generating...' : 'Create Demo'}
-            </button>
             <button onClick={handleLogout}>Logout</button>
           </div>
         </div>
@@ -221,6 +218,14 @@ export function AdminClusters() {
             className="clusters-btn-primary"
           >
             {showCreateForm ? 'Cancel' : '+ Add Cluster'}
+          </button>
+          <button
+            onClick={handleGenerateDemoCluster}
+            disabled={generatingDemo}
+            className="clusters-btn-primary"
+            style={{ background: '#17a2b8' }}
+          >
+            {generatingDemo ? 'Generating...' : 'Create Demo'}
           </button>
         </div>
 
