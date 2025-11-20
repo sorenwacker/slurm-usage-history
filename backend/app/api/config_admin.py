@@ -396,6 +396,183 @@ async def update_configuration(config_data: Dict[str, Any]):
         raise HTTPException(status_code=500, detail=f"Error updating configuration: {str(e)}")
 
 
+@router.post("/generate-demo-cluster")
+async def generate_demo_cluster():
+    """Generate a demo cluster with 2 years of synthetic data.
+
+    Creates a DemoCluster with:
+    - 2 years of data (2023-2024)
+    - 100 users (power users, regular users, students)
+    - Seasonal patterns (more active in spring and fall)
+    - Simulated outages with longer waiting times
+    - 30 nodes (15 GPU, 15 CPU)
+    - 3 partitions (general, cpu, gpu)
+    - Realistic job patterns and resource usage
+
+    Returns:
+        Status and statistics about generated data
+    """
+    try:
+        import sys
+        import subprocess
+        from pathlib import Path
+        from datetime import datetime, date
+
+        # Import the generator
+        sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "scripts"))
+        from generate_test_cluster_data import SyntheticClusterDataGenerator
+
+        cluster_name = "DemoCluster"
+
+        # Get data directory
+        from ..core.config import get_settings
+        settings = get_settings()
+        output_dir = Path(settings.data_path) / cluster_name / "data"
+
+        # Check if demo cluster already exists
+        if output_dir.exists() and list(output_dir.glob("*.parquet")):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Demo cluster already exists at {output_dir}. Delete it first to regenerate."
+            )
+
+        # Define outage periods (2-3 outages during the 2-year period)
+        outages = [
+            (date(2023, 6, 15), date(2023, 6, 18)),   # 3-day summer outage
+            (date(2023, 11, 20), date(2023, 11, 22)), # 2-day fall outage
+            (date(2024, 4, 10), date(2024, 4, 13))    # 3-day spring outage
+        ]
+
+        # Create generator with demo configuration
+        generator = SyntheticClusterDataGenerator(
+            cluster_name=cluster_name,
+            seed=42,
+            num_users=100,
+            simple_partitions=True
+        )
+
+        # Generate dataset
+        start_date = datetime(2023, 1, 1)
+        end_date = datetime(2024, 12, 31)
+        jobs_per_day = 150  # Average jobs per day
+
+        df = generator.generate_dataset(
+            start_date=start_date,
+            end_date=end_date,
+            jobs_per_day=jobs_per_day,
+            seasonal_pattern=True,
+            outages=outages
+        )
+
+        # Save data
+        generator.save_weekly_data(df, output_dir)
+
+        # Auto-generate configuration
+        from pathlib import Path
+        import pandas as pd
+
+        config_path = get_config_path()
+        if config_path.exists():
+            with open(config_path, "r") as f:
+                config_data = yaml.safe_load(f) or {}
+        else:
+            config_data = {"clusters": {}, "settings": {}}
+
+        if "clusters" not in config_data:
+            config_data["clusters"] = {}
+
+        # Create cluster configuration
+        cluster_config = {
+            "display_name": "Demo Cluster",
+            "description": "Synthetic demo cluster with 2 years of realistic job data",
+            "metadata": {
+                "location": "Demo Environment",
+                "owner": "Demo",
+                "contact": "demo@example.com",
+            },
+            "node_labels": {},
+            "account_labels": {},
+            "partition_labels": {
+                "general": {
+                    "display_name": "General Partition",
+                    "description": "General purpose partition"
+                },
+                "cpu": {
+                    "display_name": "CPU Partition",
+                    "description": "CPU-only partition"
+                },
+                "gpu": {
+                    "display_name": "GPU Partition",
+                    "description": "GPU partition"
+                }
+            }
+        }
+
+        # Extract node and account info from generated data
+        all_nodes = set()
+        for nodes_str in df["NodeList"].dropna().unique():
+            if isinstance(nodes_str, str):
+                all_nodes.update(nodes_str.split(","))
+
+        for node in sorted(all_nodes):
+            node_type = "gpu" if "gpu" in node.lower() else "cpu"
+            cluster_config["node_labels"][node] = {
+                "synonyms": [],
+                "type": node_type,
+                "description": f"{node_type.upper()} Node {node}"
+            }
+
+        for account in sorted(df["Account"].dropna().unique()):
+            cluster_config["account_labels"][account] = {
+                "display_name": account,
+                "short_name": account.split("-")[-1].upper() if "-" in account else account
+            }
+
+        config_data["clusters"][cluster_name] = cluster_config
+
+        # Write configuration atomically
+        import tempfile
+        import os
+        config_dir = config_path.parent
+        with tempfile.NamedTemporaryFile(mode='w', dir=config_dir, delete=False, suffix='.yaml') as f:
+            temp_path = f.name
+            yaml.dump(config_data, f, default_flow_style=False, sort_keys=False)
+        os.replace(temp_path, config_path)
+
+        # Reload configuration and datastore
+        reload_cluster_config()
+
+        # Trigger datastore reload
+        from ..datastore_singleton import get_datastore
+        datastore = get_datastore()
+        datastore.check_for_updates()
+
+        return {
+            "status": "success",
+            "message": f"Demo cluster generated successfully",
+            "cluster_name": cluster_name,
+            "stats": {
+                "total_jobs": len(df),
+                "date_range": f"{df['Submit'].min()} to {df['Submit'].max()}",
+                "users": len(df["User"].unique()),
+                "accounts": len(df["Account"].unique()),
+                "partitions": len(df["Partition"].unique()),
+                "nodes": len(all_nodes),
+                "total_cpu_hours": float(df["CPU-hours"].sum()),
+                "total_gpu_hours": float(df["GPU-hours"].sum()),
+                "outages": len(outages)
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating demo cluster: {str(e)}\n{traceback.format_exc()}"
+        )
+
+
 @router.put("/config/{cluster_name}")
 async def update_cluster_configuration(cluster_name: str, cluster_data: Dict[str, Any]):
     """Update configuration for a specific cluster.

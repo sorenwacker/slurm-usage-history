@@ -23,23 +23,35 @@ import pandas as pd
 class SyntheticClusterDataGenerator:
     """Generates synthetic SLURM cluster job data with realistic patterns."""
 
-    def __init__(self, cluster_name="TestCluster", seed=42):
+    def __init__(self, cluster_name="TestCluster", seed=42, num_users=None, simple_partitions=False):
         """
         Initialize the generator with cluster configuration.
 
         Args:
             cluster_name: Name of the synthetic cluster
             seed: Random seed for reproducibility
+            num_users: Override number of users (default: 70 users)
+            simple_partitions: If True, use simplified partition structure (general, cpu, gpu)
         """
         self.cluster_name = cluster_name
         random.seed(seed)
         np.random.seed(seed)
 
-        # Define realistic cluster configuration with 60+ users
-        # Different user types: power users, regular users, occasional users
-        power_users = [f"poweruser{i:02d}" for i in range(1, 11)]  # 10 heavy users
-        regular_users = [f"user{i:03d}" for i in range(1, 41)]  # 40 regular users
-        occasional_users = [f"student{i:02d}" for i in range(1, 21)]  # 20 light users
+        # Define realistic cluster configuration with configurable users
+        if num_users:
+            # Custom user count - distribute among types
+            power_count = max(5, num_users // 10)
+            occasional_count = max(10, num_users // 5)
+            regular_count = num_users - power_count - occasional_count
+
+            power_users = [f"poweruser{i:02d}" for i in range(1, power_count + 1)]
+            regular_users = [f"user{i:03d}" for i in range(1, regular_count + 1)]
+            occasional_users = [f"student{i:02d}" for i in range(1, occasional_count + 1)]
+        else:
+            # Default: 70 users total
+            power_users = [f"poweruser{i:02d}" for i in range(1, 11)]  # 10 heavy users
+            regular_users = [f"user{i:03d}" for i in range(1, 41)]  # 40 regular users
+            occasional_users = [f"student{i:02d}" for i in range(1, 21)]  # 20 light users
 
         self.users = power_users + regular_users + occasional_users
 
@@ -82,23 +94,33 @@ class SyntheticClusterDataGenerator:
             if acc not in self.account_weights:
                 self.account_weights[acc] = 1.0
 
-        # More diverse partitions with realistic usage patterns
-        self.partitions = [
-            "gpu", "gpu-a100", "gpu-v100",  # GPU variants
-            "cpu", "cpu-highmem",  # CPU variants
-            "bigmem",  # Memory-intensive
-            "interactive",  # Quick interactive jobs
-            "short", "medium", "long"  # Duration-based
-        ]
+        # Partition configuration - simple or complex
+        if simple_partitions:
+            # Simple 3-partition structure for demos
+            self.partitions = ["general", "cpu", "gpu"]
+            self.partition_weights = {
+                "general": 3.0,
+                "cpu": 2.5,
+                "gpu": 2.0
+            }
+        else:
+            # More diverse partitions with realistic usage patterns
+            self.partitions = [
+                "gpu", "gpu-a100", "gpu-v100",  # GPU variants
+                "cpu", "cpu-highmem",  # CPU variants
+                "bigmem",  # Memory-intensive
+                "interactive",  # Quick interactive jobs
+                "short", "medium", "long"  # Duration-based
+            ]
 
-        # Partition selection weights (some more popular)
-        self.partition_weights = {
-            "gpu": 3.0, "gpu-a100": 2.0, "gpu-v100": 1.5,
-            "cpu": 4.0, "cpu-highmem": 1.0,
-            "bigmem": 1.0,
-            "interactive": 2.0,
-            "short": 3.0, "medium": 2.0, "long": 1.0
-        }
+            # Partition selection weights (some more popular)
+            self.partition_weights = {
+                "gpu": 3.0, "gpu-a100": 2.0, "gpu-v100": 1.5,
+                "cpu": 4.0, "cpu-highmem": 1.0,
+                "bigmem": 1.0,
+                "interactive": 2.0,
+                "short": 3.0, "medium": 2.0, "long": 1.0
+            }
 
         # More varied QoS types
         self.qos_types = [
@@ -124,43 +146,71 @@ class SyntheticClusterDataGenerator:
             "FAILED", "OUT_OF_MEMORY"  # 10% failed/OOM
         ]
 
-        # Node lists for different partitions (total ~40 nodes)
-        self.node_lists = {
-            "gpu": [f"gpu{i:02d}" for i in range(1, 5)],           # 4 GPU nodes
-            "gpu-a100": [f"a100-{i:02d}" for i in range(1, 3)],    # 2 A100 nodes
-            "gpu-v100": [f"v100-{i:02d}" for i in range(1, 4)],    # 3 V100 nodes
-            "cpu": [f"cpu{i:03d}" for i in range(1, 17)],          # 16 CPU nodes
-            "cpu-highmem": [f"highmem{i:02d}" for i in range(1, 4)], # 3 high-mem nodes
-            "bigmem": [f"bigmem{i:02d}" for i in range(1, 3)],     # 2 bigmem nodes
-            "interactive": [f"int{i:02d}" for i in range(1, 4)],   # 3 interactive nodes
-            "short": [f"short{i:02d}" for i in range(1, 5)],       # 4 short nodes
-            "medium": [f"med{i:02d}" for i in range(1, 4)],        # 3 medium nodes
-            "long": [f"long{i:02d}" for i in range(1, 3)]          # 2 long nodes
-        }  # Total: 46 nodes
+        # Node lists for different partitions
+        if simple_partitions:
+            # Simple demo cluster: 30 nodes (15 GPU, 15 CPU)
+            self.node_lists = {
+                "general": [f"node{i:02d}" for i in range(1, 11)],  # 10 general nodes
+                "cpu": [f"cpu{i:02d}" for i in range(1, 16)],       # 15 CPU nodes
+                "gpu": [f"gpu{i:02d}" for i in range(1, 16)]        # 15 GPU nodes
+            }  # Total: 30 unique nodes (10+15+15, general can overlap with others)
+        else:
+            # Complex cluster with ~46 nodes
+            self.node_lists = {
+                "gpu": [f"gpu{i:02d}" for i in range(1, 5)],           # 4 GPU nodes
+                "gpu-a100": [f"a100-{i:02d}" for i in range(1, 3)],    # 2 A100 nodes
+                "gpu-v100": [f"v100-{i:02d}" for i in range(1, 4)],    # 3 V100 nodes
+                "cpu": [f"cpu{i:03d}" for i in range(1, 17)],          # 16 CPU nodes
+                "cpu-highmem": [f"highmem{i:02d}" for i in range(1, 4)], # 3 high-mem nodes
+                "bigmem": [f"bigmem{i:02d}" for i in range(1, 3)],     # 2 bigmem nodes
+                "interactive": [f"int{i:02d}" for i in range(1, 4)],   # 3 interactive nodes
+                "short": [f"short{i:02d}" for i in range(1, 5)],       # 4 short nodes
+                "medium": [f"med{i:02d}" for i in range(1, 4)],        # 3 medium nodes
+                "long": [f"long{i:02d}" for i in range(1, 3)]          # 2 long nodes
+            }  # Total: 46 nodes
 
         # Track user lifecycles - when users joined the cluster
         self.user_join_dates = {}
         self.user_leave_dates = {}
 
-    def generate_job_submit_times(self, start_date, end_date, jobs_per_day):
+    def generate_job_submit_times(self, start_date, end_date, jobs_per_day, seasonal_pattern=True, outages=None):
         """
-        Generate realistic job submission times with daily and weekly patterns.
+        Generate realistic job submission times with daily, weekly, and seasonal patterns.
 
         Args:
             start_date: Start date for data generation
             end_date: End date for data generation
             jobs_per_day: Average number of jobs per day
+            seasonal_pattern: If True, add more activity in spring and fall
+            outages: List of (start_date, end_date) tuples for outage periods
 
         Returns:
             List of submission timestamps
         """
         submit_times = []
         current_date = start_date
+        outages = outages or []
 
         while current_date <= end_date:
-            # Weekly pattern: fewer jobs on weekends
-            is_weekend = current_date.weekday() >= 5
-            daily_multiplier = 0.3 if is_weekend else 1.0
+            # Check if we're in an outage period
+            in_outage = any(outage_start <= current_date.date() <= outage_end
+                          for outage_start, outage_end in outages)
+
+            if in_outage:
+                # During outages, much reduced activity
+                daily_multiplier = 0.1
+            else:
+                # Weekly pattern: fewer jobs on weekends
+                is_weekend = current_date.weekday() >= 5
+                daily_multiplier = 0.3 if is_weekend else 1.0
+
+                # Seasonal pattern: more activity in spring (Mar-May) and fall (Sep-Nov)
+                if seasonal_pattern:
+                    month = current_date.month
+                    if month in [3, 4, 5, 9, 10, 11]:  # Spring and fall
+                        daily_multiplier *= 1.5
+                    elif month in [12, 1, 6, 7, 8]:  # Winter break and summer
+                        daily_multiplier *= 0.7
 
             # Daily pattern: more jobs during work hours
             num_jobs = int(np.random.poisson(jobs_per_day * daily_multiplier))
@@ -193,16 +243,19 @@ class SyntheticClusterDataGenerator:
             active_users.append(user)
         return active_users if active_users else self.users
 
-    def generate_job_record(self, submit_time):
+    def generate_job_record(self, submit_time, outages=None):
         """
         Generate a single realistic job record with weighted selections.
 
         Args:
             submit_time: Job submission timestamp
+            outages: List of (start_date, end_date) tuples for outage periods
 
         Returns:
             Dictionary containing job data
         """
+        outages = outages or []
+
         # Get active users at this time
         active_users = self.get_active_users(submit_time.date())
         user_list = active_users
@@ -227,7 +280,7 @@ class SyntheticClusterDataGenerator:
 
         # GPU jobs based on partition type
         is_gpu_partition = partition in ["gpu", "gpu-a100", "gpu-v100"]
-        has_gpu = is_gpu_partition or (partition in ["cpu", "short", "medium"] and random.random() < 0.05)
+        has_gpu = is_gpu_partition or (partition in ["general"] and random.random() < 0.3) or (partition in ["cpu", "short", "medium"] and random.random() < 0.05)
 
         # Generate resource requests
         if has_gpu:
@@ -248,8 +301,18 @@ class SyntheticClusterDataGenerator:
             selected_nodes = random.sample(available_nodes, min(nodes, len(available_nodes)))
             node_list = ",".join(selected_nodes)
 
-        # Generate waiting time (can be 0 to several hours)
-        waiting_hours = np.random.exponential(2.0) if partition != "interactive" else np.random.exponential(0.1)
+        # Check if we're in or near an outage period
+        in_outage = any(outage_start <= submit_time.date() <= outage_end
+                       for outage_start, outage_end in outages)
+
+        # Generate waiting time (much longer during outages)
+        if in_outage:
+            # During outages, waiting times are 5-20x longer
+            waiting_hours = np.random.exponential(10.0) * random.uniform(1.5, 3.0)
+        elif partition == "interactive":
+            waiting_hours = np.random.exponential(0.1)
+        else:
+            waiting_hours = np.random.exponential(2.0)
 
         # Generate elapsed time based on QoS and state
         if qos == "short":
@@ -371,7 +434,7 @@ class SyntheticClusterDataGenerator:
                 leave_date = max(leave_date, self.user_join_dates[user] + timedelta(days=30))
             self.user_leave_dates[user] = leave_date
 
-    def generate_dataset(self, start_date, end_date, jobs_per_day):
+    def generate_dataset(self, start_date, end_date, jobs_per_day, seasonal_pattern=True, outages=None):
         """
         Generate complete synthetic dataset with user lifecycles.
 
@@ -379,22 +442,28 @@ class SyntheticClusterDataGenerator:
             start_date: Start date for data generation
             end_date: End date for data generation
             jobs_per_day: Average number of jobs per day
+            seasonal_pattern: If True, add more activity in spring and fall
+            outages: List of (start_date, end_date) tuples for outage periods
 
         Returns:
             DataFrame containing synthetic job data
         """
+        outages = outages or []
+
         print(f"Initializing user lifecycles...")
         self.initialize_user_lifecycles(start_date, end_date)
 
         print(f"Generating job submission times from {start_date} to {end_date}...")
-        submit_times = self.generate_job_submit_times(start_date, end_date, jobs_per_day)
+        submit_times = self.generate_job_submit_times(start_date, end_date, jobs_per_day,
+                                                      seasonal_pattern=seasonal_pattern,
+                                                      outages=outages)
 
         print(f"Generating {len(submit_times)} job records...")
         jobs = []
         for i, submit_time in enumerate(submit_times):
             if (i + 1) % 1000 == 0:
                 print(f"  Generated {i + 1}/{len(submit_times)} jobs...")
-            jobs.append(self.generate_job_record(submit_time))
+            jobs.append(self.generate_job_record(submit_time, outages=outages))
 
         df = pd.DataFrame(jobs)
         print(f"Generated {len(df)} total jobs")
