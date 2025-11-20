@@ -288,7 +288,6 @@ export function AdminConfig() {
     totalNodes: Object.keys(clusterConfig.node_labels || {}).length,
     gpuNodes: Object.values(clusterConfig.node_labels || {}).filter(n => n.type === 'gpu').length,
     cpuNodes: Object.values(clusterConfig.node_labels || {}).filter(n => n.type === 'cpu').length,
-    nodesWithHardware: Object.values(clusterConfig.node_labels || {}).filter(n => n.hardware).length,
     totalAccounts: Object.keys(clusterConfig.account_labels || {}).length,
     totalPartitions: Object.keys(clusterConfig.partition_labels || {}).length,
   } : null;
@@ -389,10 +388,6 @@ export function AdminConfig() {
                 <div className="admin-stat-card stat-blue">
                   <div className="admin-stat-label">CPU Nodes</div>
                   <div className="admin-stat-value">{stats.cpuNodes}</div>
-                </div>
-                <div className="admin-stat-card stat-green">
-                  <div className="admin-stat-label">With Hardware</div>
-                  <div className="admin-stat-value">{stats.nodesWithHardware}</div>
                 </div>
                 <div className="admin-stat-card stat-orange">
                   <div className="admin-stat-label">Accounts</div>
