@@ -8,10 +8,7 @@ export function AdminClusters() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [rotatingKey, setRotatingKey] = useState<string | null>(null);
   const [newAPIKey, setNewAPIKey] = useState<string | null>(null);
-  const [generatingDeployKey, setGeneratingDeployKey] = useState<string | null>(null);
-  const [newDeployKey, setNewDeployKey] = useState<string | null>(null);
   const [reloading, setReloading] = useState(false);
   const [generatingDemo, setGeneratingDemo] = useState(false);
   const navigate = useNavigate();
@@ -123,35 +120,6 @@ export function AdminClusters() {
     }
   };
 
-  const handleRotateKey = async (clusterId: string) => {
-    if (!confirm('Are you sure you want to rotate the API key? The old key will be immediately invalidated.')) {
-      return;
-    }
-
-    try {
-      setRotatingKey(clusterId);
-      const result = await adminClient.rotateAPIKey(clusterId);
-      setNewAPIKey(result.new_api_key);
-      await loadClusters();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to rotate API key');
-    } finally {
-      setRotatingKey(null);
-    }
-  };
-
-  const handleGenerateDeployKey = async (clusterId: string) => {
-    try {
-      setGeneratingDeployKey(clusterId);
-      const result = await adminClient.generateDeployKey(clusterId);
-      setNewDeployKey(result.deploy_key);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate deploy key');
-    } finally {
-      setGeneratingDeployKey(null);
-    }
-  };
-
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     alert('Copied to clipboard!');
@@ -160,26 +128,6 @@ export function AdminClusters() {
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'Never';
     return new Date(dateStr).toLocaleString();
-  };
-
-  const getDeployKeyStatus = (cluster: Cluster) => {
-    if (!cluster.deploy_key_created) {
-      return { status: 'none', label: 'No Key', color: '#6c757d' };
-    }
-
-    if (cluster.deploy_key_used) {
-      return { status: 'used', label: 'Used', color: '#17a2b8' };
-    }
-
-    if (cluster.deploy_key_expires_at) {
-      const expiresAt = new Date(cluster.deploy_key_expires_at);
-      const now = new Date();
-      if (now > expiresAt) {
-        return { status: 'expired', label: 'Expired', color: '#dc3545' };
-      }
-    }
-
-    return { status: 'valid', label: 'Valid', color: '#28a745' };
   };
 
   if (loading) {
@@ -221,13 +169,14 @@ export function AdminClusters() {
           </div>
         )}
 
-        {/* New API Key Modal */}
+        {/* New API Key Modal (shown after creating a new cluster) */}
         {newAPIKey && (
           <div className="clusters-modal-overlay">
             <div className="clusters-modal">
               <h3 className="clusters-modal-title">New API Key Generated</h3>
               <p className="clusters-modal-text">
-                This is the only time the full key will be shown. Copy it now and update your cluster configuration.
+                This is the only time the full key will be shown. Copy it now and save it securely.
+                You can also access it later by clicking "Manage Keys" for this cluster.
               </p>
               <div className="clusters-modal-code">
                 <code>{newAPIKey}</code>
@@ -241,35 +190,6 @@ export function AdminClusters() {
                 </button>
                 <button
                   onClick={() => setNewAPIKey(null)}
-                  className="clusters-form-cancel"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Deploy Key Modal */}
-        {newDeployKey && (
-          <div className="clusters-modal-overlay">
-            <div className="clusters-modal">
-              <h3 className="clusters-modal-title">One-Time Deploy Key Generated</h3>
-              <p className="clusters-modal-text">
-                This deploy key can only be used ONCE to fetch the actual API key on agent first run. The agent will automatically exchange this key for the permanent API key and save it in the configuration.
-              </p>
-              <div className="clusters-modal-code">
-                <code>{newDeployKey}</code>
-              </div>
-              <div className="clusters-modal-actions">
-                <button
-                  onClick={() => copyToClipboard(newDeployKey)}
-                  className="clusters-form-submit"
-                >
-                  Copy to Clipboard
-                </button>
-                <button
-                  onClick={() => setNewDeployKey(null)}
                   className="clusters-form-cancel"
                 >
                   Close
@@ -317,15 +237,13 @@ export function AdminClusters() {
                 <th>Cluster</th>
                 <th>Status</th>
                 <th>Statistics</th>
-                <th>API Key</th>
-                <th>Deploy Key</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {clusters.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="clusters-table-empty">
+                  <td colSpan={4} className="clusters-table-empty">
                     No clusters yet. Click "Add Cluster" to get started.
                   </td>
                 </tr>
@@ -351,60 +269,14 @@ export function AdminClusters() {
                       <div style={{ fontSize: '0.75rem', color: '#6c757d' }}>Last: {formatDate(cluster.last_submission)}</div>
                     </td>
                     <td>
-                      <div className="clusters-api-key">
-                        <code>{cluster.api_key.substring(0, 16)}...</code>
-                        <button
-                          onClick={() => copyToClipboard(cluster.api_key)}
-                          className="clusters-copy-btn"
-                          title="Copy full API key"
-                        >
-                          📋
-                        </button>
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#adb5bd', marginTop: '0.25rem' }}>
-                        Created: {new Date(cluster.api_key_created).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td>
-                      {(() => {
-                        const deployStatus = getDeployKeyStatus(cluster);
-                        return (
-                          <div>
-                            <span
-                              className="clusters-badge"
-                              style={{
-                                backgroundColor: deployStatus.color,
-                                color: 'white',
-                                display: 'inline-block',
-                                marginBottom: '0.25rem'
-                              }}
-                            >
-                              {deployStatus.label}
-                            </span>
-                            {cluster.deploy_key_created && (
-                              <div style={{ fontSize: '0.75rem', color: '#6c757d' }}>
-                                {deployStatus.status === 'used' && cluster.deploy_key_used_at && (
-                                  <>
-                                    <div>Used: {new Date(cluster.deploy_key_used_at).toLocaleString()}</div>
-                                    {cluster.deploy_key_used_from_ip && (
-                                      <div>From: {cluster.deploy_key_used_from_ip}</div>
-                                    )}
-                                  </>
-                                )}
-                                {deployStatus.status === 'valid' && cluster.deploy_key_expires_at && (
-                                  <div>Expires: {new Date(cluster.deploy_key_expires_at).toLocaleString()}</div>
-                                )}
-                                {deployStatus.status === 'expired' && cluster.deploy_key_expires_at && (
-                                  <div>Expired: {new Date(cluster.deploy_key_expires_at).toLocaleString()}</div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </td>
-                    <td>
                       <div className="clusters-actions-menu">
+                        <a
+                          href={`/admin/clusters/${cluster.id}`}
+                          className="clusters-action-btn action-primary"
+                          style={{ textDecoration: 'none', fontWeight: 600 }}
+                        >
+                          Manage Keys
+                        </a>
                         <a
                           href={`/admin/config?cluster=${cluster.name}`}
                           className="clusters-action-btn action-config"
@@ -417,20 +289,6 @@ export function AdminClusters() {
                           className="clusters-action-btn action-primary"
                         >
                           {cluster.active ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button
-                          onClick={() => handleRotateKey(cluster.id)}
-                          disabled={rotatingKey === cluster.id}
-                          className="clusters-action-btn action-warning"
-                        >
-                          {rotatingKey === cluster.id ? 'Rotating...' : 'Rotate Key'}
-                        </button>
-                        <button
-                          onClick={() => handleGenerateDeployKey(cluster.id)}
-                          disabled={generatingDeployKey === cluster.id}
-                          className="clusters-action-btn action-primary"
-                        >
-                          {generatingDeployKey === cluster.id ? 'Generating...' : 'Deploy Key'}
                         </button>
                         <button
                           onClick={() => handleDelete(cluster.id, cluster.name)}
