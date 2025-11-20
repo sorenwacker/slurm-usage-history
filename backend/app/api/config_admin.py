@@ -548,7 +548,7 @@ async def generate_demo_cluster():
         datastore.check_for_updates()
 
         # Create physical cluster entry in database
-        from ..database.cluster_db import get_cluster_db
+        from ..db.clusters import get_cluster_db
         import secrets
 
         cluster_db = get_cluster_db()
@@ -642,7 +642,7 @@ async def cleanup_demo_cluster(cluster_name: str):
                 os.replace(temp_path, config_path)
 
         # Remove from database if exists
-        from ..database.cluster_db import get_cluster_db
+        from ..db.clusters import get_cluster_db
         cluster_db = get_cluster_db()
         existing_clusters = cluster_db.get_all_clusters()
         for cluster in existing_clusters:
