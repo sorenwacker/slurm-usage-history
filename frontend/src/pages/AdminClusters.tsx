@@ -103,6 +103,8 @@ export function AdminClusters() {
     try {
       await adminClient.deleteCluster(id);
       await loadClusters();
+      // Automatically reload dashboard data so the cluster disappears from the main dashboard
+      await handleReloadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete cluster');
     }
