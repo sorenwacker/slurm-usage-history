@@ -429,12 +429,34 @@ async def generate_demo_cluster():
         settings = get_settings()
         output_dir = Path(settings.data_path) / cluster_name / "data"
 
-        # Check if demo cluster already exists
+        # Check if demo cluster already exists - if so, delete it first
         if output_dir.exists() and list(output_dir.glob("*.parquet")):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Demo cluster already exists at {output_dir}. Delete it first to regenerate."
-            )
+            import shutil
+            # Delete existing demo cluster data
+            shutil.rmtree(output_dir.parent)  # Delete the entire DemoCluster directory
+
+            # Remove from YAML configuration
+            config_path = get_config_path()
+            if config_path.exists():
+                with open(config_path, "r") as f:
+                    existing_config = yaml.safe_load(f) or {}
+                if "clusters" in existing_config and cluster_name in existing_config["clusters"]:
+                    del existing_config["clusters"][cluster_name]
+                    import tempfile
+                    import os
+                    config_dir = config_path.parent
+                    with tempfile.NamedTemporaryFile(mode='w', dir=config_dir, delete=False, suffix='.yaml') as f:
+                        temp_path = f.name
+                        yaml.dump(existing_config, f, default_flow_style=False, sort_keys=False)
+                    os.replace(temp_path, config_path)
+
+            # Remove from database if exists
+            from ..db.clusters import get_cluster_db
+            cluster_db_instance = get_cluster_db()
+            for cluster in cluster_db_instance.get_all_clusters():
+                if cluster["name"] == cluster_name:
+                    cluster_db_instance.delete_cluster(cluster["id"])
+                    break
 
         # Define outage periods (2-3 outages during the 2-year period)
         outages = [
