@@ -133,18 +133,37 @@ class DuckDBDataStore(metaclass=Singleton):
     def get_hostnames(self) -> list[str]:
         """Retrieve the list of hostnames, filtered by active status."""
         try:
-            # Import cluster database to check active status
-            from ..db.clusters import get_cluster_db
-            cluster_db = get_cluster_db()
-            active_clusters = {
-                cluster["name"] for cluster in cluster_db.get_all_clusters()
-                if cluster.get("active", True)
-            }
-            # Return only hosts that are in active clusters
-            return [hostname for hostname in self.hosts.keys() if hostname in active_clusters]
-        except Exception:
-            # If cluster DB not available, return all hosts
-            return list(self.hosts.keys())
+            # Read cluster database directly to check active status
+            import json
+            from pathlib import Path
+
+            # Try multiple possible locations for clusters.json
+            possible_paths = [
+                Path("data/clusters.json"),
+                Path("backend/data/clusters.json"),
+                Path("/app/data/clusters.json"),
+                Path("/app/backend/data/clusters.json")
+            ]
+
+            cluster_data = None
+            for db_path in possible_paths:
+                if db_path.exists():
+                    with open(db_path, "r") as f:
+                        cluster_data = json.load(f)
+                    break
+
+            if cluster_data:
+                active_clusters = {
+                    cluster["name"] for cluster in cluster_data.get("clusters", {}).values()
+                    if cluster.get("active", True)
+                }
+                # Return only hosts that are in active clusters
+                return [hostname for hostname in self.hosts.keys() if hostname in active_clusters]
+        except Exception as e:
+            logger.warning(f"Failed to filter by active clusters: {e}")
+
+        # If cluster DB not available, return all hosts
+        return list(self.hosts.keys())
 
     def load_data(self) -> None:
         """Load metadata for all hosts.
@@ -171,10 +190,13 @@ class DuckDBDataStore(metaclass=Singleton):
         Args:
             hostname: The hostname to load metadata for
         """
+        # Try new structure first (data), then fallback to old structure (weekly-data)
         host_dir = self.directory / hostname / "data"
         if not host_dir.exists() or not host_dir.is_dir():
-            logger.warning(f"Directory not found for hostname: {hostname}")
-            return
+            host_dir = self.directory / hostname / "weekly-data"
+            if not host_dir.exists() or not host_dir.is_dir():
+                logger.warning(f"Directory not found for hostname: {hostname}")
+                return
 
         parquet_files = list(host_dir.glob("*.parquet"))
         if not parquet_files:
