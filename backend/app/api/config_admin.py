@@ -547,6 +547,29 @@ async def generate_demo_cluster():
         datastore = get_datastore()
         datastore.check_for_updates()
 
+        # Create physical cluster entry in database
+        from ..database.cluster_db import get_cluster_db
+        import secrets
+
+        cluster_db = get_cluster_db()
+
+        # Check if demo cluster already exists in database
+        existing_clusters = cluster_db.get_all_clusters()
+        demo_exists = any(c["name"] == cluster_name for c in existing_clusters)
+
+        if not demo_exists:
+            # Generate API key
+            api_key = secrets.token_urlsafe(32)
+
+            # Create cluster in database
+            cluster_db.create_cluster(
+                name=cluster_name,
+                description="Synthetic demo cluster with 2 years of realistic job data (2023-2024)",
+                contact_email="demo@example.com",
+                location="Demo Environment",
+                api_key=api_key
+            )
+
         return {
             "status": "success",
             "message": f"Demo cluster generated successfully",
