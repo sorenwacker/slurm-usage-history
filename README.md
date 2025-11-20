@@ -17,7 +17,23 @@ Web dashboard for SLURM cluster usage analytics powered by DuckDB.
 - Demo cluster generation with synthetic data
 - PDF report generation with customizable templates
 
-## Quick Start
+## Quick Start with Docker (Demo)
+
+Try the dashboard with synthetic demo data in 3 steps:
+
+```bash
+# 1. Start the dashboard
+docker-compose up -d
+
+# 2. Open http://localhost:3100
+
+# 3. Click "Create Demo" button in admin panel to generate 2 years of synthetic data
+#    (Login: admin / default password from docker-compose.yml)
+```
+
+The demo cluster includes 110k jobs, seasonal patterns, and simulated outages for realistic testing.
+
+## Production Setup
 
 ### 1. Install
 
