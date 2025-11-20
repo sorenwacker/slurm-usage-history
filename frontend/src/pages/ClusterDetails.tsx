@@ -196,16 +196,13 @@ export function ClusterDetails() {
                     overflow: 'auto'
                   }}
                 >
-                  <code style={{ color: '#d4d4d4', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                    {`pip install slurm-usage-history[agent] && \\
-slurm-dashboard setup \\
-  --api-url ${window.location.origin} \\
-  --deploy-key ${newDeployKey}`}
+                  <code style={{ color: '#d4d4d4', fontSize: '0.75rem', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                    {`pip install 'git+https://gitlab.ewi.tudelft.nl/reit/slurm-usage-history.git#egg=slurm-dashboard[agent]' && slurm-dashboard setup --api-url ${window.location.origin} --deploy-key ${newDeployKey}`}
                   </code>
                 </div>
                 <button
                   onClick={() => copyToClipboard(
-                    `pip install slurm-usage-history[agent] && slurm-dashboard setup --api-url ${window.location.origin} --deploy-key ${newDeployKey}`
+                    `pip install 'git+https://gitlab.ewi.tudelft.nl/reit/slurm-usage-history.git#egg=slurm-dashboard[agent]' && slurm-dashboard setup --api-url ${window.location.origin} --deploy-key ${newDeployKey}`
                   )}
                   style={{
                     marginTop: '0.5rem',
