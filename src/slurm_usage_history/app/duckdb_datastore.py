@@ -131,8 +131,20 @@ class DuckDBDataStore(metaclass=Singleton):
                 }
 
     def get_hostnames(self) -> list[str]:
-        """Retrieve the list of hostnames."""
-        return list(self.hosts.keys())
+        """Retrieve the list of hostnames, filtered by active status."""
+        try:
+            # Import cluster database to check active status
+            from ..db.clusters import get_cluster_db
+            cluster_db = get_cluster_db()
+            active_clusters = {
+                cluster["name"] for cluster in cluster_db.get_all_clusters()
+                if cluster.get("active", True)
+            }
+            # Return only hosts that are in active clusters
+            return [hostname for hostname in self.hosts.keys() if hostname in active_clusters]
+        except Exception:
+            # If cluster DB not available, return all hosts
+            return list(self.hosts.keys())
 
     def load_data(self) -> None:
         """Load metadata for all hosts.
