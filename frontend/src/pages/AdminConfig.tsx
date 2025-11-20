@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { adminClient } from '../api/adminClient';
 import * as yaml from 'js-yaml';
 import './AdminConfig.css';
@@ -74,6 +74,7 @@ interface ConfigResponse {
 }
 
 export function AdminConfig() {
+  const [searchParams] = useSearchParams();
   const [config, setConfig] = useState<ConfigResponse | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -90,13 +91,12 @@ export function AdminConfig() {
 
   // Read cluster from URL query parameter
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const clusterParam = params.get('cluster');
+    const clusterParam = searchParams.get('cluster');
     if (clusterParam) {
       setSelectedCluster(clusterParam);
-      setActiveTab('yaml'); // Automatically open YAML tab
+      setActiveTab('overview'); // Show overview/stats tab
     }
-  }, []);
+  }, [searchParams]);
 
   const getAuthHeaders = (): HeadersInit => {
     const token = localStorage.getItem('admin_token');
@@ -368,18 +368,13 @@ export function AdminConfig() {
         {/* Control Panel */}
         <div className="admin-control-panel">
           <div className="admin-controls">
-            {/* Cluster Selector */}
-            <div className="admin-cluster-selector">
-              <select
-                value={selectedCluster}
-                onChange={(e) => setSelectedCluster(e.target.value)}
-              >
-                {config && Object.keys(config.clusters).map((cluster) => (
-                  <option key={cluster} value={cluster}>
-                    {config.clusters[cluster].display_name || cluster}
-                  </option>
-                ))}
-              </select>
+            {/* Cluster Name Display */}
+            <div className="admin-cluster-display">
+              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>
+                {config && selectedCluster && config.clusters[selectedCluster]
+                  ? config.clusters[selectedCluster].display_name || selectedCluster
+                  : 'No cluster selected'}
+              </h2>
             </div>
 
             {/* Action Buttons */}
