@@ -549,7 +549,6 @@ async def generate_demo_cluster():
 
         # Create physical cluster entry in database
         from ..db.clusters import get_cluster_db
-        import secrets
 
         cluster_db = get_cluster_db()
 
@@ -558,16 +557,12 @@ async def generate_demo_cluster():
         demo_exists = any(c["name"] == cluster_name for c in existing_clusters)
 
         if not demo_exists:
-            # Generate API key
-            api_key = secrets.token_urlsafe(32)
-
-            # Create cluster in database
+            # Create cluster in database (API key is auto-generated)
             cluster_db.create_cluster(
                 name=cluster_name,
                 description="Synthetic demo cluster with 2 years of realistic job data (2023-2024)",
                 contact_email="demo@example.com",
-                location="Demo Environment",
-                api_key=api_key
+                location="Demo Environment"
             )
 
         return {
