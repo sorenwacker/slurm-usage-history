@@ -278,23 +278,49 @@ class SyntheticClusterDataGenerator:
 
         state = random.choice(self.states)
 
-        # GPU jobs based on partition type
-        is_gpu_partition = partition in ["gpu", "gpu-a100", "gpu-v100"]
-        has_gpu = is_gpu_partition or (partition in ["general"] and random.random() < 0.3) or (partition in ["cpu", "short", "medium"] and random.random() < 0.05)
-
-        # Generate resource requests
-        if has_gpu:
+        # Determine GPU usage and node assignment based on partition
+        # cpu partition: always CPU nodes, never GPUs
+        # gpu partition: always GPU nodes, always has GPUs
+        # general partition: can be either, 30% chance of GPU
+        if partition == "cpu":
+            has_gpu = False
+            gpus = 0
+            cpus = random.choices([1, 2, 4, 8, 16, 32], weights=[20, 30, 25, 15, 7, 3])[0]
+            available_nodes = self.node_lists["cpu"]
+        elif partition == "gpu":
+            has_gpu = True
             gpus = random.choices([1, 2, 4, 8], weights=[50, 30, 15, 5])[0]
             cpus = gpus * random.choice([4, 8, 16])
+            available_nodes = self.node_lists["gpu"]
+        elif partition == "general":
+            # General partition can use either CPU or GPU nodes
+            has_gpu = random.random() < 0.3
+            if has_gpu:
+                gpus = random.choices([1, 2, 4], weights=[60, 30, 10])[0]
+                cpus = gpus * random.choice([4, 8, 12])
+                available_nodes = self.node_lists["gpu"]
+            else:
+                gpus = 0
+                cpus = random.choices([1, 2, 4, 8, 16], weights=[25, 30, 25, 15, 5])[0]
+                available_nodes = self.node_lists["cpu"]
         else:
-            gpus = 0
-            cpus = random.choices([1, 2, 4, 8, 16, 32, 64],
-                                weights=[20, 30, 25, 15, 5, 3, 2])[0]
+            # For complex partition setups (non-simple)
+            is_gpu_partition = partition in ["gpu", "gpu-a100", "gpu-v100"]
+            has_gpu = is_gpu_partition or (partition in ["short", "medium"] and random.random() < 0.05)
+
+            if has_gpu:
+                gpus = random.choices([1, 2, 4, 8], weights=[50, 30, 15, 5])[0]
+                cpus = gpus * random.choice([4, 8, 16])
+            else:
+                gpus = 0
+                cpus = random.choices([1, 2, 4, 8, 16, 32, 64],
+                                    weights=[20, 30, 25, 15, 5, 3, 2])[0]
+
+            available_nodes = self.node_lists[partition]
 
         nodes = max(1, cpus // 32) if cpus > 32 else 1
 
         # Generate node list (without brackets - just node names)
-        available_nodes = self.node_lists[partition]
         if nodes == 1:
             node_list = random.choice(available_nodes)
         else:
