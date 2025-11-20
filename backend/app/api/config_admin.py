@@ -596,6 +596,80 @@ async def generate_demo_cluster():
         )
 
 
+@router.delete("/config/{cluster_name}/cleanup")
+async def cleanup_demo_cluster(cluster_name: str):
+    """Delete a demo cluster's data and configuration.
+
+    This removes:
+    - Data directory
+    - YAML configuration entry
+    - Database entry (if exists)
+
+    Args:
+        cluster_name: Name of the cluster to delete
+
+    Returns:
+        Success message
+    """
+    try:
+        from pathlib import Path
+        from ..core.config import get_settings
+        import shutil
+
+        settings = get_settings()
+
+        # Delete data directory
+        data_dir = Path(settings.data_path) / cluster_name
+        if data_dir.exists():
+            shutil.rmtree(data_dir)
+
+        # Remove from YAML configuration
+        config_path = get_config_path()
+        if config_path.exists():
+            with open(config_path, "r") as f:
+                config_data = yaml.safe_load(f) or {}
+
+            if "clusters" in config_data and cluster_name in config_data["clusters"]:
+                del config_data["clusters"][cluster_name]
+
+                # Write back
+                import tempfile
+                import os
+                config_dir = config_path.parent
+                with tempfile.NamedTemporaryFile(mode='w', dir=config_dir, delete=False, suffix='.yaml') as f:
+                    temp_path = f.name
+                    yaml.dump(config_data, f, default_flow_style=False, sort_keys=False)
+                os.replace(temp_path, config_path)
+
+        # Remove from database if exists
+        from ..database.cluster_db import get_cluster_db
+        cluster_db = get_cluster_db()
+        existing_clusters = cluster_db.get_all_clusters()
+        for cluster in existing_clusters:
+            if cluster["name"] == cluster_name:
+                cluster_db.delete_cluster(cluster["id"])
+                break
+
+        # Reload configuration
+        reload_cluster_config()
+
+        # Trigger datastore reload
+        from ..datastore_singleton import get_datastore
+        datastore = get_datastore()
+        datastore.check_for_updates()
+
+        return {
+            "status": "success",
+            "message": f"Cluster {cluster_name} cleaned up successfully"
+        }
+    except Exception as e:
+        import traceback
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error cleaning up cluster: {str(e)}\n{traceback.format_exc()}"
+        )
+
+
 @router.put("/config/{cluster_name}")
 async def update_cluster_configuration(cluster_name: str, cluster_data: Dict[str, Any]):
     """Update configuration for a specific cluster.
