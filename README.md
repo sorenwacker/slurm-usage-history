@@ -25,14 +25,13 @@ Try the dashboard with synthetic demo data in 3 steps:
 # 1. Start the dashboard
 docker-compose up -d
 
-# 2. Generate demo data (2 years, 110k jobs with realistic patterns)
-docker-compose exec backend python scripts/generate_test_cluster_data.py \
-  --cluster DemoCluster --start-date 2023-01-01 --end-date 2024-12-31
+# 2. Open http://localhost:3100/admin/clusters
+#    Login: admin / admin (default credentials)
 
-# 3. Open http://localhost:3100 and select "DemoCluster" from the dropdown
+# 3. Click "Create Demo" button to generate 2 years of synthetic data
 ```
 
-The demo cluster includes seasonal patterns, simulated outages, and realistic job distributions.
+The demo cluster includes 110k jobs, seasonal patterns, simulated outages, and realistic job distributions.
 
 ## Production Setup
 
