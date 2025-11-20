@@ -71,7 +71,7 @@ export function AdminClusters() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/config/generate-demo-cluster`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/generate-demo-cluster`, {
         method: 'POST',
         headers,
         credentials: 'include',

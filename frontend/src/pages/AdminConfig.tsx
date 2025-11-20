@@ -185,7 +185,7 @@ export function AdminConfig() {
     setSuccess('');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/config/generate-demo-cluster`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/generate-demo-cluster`, {
         method: 'POST',
         headers: getAuthHeaders(),
         credentials: 'include',
