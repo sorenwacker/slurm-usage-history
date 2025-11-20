@@ -37,7 +37,8 @@ export function AdminClusters() {
 
   const handleLogout = () => {
     adminClient.logout();
-    navigate('/admin/login');
+    // Redirect to SAML logout endpoint which will clear the session
+    window.location.href = '/saml/logout?redirect_to=/admin/login';
   };
 
   const handleReloadData = async () => {
