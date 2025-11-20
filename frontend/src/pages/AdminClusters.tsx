@@ -114,6 +114,8 @@ export function AdminClusters() {
     try {
       await adminClient.updateCluster(cluster.id, { active: !cluster.active });
       await loadClusters();
+      // Automatically reload dashboard data so the cluster appears/disappears from dropdown
+      await handleReloadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update cluster');
     }
