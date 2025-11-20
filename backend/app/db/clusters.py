@@ -219,6 +219,62 @@ class ClusterDB:
 
         self._write_db(db)
 
+    def generate_deploy_key(self, cluster_id: str) -> Optional[str]:
+        """Generate a one-time deployment key for a cluster.
+
+        Returns the deploy key or None if cluster not found.
+        """
+        db = self._read_db()
+
+        if cluster_id not in db["clusters"]:
+            return None
+
+        deploy_key = f"deploy_{generate_api_key()}"
+        db["clusters"][cluster_id]["deploy_key"] = deploy_key
+        db["clusters"][cluster_id]["deploy_key_created"] = datetime.utcnow().isoformat()
+        db["clusters"][cluster_id]["deploy_key_used"] = False
+        db["clusters"][cluster_id]["updated_at"] = datetime.utcnow().isoformat()
+
+        self._write_db(db)
+        return deploy_key
+
+    def exchange_deploy_key(self, deploy_key: str) -> Optional[dict]:
+        """Exchange a deploy key for the actual API key.
+
+        Invalidates the deploy key after use.
+        Returns cluster info with api_key or None if invalid/already used.
+        """
+        db = self._read_db()
+
+        # Find cluster by deploy key
+        cluster_id = None
+        for cid, cluster in db["clusters"].items():
+            if cluster.get("deploy_key") == deploy_key:
+                cluster_id = cid
+                break
+
+        if not cluster_id:
+            return None
+
+        cluster = db["clusters"][cluster_id]
+
+        # Check if deploy key was already used
+        if cluster.get("deploy_key_used", False):
+            return None
+
+        # Mark deploy key as used
+        db["clusters"][cluster_id]["deploy_key_used"] = True
+        db["clusters"][cluster_id]["deploy_key_used_at"] = datetime.utcnow().isoformat()
+        db["clusters"][cluster_id]["updated_at"] = datetime.utcnow().isoformat()
+
+        self._write_db(db)
+
+        return {
+            "cluster_id": cluster_id,
+            "cluster_name": cluster["name"],
+            "api_key": cluster["api_key"],
+        }
+
 
 # Singleton instance
 _cluster_db = None

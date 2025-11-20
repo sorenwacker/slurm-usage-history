@@ -55,6 +55,12 @@ export interface APIKeyRotateResponse {
   message: string;
 }
 
+export interface DeployKeyResponse {
+  status: string;
+  deploy_key: string;
+  message: string;
+}
+
 class AdminClient {
   private getAuthHeaders(): HeadersInit {
     const token = localStorage.getItem('admin_token');
@@ -191,6 +197,19 @@ class AdminClient {
 
     if (!response.ok) {
       throw new Error('Failed to rotate API key');
+    }
+
+    return response.json();
+  }
+
+  async generateDeployKey(clusterId: string): Promise<DeployKeyResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/admin/clusters/${clusterId}/deploy-key`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate deploy key');
     }
 
     return response.json();

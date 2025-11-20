@@ -10,6 +10,8 @@ export function AdminClusters() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [rotatingKey, setRotatingKey] = useState<string | null>(null);
   const [newAPIKey, setNewAPIKey] = useState<string | null>(null);
+  const [generatingDeployKey, setGeneratingDeployKey] = useState<string | null>(null);
+  const [newDeployKey, setNewDeployKey] = useState<string | null>(null);
   const [reloading, setReloading] = useState(false);
   const [generatingDemo, setGeneratingDemo] = useState(false);
   const navigate = useNavigate();
@@ -138,6 +140,18 @@ export function AdminClusters() {
     }
   };
 
+  const handleGenerateDeployKey = async (clusterId: string) => {
+    try {
+      setGeneratingDeployKey(clusterId);
+      const result = await adminClient.generateDeployKey(clusterId);
+      setNewDeployKey(result.deploy_key);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate deploy key');
+    } finally {
+      setGeneratingDeployKey(null);
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     alert('Copied to clipboard!');
@@ -207,6 +221,35 @@ export function AdminClusters() {
                 </button>
                 <button
                   onClick={() => setNewAPIKey(null)}
+                  className="clusters-form-cancel"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Deploy Key Modal */}
+        {newDeployKey && (
+          <div className="clusters-modal-overlay">
+            <div className="clusters-modal">
+              <h3 className="clusters-modal-title">One-Time Deploy Key Generated</h3>
+              <p className="clusters-modal-text">
+                This deploy key can only be used ONCE to fetch the actual API key on agent first run. The agent will automatically exchange this key for the permanent API key and save it in the configuration.
+              </p>
+              <div className="clusters-modal-code">
+                <code>{newDeployKey}</code>
+              </div>
+              <div className="clusters-modal-actions">
+                <button
+                  onClick={() => copyToClipboard(newDeployKey)}
+                  className="clusters-form-submit"
+                >
+                  Copy to Clipboard
+                </button>
+                <button
+                  onClick={() => setNewDeployKey(null)}
                   className="clusters-form-cancel"
                 >
                   Close
@@ -322,6 +365,13 @@ export function AdminClusters() {
                           className="clusters-action-btn action-warning"
                         >
                           {rotatingKey === cluster.id ? 'Rotating...' : 'Rotate Key'}
+                        </button>
+                        <button
+                          onClick={() => handleGenerateDeployKey(cluster.id)}
+                          disabled={generatingDeployKey === cluster.id}
+                          className="clusters-action-btn action-primary"
+                        >
+                          {generatingDeployKey === cluster.id ? 'Generating...' : 'Deploy Key'}
                         </button>
                         <button
                           onClick={() => handleDelete(cluster.id, cluster.name)}

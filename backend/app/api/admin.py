@@ -479,6 +479,32 @@ async def get_admin_emails(admin: str = Depends(get_current_admin)):
     }
 
 
+@router.post("/clusters/{cluster_id}/deploy-key")
+async def generate_deploy_key(cluster_id: str, admin: str = Depends(get_current_admin)):
+    """Generate a one-time deployment key for a cluster.
+
+    The deploy key can be used once to fetch the actual API key.
+    Requires admin authentication.
+    """
+    cluster_db = get_cluster_db()
+
+    deploy_key = cluster_db.generate_deploy_key(cluster_id)
+
+    if not deploy_key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cluster not found",
+        )
+
+    logger.info(f"Deploy key generated for cluster {cluster_id} by {admin}")
+
+    return {
+        "status": "success",
+        "deploy_key": deploy_key,
+        "message": "Deploy key generated. This key can only be used once to fetch the API key.",
+    }
+
+
 @router.post("/admin-emails")
 async def update_admin_emails(
     admin_emails: list[str],
