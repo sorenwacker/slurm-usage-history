@@ -11,6 +11,7 @@ export function AdminClusters() {
   const [rotatingKey, setRotatingKey] = useState<string | null>(null);
   const [newAPIKey, setNewAPIKey] = useState<string | null>(null);
   const [reloading, setReloading] = useState(false);
+  const [generatingDemo, setGeneratingDemo] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -49,6 +50,47 @@ export function AdminClusters() {
       setError(err instanceof Error ? err.message : 'Failed to reload data');
     } finally {
       setReloading(false);
+    }
+  };
+
+  const handleGenerateDemoCluster = async () => {
+    if (!confirm('Generate a demo cluster with 2 years of synthetic data?\n\nThis will create:\n- DemoCluster with 100 users\n- 2 years of data (2023-2024)\n- 30 nodes (15 GPU, 15 CPU)\n- Seasonal patterns and simulated outages\n- ~110,000 realistic jobs')) {
+      return;
+    }
+
+    setGeneratingDemo(true);
+    setError('');
+
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8100';
+      const token = localStorage.getItem('admin_token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/admin/config/generate-demo-cluster`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to generate demo cluster');
+      }
+
+      const result = await response.json();
+      alert(`Demo cluster generated successfully!\n\nCluster: ${result.cluster_name}\nJobs: ${result.stats.total_jobs.toLocaleString()}\nUsers: ${result.stats.users}\nNodes: ${result.stats.nodes}\nDate range: ${result.stats.date_range}\n\nThe cluster will appear in the dashboard after reloading data.`);
+
+      // Reload data to show new cluster
+      await handleReloadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate demo cluster');
+    } finally {
+      setGeneratingDemo(false);
     }
   };
 
@@ -123,6 +165,9 @@ export function AdminClusters() {
             <a href="/admin/users">Users</a>
             <button onClick={handleReloadData} disabled={reloading}>
               {reloading ? 'Reloading...' : 'Reload Data'}
+            </button>
+            <button onClick={handleGenerateDemoCluster} disabled={generatingDemo} style={{ background: '#17a2b8' }}>
+              {generatingDemo ? 'Generating...' : 'Create Demo'}
             </button>
             <button onClick={handleLogout}>Logout</button>
           </div>
