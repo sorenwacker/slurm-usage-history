@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Annotated
 
 import yaml
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 
 from ..core.agent_auth import verify_agent_api_key
 from ..core.config import get_settings
@@ -17,7 +17,10 @@ router = APIRouter(prefix="/agent", tags=["agent"])
 
 
 @router.post("/exchange-deploy-key")
-async def exchange_deploy_key(deploy_key: str = Form(...)) -> dict:
+async def exchange_deploy_key(
+    request: Request,
+    deploy_key: str = Form(...),
+) -> dict:
     """Exchange a one-time deploy key for the actual API key.
 
     This endpoint allows agents to use a deploy key on first run to fetch
@@ -37,16 +40,23 @@ async def exchange_deploy_key(deploy_key: str = Form(...)) -> dict:
     """
     from ..db.clusters import get_cluster_db
 
+    # Get client IP address (handle proxies)
+    client_ip = request.client.host if request.client else None
+    if not client_ip and "x-forwarded-for" in request.headers:
+        client_ip = request.headers["x-forwarded-for"].split(",")[0].strip()
+    if not client_ip and "x-real-ip" in request.headers:
+        client_ip = request.headers["x-real-ip"]
+
     cluster_db = get_cluster_db()
-    result = cluster_db.exchange_deploy_key(deploy_key)
+    result = cluster_db.exchange_deploy_key(deploy_key, client_ip=client_ip)
 
     if not result:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or already used deploy key",
+            detail="Invalid, already used, or expired deploy key",
         )
 
-    logger.info(f"Deploy key exchanged for cluster {result['cluster_name']}")
+    logger.info(f"Deploy key exchanged for cluster {result['cluster_name']} from IP {client_ip}")
 
     return {
         "status": "success",

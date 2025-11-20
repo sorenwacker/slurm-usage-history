@@ -42,6 +42,13 @@ export interface Cluster {
   updated_at: string;
   last_submission?: string;
   total_jobs_submitted: number;
+
+  // Deploy key fields
+  deploy_key_created?: string;
+  deploy_key_expires_at?: string;
+  deploy_key_used?: boolean;
+  deploy_key_used_at?: string;
+  deploy_key_used_from_ip?: string;
 }
 
 export interface ClusterListResponse {

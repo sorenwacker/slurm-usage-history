@@ -162,6 +162,26 @@ export function AdminClusters() {
     return new Date(dateStr).toLocaleString();
   };
 
+  const getDeployKeyStatus = (cluster: Cluster) => {
+    if (!cluster.deploy_key_created) {
+      return { status: 'none', label: 'No Key', color: '#6c757d' };
+    }
+
+    if (cluster.deploy_key_used) {
+      return { status: 'used', label: 'Used', color: '#17a2b8' };
+    }
+
+    if (cluster.deploy_key_expires_at) {
+      const expiresAt = new Date(cluster.deploy_key_expires_at);
+      const now = new Date();
+      if (now > expiresAt) {
+        return { status: 'expired', label: 'Expired', color: '#dc3545' };
+      }
+    }
+
+    return { status: 'valid', label: 'Valid', color: '#28a745' };
+  };
+
   if (loading) {
     return (
       <div className="clusters-container">
@@ -298,13 +318,14 @@ export function AdminClusters() {
                 <th>Status</th>
                 <th>Statistics</th>
                 <th>API Key</th>
+                <th>Deploy Key</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {clusters.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="clusters-table-empty">
+                  <td colSpan={6} className="clusters-table-empty">
                     No clusters yet. Click "Add Cluster" to get started.
                   </td>
                 </tr>
@@ -343,6 +364,44 @@ export function AdminClusters() {
                       <div style={{ fontSize: '0.75rem', color: '#adb5bd', marginTop: '0.25rem' }}>
                         Created: {new Date(cluster.api_key_created).toLocaleDateString()}
                       </div>
+                    </td>
+                    <td>
+                      {(() => {
+                        const deployStatus = getDeployKeyStatus(cluster);
+                        return (
+                          <div>
+                            <span
+                              className="clusters-badge"
+                              style={{
+                                backgroundColor: deployStatus.color,
+                                color: 'white',
+                                display: 'inline-block',
+                                marginBottom: '0.25rem'
+                              }}
+                            >
+                              {deployStatus.label}
+                            </span>
+                            {cluster.deploy_key_created && (
+                              <div style={{ fontSize: '0.75rem', color: '#6c757d' }}>
+                                {deployStatus.status === 'used' && cluster.deploy_key_used_at && (
+                                  <>
+                                    <div>Used: {new Date(cluster.deploy_key_used_at).toLocaleString()}</div>
+                                    {cluster.deploy_key_used_from_ip && (
+                                      <div>From: {cluster.deploy_key_used_from_ip}</div>
+                                    )}
+                                  </>
+                                )}
+                                {deployStatus.status === 'valid' && cluster.deploy_key_expires_at && (
+                                  <div>Expires: {new Date(cluster.deploy_key_expires_at).toLocaleString()}</div>
+                                )}
+                                {deployStatus.status === 'expired' && cluster.deploy_key_expires_at && (
+                                  <div>Expired: {new Date(cluster.deploy_key_expires_at).toLocaleString()}</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td>
                       <div className="clusters-actions-menu">

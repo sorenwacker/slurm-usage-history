@@ -243,6 +243,11 @@ async def list_clusters(admin: str = Depends(get_current_admin)):
             updated_at=c["updated_at"],
             last_submission=c.get("last_submission"),
             total_jobs_submitted=c.get("total_jobs_submitted", 0),
+            deploy_key_created=c.get("deploy_key_created"),
+            deploy_key_expires_at=c.get("deploy_key_expires_at"),
+            deploy_key_used=c.get("deploy_key_used"),
+            deploy_key_used_at=c.get("deploy_key_used_at"),
+            deploy_key_used_from_ip=c.get("deploy_key_used_from_ip"),
         )
         for c in clusters
     ]
@@ -312,6 +317,11 @@ async def create_cluster(
         updated_at=cluster["updated_at"],
         last_submission=None,
         total_jobs_submitted=0,
+        deploy_key_created=cluster.get("deploy_key_created"),
+        deploy_key_expires_at=cluster.get("deploy_key_expires_at"),
+        deploy_key_used=cluster.get("deploy_key_used"),
+        deploy_key_used_at=cluster.get("deploy_key_used_at"),
+        deploy_key_used_from_ip=cluster.get("deploy_key_used_from_ip"),
     )
 
 
@@ -346,6 +356,11 @@ async def get_cluster(
         updated_at=cluster["updated_at"],
         last_submission=cluster.get("last_submission"),
         total_jobs_submitted=cluster.get("total_jobs_submitted", 0),
+        deploy_key_created=cluster.get("deploy_key_created"),
+        deploy_key_expires_at=cluster.get("deploy_key_expires_at"),
+        deploy_key_used=cluster.get("deploy_key_used"),
+        deploy_key_used_at=cluster.get("deploy_key_used_at"),
+        deploy_key_used_from_ip=cluster.get("deploy_key_used_from_ip"),
     )
 
 
@@ -388,6 +403,11 @@ async def update_cluster(
         updated_at=cluster["updated_at"],
         last_submission=cluster.get("last_submission"),
         total_jobs_submitted=cluster.get("total_jobs_submitted", 0),
+        deploy_key_created=cluster.get("deploy_key_created"),
+        deploy_key_expires_at=cluster.get("deploy_key_expires_at"),
+        deploy_key_used=cluster.get("deploy_key_used"),
+        deploy_key_used_at=cluster.get("deploy_key_used_at"),
+        deploy_key_used_from_ip=cluster.get("deploy_key_used_from_ip"),
     )
 
 
@@ -484,11 +504,12 @@ async def generate_deploy_key(cluster_id: str, admin: str = Depends(get_current_
     """Generate a one-time deployment key for a cluster.
 
     The deploy key can be used once to fetch the actual API key.
+    Expires after 7 days.
     Requires admin authentication.
     """
     cluster_db = get_cluster_db()
 
-    deploy_key = cluster_db.generate_deploy_key(cluster_id)
+    deploy_key = cluster_db.generate_deploy_key(cluster_id, expires_days=7)
 
     if not deploy_key:
         raise HTTPException(
@@ -501,7 +522,55 @@ async def generate_deploy_key(cluster_id: str, admin: str = Depends(get_current_
     return {
         "status": "success",
         "deploy_key": deploy_key,
-        "message": "Deploy key generated. This key can only be used once to fetch the API key.",
+        "message": "Deploy key generated. This key expires in 7 days and can only be used once.",
+    }
+
+
+@router.get("/clusters/{cluster_id}/deploy-key-status")
+async def get_deploy_key_status(cluster_id: str, admin: str = Depends(get_current_admin)):
+    """Get the status of the deploy key for a cluster.
+
+    Returns information about whether the key was used, when, from what IP, and expiration.
+    Requires admin authentication.
+    """
+    cluster_db = get_cluster_db()
+    cluster = cluster_db.get_cluster(cluster_id)
+
+    if not cluster:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cluster not found",
+        )
+
+    from datetime import datetime
+
+    deploy_key_exists = cluster.get("deploy_key") is not None
+    deploy_key_used = cluster.get("deploy_key_used", False)
+    deploy_key_created = cluster.get("deploy_key_created")
+    deploy_key_used_at = cluster.get("deploy_key_used_at")
+    deploy_key_used_from_ip = cluster.get("deploy_key_used_from_ip")
+    deploy_key_expires_at = cluster.get("deploy_key_expires_at")
+
+    # Check if expired
+    is_expired = False
+    if deploy_key_expires_at:
+        expires_dt = datetime.fromisoformat(deploy_key_expires_at)
+        is_expired = datetime.utcnow() > expires_dt
+
+    # Determine validity
+    is_valid = deploy_key_exists and not deploy_key_used and not is_expired
+
+    return {
+        "cluster_id": cluster_id,
+        "cluster_name": cluster["name"],
+        "deploy_key_exists": deploy_key_exists,
+        "deploy_key_used": deploy_key_used,
+        "deploy_key_created": deploy_key_created,
+        "deploy_key_expires_at": deploy_key_expires_at,
+        "deploy_key_used_at": deploy_key_used_at,
+        "deploy_key_used_from_ip": deploy_key_used_from_ip,
+        "is_expired": is_expired,
+        "is_valid": is_valid,
     }
 
 

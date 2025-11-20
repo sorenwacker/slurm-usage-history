@@ -219,8 +219,12 @@ class ClusterDB:
 
         self._write_db(db)
 
-    def generate_deploy_key(self, cluster_id: str) -> Optional[str]:
+    def generate_deploy_key(self, cluster_id: str, expires_days: int = 7) -> Optional[str]:
         """Generate a one-time deployment key for a cluster.
+
+        Args:
+            cluster_id: The cluster ID
+            expires_days: Number of days until the deploy key expires (default: 7)
 
         Returns the deploy key or None if cluster not found.
         """
@@ -230,19 +234,29 @@ class ClusterDB:
             return None
 
         deploy_key = f"deploy_{generate_api_key()}"
+        now = datetime.utcnow()
+        expires_at = now + timedelta(days=expires_days)
+
         db["clusters"][cluster_id]["deploy_key"] = deploy_key
-        db["clusters"][cluster_id]["deploy_key_created"] = datetime.utcnow().isoformat()
+        db["clusters"][cluster_id]["deploy_key_created"] = now.isoformat()
+        db["clusters"][cluster_id]["deploy_key_expires_at"] = expires_at.isoformat()
         db["clusters"][cluster_id]["deploy_key_used"] = False
-        db["clusters"][cluster_id]["updated_at"] = datetime.utcnow().isoformat()
+        db["clusters"][cluster_id]["deploy_key_used_at"] = None
+        db["clusters"][cluster_id]["deploy_key_used_from_ip"] = None
+        db["clusters"][cluster_id]["updated_at"] = now.isoformat()
 
         self._write_db(db)
         return deploy_key
 
-    def exchange_deploy_key(self, deploy_key: str) -> Optional[dict]:
+    def exchange_deploy_key(self, deploy_key: str, client_ip: str = None) -> Optional[dict]:
         """Exchange a deploy key for the actual API key.
 
-        Invalidates the deploy key after use.
-        Returns cluster info with api_key or None if invalid/already used.
+        Invalidates the deploy key after use and records the IP address.
+        Returns cluster info with api_key or None if invalid/already used/expired.
+
+        Args:
+            deploy_key: The deploy key to exchange
+            client_ip: IP address of the client making the request
         """
         db = self._read_db()
 
@@ -262,9 +276,17 @@ class ClusterDB:
         if cluster.get("deploy_key_used", False):
             return None
 
+        # Check if deploy key has expired
+        expires_at = cluster.get("deploy_key_expires_at")
+        if expires_at:
+            expires_dt = datetime.fromisoformat(expires_at)
+            if datetime.utcnow() > expires_dt:
+                return None
+
         # Mark deploy key as used
         db["clusters"][cluster_id]["deploy_key_used"] = True
         db["clusters"][cluster_id]["deploy_key_used_at"] = datetime.utcnow().isoformat()
+        db["clusters"][cluster_id]["deploy_key_used_from_ip"] = client_ip
         db["clusters"][cluster_id]["updated_at"] = datetime.utcnow().isoformat()
 
         self._write_db(db)

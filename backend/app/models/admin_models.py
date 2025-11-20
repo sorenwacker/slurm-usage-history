@@ -48,6 +48,13 @@ class ClusterResponse(BaseModel):
     last_submission: Optional[datetime] = None
     total_jobs_submitted: int = 0
 
+    # Deploy key fields
+    deploy_key_created: Optional[datetime] = None
+    deploy_key_expires_at: Optional[datetime] = None
+    deploy_key_used: Optional[bool] = None
+    deploy_key_used_at: Optional[datetime] = None
+    deploy_key_used_from_ip: Optional[str] = None
+
 
 class ClusterListResponse(BaseModel):
     """Response model for list of clusters."""
