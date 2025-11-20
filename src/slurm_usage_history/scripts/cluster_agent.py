@@ -42,7 +42,7 @@ def setup_command(args):
             "cluster_name": cluster_name,
             "local_data_path": args.local_data_path or "",
             "timeout": 30,
-            "collection_window_days": 7,
+            "collection_window_days": 14,
         }
 
         config_path = Path(args.output)
@@ -75,7 +75,7 @@ def create_config_command(args):
         "cluster_name": args.cluster_name or "",
         "local_data_path": args.local_data_path or "",
         "timeout": 30,
-        "collection_window_days": 7,
+        "collection_window_days": 14,
     }
 
     config_path = Path(args.output)
