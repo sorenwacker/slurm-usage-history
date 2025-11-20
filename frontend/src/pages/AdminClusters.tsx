@@ -281,7 +281,7 @@ export function AdminClusters() {
                       </span>
                     </td>
                     <td>
-                      <div>Jobs: {cluster.total_jobs_submitted.toLocaleString()}</div>
+                      <div>API Submissions: {cluster.total_jobs_submitted.toLocaleString()}</div>
                       <div style={{ fontSize: '0.75rem', color: '#6c757d' }}>Last: {formatDate(cluster.last_submission)}</div>
                     </td>
                     <td>
