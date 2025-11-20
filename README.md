@@ -5,15 +5,17 @@ Web dashboard for SLURM cluster usage analytics powered by DuckDB.
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-**[Documentation](https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history)** | **[GitHub Mirror](https://github.com/tudelft-reit/slurm-dashboard)**
+**[Documentation](https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history)** | **[GitHub](https://github.com/tudelft-reit/slurm-dashboard)**
 
 ## Key Features
 
 - **92% less memory** (13GB → 1.1GB) and **15x faster** queries with DuckDB
 - React + FastAPI interface with interactive charts
-- SAML 2.0 authentication
-- Multi-cluster support
-- PDF report generation
+- SAML 2.0 authentication with admin panel
+- Multi-cluster management with API key authentication
+- Auto-generate cluster configurations from existing data
+- Demo cluster generation with synthetic data
+- PDF report generation with customizable templates
 
 ## Quick Start
 
@@ -43,6 +45,18 @@ slurm-dashboard
 Access at **http://localhost:8100**
 
 See [documentation](https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history) for production deployment with SAML, systemd, and multi-cluster setup.
+
+## Admin Panel
+
+Access the admin panel at **http://localhost:8100/admin/login** to:
+
+- **Manage Clusters**: Add, activate/deactivate, and configure multiple SLURM clusters
+- **Generate Demo Data**: Create synthetic cluster data for testing with realistic patterns
+- **Auto-generate Configs**: Automatically detect nodes, accounts, and partitions from data
+- **User Management**: Control access and view user activity
+- **API Keys**: Manage authentication keys for data submission agents
+
+Default admin credentials can be configured via environment variables or SAML.
 
 ## Development
 

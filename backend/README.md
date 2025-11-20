@@ -13,21 +13,19 @@ FastAPI-based backend for the Slurm Usage History dashboard with data ingestion 
 
 1. Install dependencies with uv:
 ```bash
-cd /Users/sdrwacker/workspace/slurm-usage-history
 uv sync
 ```
 
 2. Configure environment variables:
 ```bash
-cd backend
-cp .env.example .env
-# Edit .env and set your API_KEYS
+cp backend/.env.example backend/.env
+# Edit .env and configure DATA_PATH, ADMIN_USERNAME, etc.
 ```
 
 3. Run the development server:
 ```bash
 cd backend
-python run.py
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8100
 ```
 
 The API will be available at `http://localhost:8100`
