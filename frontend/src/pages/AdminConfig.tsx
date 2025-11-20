@@ -447,11 +447,11 @@ export function AdminConfig() {
             {/* Tab Navigation */}
             <div className="admin-tabs">
               {[
-                { id: 'overview', label: 'Overview', icon: '⊞' },
-                { id: 'nodes', label: `Nodes (${stats?.totalNodes || 0})`, icon: '▪' },
-                { id: 'accounts', label: `Accounts (${stats?.totalAccounts || 0})`, icon: '☰' },
-                { id: 'partitions', label: `Partitions (${stats?.totalPartitions || 0})`, icon: '▤' },
-                { id: 'yaml', label: 'Edit YAML', icon: '✎' },
+                { id: 'overview', label: 'Overview', icon: '' },
+                { id: 'nodes', label: `Nodes (${stats?.totalNodes || 0})`, icon: '' },
+                { id: 'accounts', label: `Accounts (${stats?.totalAccounts || 0})`, icon: '' },
+                { id: 'partitions', label: `Partitions (${stats?.totalPartitions || 0})`, icon: '' },
+                { id: 'yaml', label: 'Edit YAML', icon: '' },
               ].map((tab) => (
                 <button
                   key={tab.id}
