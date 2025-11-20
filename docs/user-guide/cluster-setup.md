@@ -71,15 +71,36 @@ slurm-dashboard --help
 
 The new agent uses API-based submission - no shared filesystem required.
 
-### 1. Get API Credentials
+### 1. One-Command Setup (Recommended)
 
-Contact your dashboard administrator for:
-- Dashboard API URL (e.g., `https://dashboard.daic.tudelft.nl`)
-- API key for authentication
+The easiest way to set up the agent is using a deploy key from your dashboard administrator.
 
-The administrator creates a cluster entry via the admin panel and provides the API key.
+**Steps:**
 
-### 2. Create Configuration File
+1. Ask your dashboard administrator to generate a deploy key for your cluster
+2. Copy the installation command from the admin panel (it includes everything you need)
+3. Run it on your cluster:
+
+```bash
+pip install 'git+https://gitlab.ewi.tudelft.nl/reit/slurm-usage-history.git#egg=slurm-dashboard[agent]' && \
+slurm-dashboard setup \
+  --api-url https://dashboard.daic.tudelft.nl \
+  --deploy-key deploy_xxxxxxxxxxxx
+```
+
+This will:
+- Exchange the one-time deploy key for a permanent API key
+- Create a `config.json` file with your credentials
+- Set up the cluster name automatically
+
+The deploy key:
+- Expires after 7 days
+- Can only be used once
+- Is automatically invalidated after setup
+
+### 2. Manual Setup (Alternative)
+
+If you prefer manual setup or already have an API key:
 
 ```bash
 # Activate your conda environment
@@ -102,7 +123,7 @@ This creates a `config.json` file with mode `0600` (readable only by you) contai
   "cluster_name": "DAIC",
   "local_data_path": "/data/slurm-usage/DAIC",
   "timeout": 30,
-  "collection_window_days": 7
+  "collection_window_days": 14
 }
 ```
 

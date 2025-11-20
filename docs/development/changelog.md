@@ -10,6 +10,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Placeholder for future features
 
+## [0.5.0] - 2025-11-20
+
+Deploy Key System & Security Enhancements
+
+### Added
+- Deploy key system for secure one-time agent setup with 7-day expiration
+- One-command agent setup: `slurm-dashboard setup --api-url URL --deploy-key KEY`
+- IP address tracking for deploy key usage with proxy support (X-Forwarded-For, X-Real-IP)
+- Dedicated cluster details page at `/admin/clusters/{id}` for key management
+- Deploy key status display (Valid/Used/Expired) in admin panel
+- Custom SLURM icon with #09a4d6 background color
+- Admin user management stored in database instead of .env file
+
+### Changed
+- Default data collection period increased from 7 to 14 days
+- Sensitive API keys and deploy keys moved from cluster list to dedicated details page
+- Agent installation command updated to use GitLab repository
+- Improved key rotation workflow with better UI/UX
+
+### Security
+- Deploy keys expire after 7 days and can only be used once
+- Deploy key exchange tracked with timestamp and IP address
+- API keys no longer visible in main cluster list view
+- Config files created with 0600 permissions (user-readable only)
+
+### Fixed
+- Missing timedelta import in cluster database module
+- Agent installation command now uses correct GitLab repository URL
+- Package name corrected from slurm-usage-history to slurm-dashboard
+
+## [0.4.2] - 2025-11-XX
+
+### Added
+- Docker development environment improvements
+- Cluster filtering enhancements
+
+## [0.4.1] - 2025-11-XX
+
+### Added
+- Various bug fixes and improvements
+
+## [0.4.0] - 2025-11-XX
+
+### Added
+- Admin panel with cluster management
+- Multi-cluster support with API key authentication
+- Demo cluster generation with synthetic data
+- User management interface
+
 ## [0.3.0-rc1] - 2024-11-10
 
 Release Candidate for v0.3.0 - ready for testing and feedback.

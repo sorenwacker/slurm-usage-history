@@ -67,12 +67,28 @@ See [documentation](https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history) 
 Access the admin panel at **http://localhost:8100/admin/login** to:
 
 - **Manage Clusters**: Add, activate/deactivate, and configure multiple SLURM clusters
+- **Deploy Keys**: Generate one-time setup keys for secure agent deployment
 - **Generate Demo Data**: Create synthetic cluster data for testing with realistic patterns
 - **Auto-generate Configs**: Automatically detect nodes, accounts, and partitions from data
 - **User Management**: Control access and view user activity
-- **API Keys**: Manage authentication keys for data submission agents
+- **API Key Rotation**: Manage and rotate authentication keys for data submission agents
 
 Default admin credentials can be configured via environment variables or SAML.
+
+### Cluster Agent Setup
+
+For cluster administrators, the recommended setup process uses deploy keys:
+
+1. Admin creates cluster in dashboard and generates a deploy key
+2. Copy the one-command setup from the admin panel
+3. Run on your cluster - it installs the agent and exchanges the deploy key for a permanent API key
+
+```bash
+pip install 'git+https://gitlab.ewi.tudelft.nl/reit/slurm-usage-history.git#egg=slurm-dashboard[agent]' && \
+slurm-dashboard setup --api-url https://your-dashboard.example.com --deploy-key deploy_xxx
+```
+
+Deploy keys are single-use, expire after 7 days, and provide IP tracking for security.
 
 ## Development
 
