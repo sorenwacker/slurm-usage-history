@@ -64,22 +64,6 @@ def generate_node_usage(
     node_df = node_df[node_df["NodeList"].notna()]
     node_df["NodeList"] = node_df["NodeList"].astype(str).str.strip()
 
-    # Clean up malformed node names (remove brackets and trailing characters)
-    def clean_node_name(name: str) -> str:
-        """Clean malformed node names like 'gpu[06' or '14-15]'."""
-        # Remove opening brackets
-        name = name.replace("[", "")
-        # Remove trailing brackets
-        name = name.rstrip("]")
-        # If it's just numbers (like "14-15"), skip it as it's incomplete
-        if name and name[0].isdigit():
-            return ""
-        return name
-
-    node_df["NodeList"] = node_df["NodeList"].apply(clean_node_name)
-    # Filter out empty/invalid node names
-    node_df = node_df[node_df["NodeList"].str.len() > 0]
-
     # Normalize node names using cluster config
     if cluster:
         config = get_cluster_config()

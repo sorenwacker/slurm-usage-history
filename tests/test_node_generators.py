@@ -76,29 +76,3 @@ def test_empty_nodelist():
 
     assert result["cpu_usage"]["x"] == []
     assert result["gpu_usage"]["x"] == []
-
-
-def test_malformed_node_names():
-    """Test cleaning of malformed node names like 'gpu[06' or '14-15]'."""
-    df = pd.DataFrame({
-        "NodeList": [["gpu[06"], ["gpu30"], ["14-15]"], ["gpu05"]],
-        "CPUHours": [10.0, 20.0, 15.0, 25.0],
-        "GPUHours": [5.0, 10.0, 8.0, 12.0],
-    })
-
-    result = generate_node_usage(df, cluster="DAIC")
-
-    cpu_nodes = result["cpu_usage"]["x"]
-
-    # Should clean 'gpu[06' to 'gpu06' then normalize to 'gpu06'
-    assert "gpu06" in cpu_nodes
-    assert "gpu30" in cpu_nodes
-    assert "gpu05" in cpu_nodes
-
-    # Should filter out malformed entries like '14-15]'
-    assert "14-15" not in cpu_nodes
-
-    # Should not have any brackets in node names
-    for node in cpu_nodes:
-        assert "[" not in node
-        assert "]" not in node
