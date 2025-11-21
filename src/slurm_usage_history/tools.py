@@ -217,9 +217,14 @@ def unpack_nodelist_string(nodelist_str: Optional[str]) -> List[str]:
     # Check for incomplete bracket notation (e.g., "gpu[30")
     incomplete_match = incomplete_pattern.search(nodelist_str)
     if incomplete_match:
-        base, num = incomplete_match.groups()
-        num_int = int(num)
-        unpacked_list.append(f"{base}{num_int:02d}")
+        base, num_str = incomplete_match.groups()
+        # Detect padding from the number
+        padding = len(num_str) if num_str and num_str[0] == '0' and len(num_str) > 1 else 0
+        num = int(num_str)
+        if padding:
+            unpacked_list.append(f"{base}{num:0{padding}d}")
+        else:
+            unpacked_list.append(f"{base}{num}")
         return unpacked_list
 
     # Check for list patterns (e.g., gpu[08-09,11,14])
@@ -229,14 +234,24 @@ def unpack_nodelist_string(nodelist_str: Optional[str]) -> List[str]:
         ranges = range_str.split(",")
         for r in ranges:
             if "-" in r:
-                start, end = map(int, r.split("-"))
+                start_str, end_str = r.split("-")
+                # Detect padding from the first number in the range
+                padding = len(start_str) if start_str and start_str[0] == '0' and len(start_str) > 1 else 0
+                start, end = int(start_str), int(end_str)
                 for num in range(start, end + 1):
-                    unpacked_list.append(f"{base}{num:02d}")
+                    if padding:
+                        unpacked_list.append(f"{base}{num:0{padding}d}")
+                    else:
+                        unpacked_list.append(f"{base}{num}")
             else:
-                # Format single items with zero-padding as well
+                # Single items - detect padding
                 try:
+                    padding = len(r) if r and r[0] == '0' and len(r) > 1 else 0
                     num = int(r)
-                    unpacked_list.append(f"{base}{num:02d}")
+                    if padding:
+                        unpacked_list.append(f"{base}{num:0{padding}d}")
+                    else:
+                        unpacked_list.append(f"{base}{num}")
                 except ValueError:
                     # If it's not a number, append as is
                     unpacked_list.append(f"{base}{r}")
@@ -248,9 +263,15 @@ def unpack_nodelist_string(nodelist_str: Optional[str]) -> List[str]:
             range_match = range_pattern.search(part)
             if range_match and "[" in part:
                 base, _ = part.split("[")
-                start, end = map(int, range_match.groups())
+                start_str, end_str = range_match.groups()
+                # Detect padding from the first number
+                padding = len(start_str) if start_str and start_str[0] == '0' and len(start_str) > 1 else 0
+                start, end = int(start_str), int(end_str)
                 for num in range(start, end + 1):
-                    unpacked_list.append(f"{base}{num:02d}")
+                    if padding:
+                        unpacked_list.append(f"{base}{num:0{padding}d}")
+                    else:
+                        unpacked_list.append(f"{base}{num}")
             else:
                 # Handle regular items (just strip brackets if any)
                 clean_part = part.strip().rstrip("]").lstrip("[")

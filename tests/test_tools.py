@@ -9,9 +9,9 @@ def test_unpack_nodelist_with_range():
 
 
 def test_unpack_nodelist_with_single_digit():
-    """Test that single digit nodes are zero-padded."""
+    """Test that single digit nodes without padding stay unpadded."""
     result = unpack_nodelist_string("gpu[5,6,7]")
-    assert result == ["gpu05", "gpu06", "gpu07"]
+    assert result == ["gpu5", "gpu6", "gpu7"]
 
 
 def test_unpack_nodelist_with_two_digit():
@@ -21,9 +21,9 @@ def test_unpack_nodelist_with_two_digit():
 
 
 def test_unpack_nodelist_mixed():
-    """Test mixed single and double digit nodes."""
+    """Test mixed single and double digit nodes - no padding."""
     result = unpack_nodelist_string("gpu[5,10,30]")
-    assert result == ["gpu05", "gpu10", "gpu30"]
+    assert result == ["gpu5", "gpu10", "gpu30"]
 
 
 def test_unpack_nodelist_single_node():
@@ -42,9 +42,9 @@ def test_unpack_nodelist_none():
 
 
 def test_unpack_nodelist_with_range_and_singles():
-    """Test combination of ranges and single values."""
+    """Test combination of ranges and single values - no padding."""
     result = unpack_nodelist_string("gpu[5-7,10,30-32]")
-    assert result == ["gpu05", "gpu06", "gpu07", "gpu10", "gpu30", "gpu31", "gpu32"]
+    assert result == ["gpu5", "gpu6", "gpu7", "gpu10", "gpu30", "gpu31", "gpu32"]
 
 
 def test_unpack_nodelist_comma_separated_simple():
@@ -87,3 +87,21 @@ def test_unpack_nodelist_mixed_notation():
     """Test mixed notation like 'gpu[06-08,10,15-16]'."""
     result = unpack_nodelist_string("gpu[06-08,10,15-16]")
     assert result == ["gpu06", "gpu07", "gpu08", "gpu10", "gpu15", "gpu16"]
+
+
+def test_unpack_nodelist_single_digit_range():
+    """Test single digit range like 'node[1-5]' - no padding."""
+    result = unpack_nodelist_string("node[1-5]")
+    assert result == ["node1", "node2", "node3", "node4", "node5"]
+
+
+def test_unpack_nodelist_complex_mixed():
+    """Test complex mixed notation like 'node[1,4-5,9]' - no padding."""
+    result = unpack_nodelist_string("node[1,4-5,9]")
+    assert result == ["node1", "node4", "node5", "node9"]
+
+
+def test_unpack_nodelist_zero_padded_range():
+    """Test zero-padded range like 'node[01-05]' - preserves padding."""
+    result = unpack_nodelist_string("node[01-05]")
+    assert result == ["node01", "node02", "node03", "node04", "node05"]
