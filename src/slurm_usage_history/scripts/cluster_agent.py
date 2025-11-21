@@ -41,7 +41,7 @@ def setup_command(args):
             "api_key": api_key,
             "cluster_name": cluster_name,
             "local_data_path": args.local_data_path or "",
-            "timeout": 30,
+            "timeout": 120,
             "collection_window_days": 14,
         }
 
@@ -74,7 +74,7 @@ def create_config_command(args):
         "api_key": args.api_key,
         "cluster_name": args.cluster_name or "",
         "local_data_path": args.local_data_path or "",
-        "timeout": 30,
+        "timeout": 120,
         "collection_window_days": 14,
     }
 

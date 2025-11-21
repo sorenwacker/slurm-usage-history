@@ -285,10 +285,11 @@ class DashboardClient:
         self.timeout = timeout
 
         # Configure session with retries
+        # Retry with exponential backoff: 2s, 4s, 8s, 16s, 32s (total ~62s + request time)
         self.session = requests.Session()
         retry_strategy = Retry(
-            total=3,
-            backoff_factor=1,
+            total=5,
+            backoff_factor=2,
             status_forcelist=[429, 500, 502, 503, 504],
             allowed_methods=["POST", "GET"]
         )
@@ -478,7 +479,7 @@ def main():
             client = DashboardClient(
                 api_url=config['api_url'],
                 api_key=config['api_key'],
-                timeout=config.get('timeout', 30)
+                timeout=config.get('timeout', 120)
             )
             # Check health first
             health = client.check_health()
