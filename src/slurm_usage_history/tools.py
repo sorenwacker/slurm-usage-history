@@ -217,7 +217,13 @@ def unpack_nodelist_string(nodelist_str: Optional[str]) -> List[str]:
                 for num in range(start, end + 1):
                     unpacked_list.append(f"{base}{num:02d}")
             else:
-                unpacked_list.append(f"{base}{r}")
+                # Format single items with zero-padding as well
+                try:
+                    num = int(r)
+                    unpacked_list.append(f"{base}{num:02d}")
+                except ValueError:
+                    # If it's not a number, append as is
+                    unpacked_list.append(f"{base}{r}")
     else:
         # If no list pattern, check if there are single items or other cases
         parts = nodelist_str.split(",")
