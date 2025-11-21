@@ -219,13 +219,16 @@ def generate_active_users_over_time(df: pd.DataFrame, period_type: str = "month"
     # Group by time AND dimension, count unique users
     grouped = df_copy.groupby([time_column, color_by])["User"].nunique().reset_index(name="num_active_users")
 
-    # Get top 10 groups by total unique users across all time
+    # Get top groups by total unique users across all time
     # Note: This counts unique users PER group, not sum of unique counts
+    # Don't limit to 10 when grouping by User (since each user is their own group)
     top_groups = []
     for group in df_copy[color_by].unique():
         group_users = df_copy[df_copy[color_by] == group]["User"].nunique()
         top_groups.append((group, group_users))
-    top_groups = sorted(top_groups, key=lambda x: x[1], reverse=True)[:10]
+    top_groups = sorted(top_groups, key=lambda x: x[1], reverse=True)
+    if color_by != "User":
+        top_groups = top_groups[:10]
     top_groups = [g[0] for g in top_groups]
 
     grouped_filtered = grouped[grouped[color_by].isin(top_groups)]
