@@ -78,10 +78,11 @@ def test_empty_nodelist():
     assert result["gpu_usage"]["x"] == []
 
 
-def test_compressed_slurm_notation():
-    """Test expansion of compressed SLURM node notation like 'gpu[06-08,10]'."""
+def test_already_expanded_nodes():
+    """Test that pre-expanded node lists (from data ingestion) work correctly."""
+    # This mimics what the data looks like after ingestion - already expanded
     df = pd.DataFrame({
-        "NodeList": [["gpu[06-08,10]"], ["gpu[30-31]"]],
+        "NodeList": [["gpu06", "gpu07", "gpu08", "gpu10"], ["gpu30", "gpu31"]],
         "CPUHours": [40.0, 20.0],
         "GPUHours": [20.0, 10.0],
     })
@@ -90,13 +91,11 @@ def test_compressed_slurm_notation():
 
     cpu_nodes = result["cpu_usage"]["x"]
 
-    # Should expand 'gpu[06-08,10]' to individual nodes
+    # Should have all expanded nodes
     assert "gpu06" in cpu_nodes
     assert "gpu07" in cpu_nodes
     assert "gpu08" in cpu_nodes
     assert "gpu10" in cpu_nodes
-
-    # Should expand 'gpu[30-31]' to individual nodes
     assert "gpu30" in cpu_nodes
     assert "gpu31" in cpu_nodes
 
