@@ -116,8 +116,8 @@ def generate_node_usage(
     if color_by and color_by in cpu_grouped.columns:
         # Multi-series for stacked bar chart
         cpu_series = []
-        top_groups = cpu_grouped.groupby(color_by)["CPUHours"].sum().nlargest(10).index.tolist()
-        for group in top_groups:
+        all_groups = cpu_grouped.groupby(color_by)["CPUHours"].sum().sort_values(ascending=False).index.tolist()
+        for group in all_groups:
             group_data = cpu_grouped[cpu_grouped[color_by] == group]
             data = []
             for node in cpu_sorted_nodes:
@@ -129,8 +129,8 @@ def generate_node_usage(
             })
 
         gpu_series = []
-        top_groups = gpu_grouped.groupby(color_by)["GPUHours"].sum().nlargest(10).index.tolist()
-        for group in top_groups:
+        all_groups = gpu_grouped.groupby(color_by)["GPUHours"].sum().sort_values(ascending=False).index.tolist()
+        for group in all_groups:
             group_data = gpu_grouped[gpu_grouped[color_by] == group]
             data = []
             for node in gpu_sorted_nodes:

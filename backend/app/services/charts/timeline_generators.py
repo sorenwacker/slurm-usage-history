@@ -62,16 +62,16 @@ def generate_cpu_usage_over_time(df: pd.DataFrame, period_type: str = "month", c
     # Group by time AND dimension
     grouped = df_copy.groupby([time_column, color_by])["CPUHours"].sum().reset_index()
 
-    # Get top 10 groups by total CPU hours
-    top_groups = grouped.groupby(color_by)["CPUHours"].sum().nlargest(10).index.tolist()
-    grouped_filtered = grouped[grouped[color_by].isin(top_groups)]
+    # Get all groups sorted by total CPU hours
+    all_groups = grouped.groupby(color_by)["CPUHours"].sum().sort_values(ascending=False).index.tolist()
+    grouped_filtered = grouped[grouped[color_by].isin(all_groups)]
 
     # Get all time periods (sorted)
     all_periods = sorted(df_copy[time_column].unique())
 
     # Build series for each group
     series = []
-    for group in top_groups:
+    for group in all_groups:
         group_data = grouped_filtered[grouped_filtered[color_by] == group]
         # Create a complete series with 0 for missing periods
         data = []
@@ -145,16 +145,16 @@ def generate_gpu_usage_over_time(df: pd.DataFrame, period_type: str = "month", c
     # Group by time AND dimension
     grouped = df_copy.groupby([time_column, color_by])["GPUHours"].sum().reset_index()
 
-    # Get top 10 groups by total GPU hours
-    top_groups = grouped.groupby(color_by)["GPUHours"].sum().nlargest(10).index.tolist()
-    grouped_filtered = grouped[grouped[color_by].isin(top_groups)]
+    # Get all groups sorted by total GPU hours
+    all_groups = grouped.groupby(color_by)["GPUHours"].sum().sort_values(ascending=False).index.tolist()
+    grouped_filtered = grouped[grouped[color_by].isin(all_groups)]
 
     # Get all time periods (sorted)
     all_periods = sorted(df_copy[time_column].unique())
 
     # Build series for each group
     series = []
-    for group in top_groups:
+    for group in all_groups:
         group_data = grouped_filtered[grouped_filtered[color_by] == group]
         # Create a complete series with 0 for missing periods
         data = []
@@ -219,26 +219,23 @@ def generate_active_users_over_time(df: pd.DataFrame, period_type: str = "month"
     # Group by time AND dimension, count unique users
     grouped = df_copy.groupby([time_column, color_by])["User"].nunique().reset_index(name="num_active_users")
 
-    # Get top groups by total unique users across all time
+    # Get all groups sorted by total unique users across all time
     # Note: This counts unique users PER group, not sum of unique counts
-    # Don't limit to 10 when grouping by User (since each user is their own group)
-    top_groups = []
+    all_groups = []
     for group in df_copy[color_by].unique():
         group_users = df_copy[df_copy[color_by] == group]["User"].nunique()
-        top_groups.append((group, group_users))
-    top_groups = sorted(top_groups, key=lambda x: x[1], reverse=True)
-    if color_by != "User":
-        top_groups = top_groups[:10]
-    top_groups = [g[0] for g in top_groups]
+        all_groups.append((group, group_users))
+    all_groups = sorted(all_groups, key=lambda x: x[1], reverse=True)
+    all_groups = [g[0] for g in all_groups]
 
-    grouped_filtered = grouped[grouped[color_by].isin(top_groups)]
+    grouped_filtered = grouped[grouped[color_by].isin(all_groups)]
 
     # Get all time periods (sorted)
     all_periods = sorted(df_copy[time_column].unique())
 
     # Build series for each group
     series = []
-    for group in top_groups:
+    for group in all_groups:
         group_data = grouped_filtered[grouped_filtered[color_by] == group]
         # Create a complete series with 0 for missing periods
         data = []
@@ -300,16 +297,16 @@ def generate_jobs_over_time(df: pd.DataFrame, period_type: str = "month", color_
     # Group by time AND dimension, count jobs
     grouped = df_copy.groupby([time_column, color_by]).size().reset_index(name="num_jobs")
 
-    # Get top 10 groups by total job count
-    top_groups = grouped.groupby(color_by)["num_jobs"].sum().nlargest(10).index.tolist()
-    grouped_filtered = grouped[grouped[color_by].isin(top_groups)]
+    # Get all groups sorted by total job count
+    all_groups = grouped.groupby(color_by)["num_jobs"].sum().sort_values(ascending=False).index.tolist()
+    grouped_filtered = grouped[grouped[color_by].isin(all_groups)]
 
     # Get all time periods (sorted)
     all_periods = sorted(df_copy[time_column].unique())
 
     # Build series for each group
     series = []
-    for group in top_groups:
+    for group in all_groups:
         group_data = grouped_filtered[grouped_filtered[color_by] == group]
         # Create a complete series with 0 for missing periods
         data = []
@@ -379,16 +376,16 @@ def generate_waiting_times_over_time(df: pd.DataFrame, period_type: str = "month
     # Group by time AND dimension
     grouped = df_filtered.groupby([time_column, color_by])["WaitingTimeHours"].mean().reset_index()
 
-    # Get top 10 groups by average waiting time
-    top_groups = grouped.groupby(color_by)["WaitingTimeHours"].mean().nlargest(10).index.tolist()
-    grouped_filtered = grouped[grouped[color_by].isin(top_groups)]
+    # Get all groups sorted by average waiting time
+    all_groups = grouped.groupby(color_by)["WaitingTimeHours"].mean().sort_values(ascending=False).index.tolist()
+    grouped_filtered = grouped[grouped[color_by].isin(all_groups)]
 
     # Get all time periods (sorted)
     all_periods = sorted(df_filtered[time_column].unique())
 
     # Build series for each group
     series = []
-    for group in top_groups:
+    for group in all_groups:
         group_data = grouped_filtered[grouped_filtered[color_by] == group]
         # Create a complete series with 0 for missing periods
         data = []
@@ -457,16 +454,16 @@ def generate_job_duration_over_time(df: pd.DataFrame, period_type: str = "month"
     # Group by time AND dimension
     grouped = df_filtered.groupby([time_column, color_by])["ElapsedHours"].mean().reset_index()
 
-    # Get top 10 groups by average duration
-    top_groups = grouped.groupby(color_by)["ElapsedHours"].mean().nlargest(10).index.tolist()
-    grouped_filtered = grouped[grouped[color_by].isin(top_groups)]
+    # Get all groups sorted by average duration
+    all_groups = grouped.groupby(color_by)["ElapsedHours"].mean().sort_values(ascending=False).index.tolist()
+    grouped_filtered = grouped[grouped[color_by].isin(all_groups)]
 
     # Get all time periods (sorted)
     all_periods = sorted(df_filtered[time_column].unique())
 
     # Build series for each group
     series = []
-    for group in top_groups:
+    for group in all_groups:
         group_data = grouped_filtered[grouped_filtered[color_by] == group]
         # Create a complete series with 0 for missing periods
         data = []
