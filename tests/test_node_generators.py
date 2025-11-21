@@ -76,3 +76,31 @@ def test_empty_nodelist():
 
     assert result["cpu_usage"]["x"] == []
     assert result["gpu_usage"]["x"] == []
+
+
+def test_compressed_slurm_notation():
+    """Test expansion of compressed SLURM node notation like 'gpu[06-08,10]'."""
+    df = pd.DataFrame({
+        "NodeList": [["gpu[06-08,10]"], ["gpu[30-31]"]],
+        "CPUHours": [40.0, 20.0],
+        "GPUHours": [20.0, 10.0],
+    })
+
+    result = generate_node_usage(df, cluster="DAIC")
+
+    cpu_nodes = result["cpu_usage"]["x"]
+
+    # Should expand 'gpu[06-08,10]' to individual nodes
+    assert "gpu06" in cpu_nodes
+    assert "gpu07" in cpu_nodes
+    assert "gpu08" in cpu_nodes
+    assert "gpu10" in cpu_nodes
+
+    # Should expand 'gpu[30-31]' to individual nodes
+    assert "gpu30" in cpu_nodes
+    assert "gpu31" in cpu_nodes
+
+    # Should not have any brackets in node names
+    for node in cpu_nodes:
+        assert "[" not in node
+        assert "]" not in node

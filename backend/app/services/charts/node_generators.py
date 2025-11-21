@@ -10,6 +10,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 from backend.app.config import get_cluster_config
 
+# Import SLURM nodelist expansion function
+try:
+    from slurm_usage_history.tools import unpack_nodelist_string
+except ImportError:
+    # Fallback if not available
+    def unpack_nodelist_string(s):
+        return [s] if s else []
+
 
 def generate_node_usage(
     df: pd.DataFrame,
@@ -47,17 +55,29 @@ def generate_node_usage(
     # 1. A numpy array like array(['node1', 'node2'])
     # 2. A list like ['node1', 'node2']
     # 3. A comma-separated string like "node1,node2"
+    # 4. Compressed SLURM notation like "gpu[06-08,10]"
     # We need to handle all cases and convert to a list for explode()
     def process_nodelist(val):
         # If it's a numpy array, convert to list
         if isinstance(val, np.ndarray):
-            return val.tolist()
+            result = val.tolist()
         # If it's already a list or tuple, use as is
         elif isinstance(val, (list, tuple)):
-            return list(val)
+            result = list(val)
         # Otherwise it's a string, split on commas
         else:
-            return str(val).split(",")
+            result = str(val).split(",")
+
+        # Now expand each item using SLURM nodelist expansion
+        # This handles compressed notation like "gpu[06-08,10]"
+        expanded = []
+        for item in result:
+            item = str(item).strip()
+            if item:
+                # unpack_nodelist_string returns a list of expanded node names
+                expanded.extend(unpack_nodelist_string(item))
+
+        return expanded if expanded else result
 
     node_df["NodeList"] = node_df["NodeList"].apply(process_nodelist)
     node_df = node_df.explode("NodeList")
