@@ -228,16 +228,18 @@ def unpack_nodelist_string(nodelist_str: Optional[str]) -> List[str]:
         # If no list pattern, check if there are single items or other cases
         parts = nodelist_str.split(",")
         for part in parts:
-            # Check for ranges in single items (e.g., gpu01,03])
+            # Check for ranges in single items (e.g., gpu[01-03])
             range_match = range_pattern.search(part)
-            if range_match:
+            if range_match and "[" in part:
                 base, _ = part.split("[")
                 start, end = map(int, range_match.groups())
                 for num in range(start, end + 1):
                     unpacked_list.append(f"{base}{num:02d}")
             else:
-                # Handle regular items
-                unpacked_list.append(part)
+                # Handle regular items (just strip brackets if any)
+                clean_part = part.strip().rstrip("]").lstrip("[")
+                if clean_part:
+                    unpacked_list.append(clean_part)
 
     # Ensure no invalid items like trailing ']'
     return [item.strip("]") for item in unpacked_list]

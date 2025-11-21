@@ -45,3 +45,9 @@ def test_unpack_nodelist_with_range_and_singles():
     """Test combination of ranges and single values."""
     result = unpack_nodelist_string("gpu[5-7,10,30-32]")
     assert result == ["gpu05", "gpu06", "gpu07", "gpu10", "gpu30", "gpu31", "gpu32"]
+
+
+def test_unpack_nodelist_comma_separated_simple():
+    """Test comma-separated simple node names without brackets."""
+    result = unpack_nodelist_string("gpu05,gpu06,gpu07")
+    assert result == ["gpu05", "gpu06", "gpu07"]
