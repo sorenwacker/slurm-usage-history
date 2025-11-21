@@ -3,45 +3,44 @@ import pytest
 from backend.app.services.charts.node_generators import generate_node_usage
 
 
-def test_node_name_normalization():
-    """Test that node names are properly normalized using cluster config."""
+def test_node_names_preserved():
+    """Test that node names are preserved exactly as they appear in data."""
     df = pd.DataFrame({
-        "NodeList": [["gpu5"], ["gpu30"], ["Gpu05"], ["GPU10"]],
+        "NodeList": [["gpu5"], ["gpu30"], ["gpu05"], ["gpu10"]],
         "CPUHours": [10.0, 20.0, 15.0, 25.0],
         "GPUHours": [5.0, 10.0, 8.0, 12.0],
     })
 
-    result = generate_node_usage(df, cluster="DAIC")
+    result = generate_node_usage(df)
 
     cpu_nodes = result["cpu_usage"]["x"]
     gpu_nodes = result["gpu_usage"]["x"]
 
-    assert "gpu05" in cpu_nodes
+    # Node names should be preserved exactly as they are in the data
+    assert "gpu5" in cpu_nodes
     assert "gpu30" in cpu_nodes
+    assert "gpu05" in cpu_nodes
     assert "gpu10" in cpu_nodes
 
-    assert "gpu05" in gpu_nodes
+    assert "gpu5" in gpu_nodes
     assert "gpu30" in gpu_nodes
+    assert "gpu05" in gpu_nodes
     assert "gpu10" in gpu_nodes
-
-    # Verify no duplicate nodes after normalization
-    assert len(cpu_nodes) == len(set(cpu_nodes))
-    assert len(gpu_nodes) == len(set(gpu_nodes))
 
 
 def test_node_list_expansion():
-    """Test that SLURM nodelist expansion works correctly."""
+    """Test that pre-expanded node lists work correctly."""
     df = pd.DataFrame({
         "NodeList": [["gpu05", "gpu06"], ["gpu30", "gpu31", "gpu32"]],
         "CPUHours": [10.0, 30.0],
         "GPUHours": [5.0, 15.0],
     })
 
-    result = generate_node_usage(df, cluster="DAIC")
+    result = generate_node_usage(df)
 
     cpu_nodes = result["cpu_usage"]["x"]
 
-    # Check that all nodes are properly expanded and formatted
+    # Check that all nodes are preserved
     assert "gpu05" in cpu_nodes
     assert "gpu06" in cpu_nodes
     assert "gpu30" in cpu_nodes
@@ -49,15 +48,15 @@ def test_node_list_expansion():
     assert "gpu32" in cpu_nodes
 
 
-def test_node_name_without_cluster():
-    """Test that nodes work even without cluster normalization."""
+def test_simple_node_names():
+    """Test simple node names."""
     df = pd.DataFrame({
         "NodeList": [["node1"], ["node2"]],
         "CPUHours": [10.0, 20.0],
         "GPUHours": [5.0, 10.0],
     })
 
-    result = generate_node_usage(df, cluster=None)
+    result = generate_node_usage(df)
 
     cpu_nodes = result["cpu_usage"]["x"]
 
@@ -72,7 +71,7 @@ def test_empty_nodelist():
         "GPUHours": [5.0],
     })
 
-    result = generate_node_usage(df, cluster="DAIC")
+    result = generate_node_usage(df)
 
     assert result["cpu_usage"]["x"] == []
     assert result["gpu_usage"]["x"] == []
@@ -87,7 +86,7 @@ def test_already_expanded_nodes():
         "GPUHours": [20.0, 10.0],
     })
 
-    result = generate_node_usage(df, cluster="DAIC")
+    result = generate_node_usage(df)
 
     cpu_nodes = result["cpu_usage"]["x"]
 

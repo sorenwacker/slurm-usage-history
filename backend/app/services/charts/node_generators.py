@@ -4,16 +4,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-# Import cluster config for node name normalization
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-from backend.app.config import get_cluster_config
-
 
 def generate_node_usage(
     df: pd.DataFrame,
-    cluster: str | None = None,
     color_by: str | None = None,
     hide_unused: bool = True,
     sort_by_usage: bool = False,
@@ -22,7 +15,6 @@ def generate_node_usage(
 
     Args:
         df: Input DataFrame
-        cluster: Cluster name for node normalization (e.g., "DAIC")
         color_by: Optional dimension to group by (Account, Partition, State, QOS, User)
         hide_unused: Hide nodes with 0 usage
         sort_by_usage: Sort nodes by usage (default: alphabetical)
@@ -64,12 +56,7 @@ def generate_node_usage(
     node_df = node_df[node_df["NodeList"].notna()]
     node_df["NodeList"] = node_df["NodeList"].astype(str).str.strip()
 
-    # Normalize node names using cluster config
-    if cluster:
-        config = get_cluster_config()
-        node_df["NodeList"] = node_df["NodeList"].apply(
-            lambda name: config.normalize_node_name(cluster, name)
-        )
+    # DO NOT normalize node names - keep them as they appear in SLURM data
 
     if node_df.empty:
         return {

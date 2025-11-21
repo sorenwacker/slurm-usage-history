@@ -69,3 +69,21 @@ def test_unpack_nodelist_malformed_numbers_only():
 
     result = unpack_nodelist_string("[30]")
     assert result == []
+
+
+def test_unpack_nodelist_range_notation():
+    """Test range notation like 'node[06-08]'."""
+    result = unpack_nodelist_string("node[06-08]")
+    assert result == ["node06", "node07", "node08"]
+
+
+def test_unpack_nodelist_list_notation():
+    """Test list notation like 'node[01,11]'."""
+    result = unpack_nodelist_string("node[01,11]")
+    assert result == ["node01", "node11"]
+
+
+def test_unpack_nodelist_mixed_notation():
+    """Test mixed notation like 'gpu[06-08,10,15-16]'."""
+    result = unpack_nodelist_string("gpu[06-08,10,15-16]")
+    assert result == ["gpu06", "gpu07", "gpu08", "gpu10", "gpu15", "gpu16"]
