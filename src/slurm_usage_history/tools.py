@@ -189,6 +189,7 @@ def unpack_nodelist_string(nodelist_str: Optional[str]) -> List[str]:
     """
     Unpacks a GPU string into a list of individual components.
     Handles ranges (e.g., gpu[08-09,11,14]) and single items (e.g., gpu16).
+    Also handles malformed strings like "gpu[30" or "14-15]" by cleaning them.
 
     Args:
         nodelist_str: String containing node list information
@@ -199,12 +200,27 @@ def unpack_nodelist_string(nodelist_str: Optional[str]) -> List[str]:
     if not nodelist_str or nodelist_str == "None assigned":
         return []
 
+    # Clean up obviously malformed strings first
+    # If it starts with just digits and brackets, it's incomplete - skip it
+    if re.match(r'^[\d\[\]\-,]+$', nodelist_str.strip()):
+        return []
+
     # Initialize a list to collect unpacked values
     unpacked_list: List[str] = []
 
     # Match patterns for ranges and list items
     range_pattern = re.compile(r"(\d+)-(\d+)")
     list_pattern = re.compile(r"(\w+)\[(.*?)\]")
+    # Pattern for incomplete bracket notation like "gpu[30" without closing bracket
+    incomplete_pattern = re.compile(r"(\w+)\[(\d+)$")
+
+    # Check for incomplete bracket notation (e.g., "gpu[30")
+    incomplete_match = incomplete_pattern.search(nodelist_str)
+    if incomplete_match:
+        base, num = incomplete_match.groups()
+        num_int = int(num)
+        unpacked_list.append(f"{base}{num_int:02d}")
+        return unpacked_list
 
     # Check for list patterns (e.g., gpu[08-09,11,14])
     list_match = list_pattern.search(nodelist_str)

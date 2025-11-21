@@ -51,3 +51,21 @@ def test_unpack_nodelist_comma_separated_simple():
     """Test comma-separated simple node names without brackets."""
     result = unpack_nodelist_string("gpu05,gpu06,gpu07")
     assert result == ["gpu05", "gpu06", "gpu07"]
+
+
+def test_unpack_nodelist_malformed_incomplete_bracket():
+    """Test malformed node names with incomplete brackets like 'gpu[30'."""
+    result = unpack_nodelist_string("gpu[30")
+    assert result == ["gpu30"]
+
+    result = unpack_nodelist_string("gpu[05")
+    assert result == ["gpu05"]
+
+
+def test_unpack_nodelist_malformed_numbers_only():
+    """Test malformed strings that are just numbers and brackets like '14-15]'."""
+    result = unpack_nodelist_string("14-15]")
+    assert result == []
+
+    result = unpack_nodelist_string("[30]")
+    assert result == []
