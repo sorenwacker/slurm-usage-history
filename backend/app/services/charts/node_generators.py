@@ -4,6 +4,14 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+# Import SLURM nodelist expansion
+try:
+    from slurm_usage_history.tools import unpack_nodelist_string
+except ImportError:
+    # Fallback if not available
+    def unpack_nodelist_string(s):
+        return [s] if s else []
+
 
 def generate_node_usage(
     df: pd.DataFrame,
@@ -39,17 +47,28 @@ def generate_node_usage(
     # 1. A numpy array like array(['node1', 'node2'])
     # 2. A list like ['node1', 'node2']
     # 3. A comma-separated string like "node1,node2"
-    # The data has already been expanded by unpack_nodelist_string during ingestion
+    # 4. Compressed SLURM notation like "gpu[01-11,14-24]" (legacy data)
     def process_nodelist(val):
+        result = []
+
         # If it's a numpy array, convert to list
         if isinstance(val, np.ndarray):
-            return val.tolist()
+            result = val.tolist()
         # If it's already a list or tuple, use as is
         elif isinstance(val, (list, tuple)):
-            return list(val)
-        # Otherwise it's a string, split on commas
+            result = list(val)
+        # Otherwise it's a string
         else:
-            return str(val).split(",")
+            val_str = str(val).strip()
+            # Check if it contains compressed SLURM notation (has brackets)
+            if '[' in val_str or ']' in val_str:
+                # Expand using unpack_nodelist_string
+                result = unpack_nodelist_string(val_str)
+            else:
+                # Simple comma-separated list
+                result = [x.strip() for x in val_str.split(",") if x.strip()]
+
+        return result if result else []
 
     node_df["NodeList"] = node_df["NodeList"].apply(process_nodelist)
     node_df = node_df.explode("NodeList")

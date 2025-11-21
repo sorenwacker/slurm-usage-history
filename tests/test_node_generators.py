@@ -102,3 +102,30 @@ def test_already_expanded_nodes():
     for node in cpu_nodes:
         assert "[" not in node
         assert "]" not in node
+
+
+def test_compressed_notation_in_dashboard():
+    """Test dashboard handling of compressed SLURM notation from legacy data."""
+    # This mimics legacy data that has unexpanded compressed notation
+    df = pd.DataFrame({
+        "NodeList": ["gpu[01-03,05]", "influ[1-2]"],
+        "CPUHours": [40.0, 20.0],
+        "GPUHours": [20.0, 10.0],
+    })
+
+    result = generate_node_usage(df)
+
+    cpu_nodes = result["cpu_usage"]["x"]
+
+    # Should expand compressed notation
+    assert "gpu01" in cpu_nodes
+    assert "gpu02" in cpu_nodes
+    assert "gpu03" in cpu_nodes
+    assert "gpu05" in cpu_nodes
+    assert "influ1" in cpu_nodes
+    assert "influ2" in cpu_nodes
+
+    # Should not have any brackets in final node names
+    for node in cpu_nodes:
+        assert "[" not in node
+        assert "]" not in node
