@@ -238,7 +238,7 @@ def format_report_as_pdf(report_data: dict[str, Any]) -> bytes:
 
     # Jobs Over Time
     if report_data.get('timeline'):
-        story.append(Paragraph("<b>Jobs Over Time</b>", subheading_style))
+        story.append(Paragraph("<b>Submitted Jobs Over Time</b>", subheading_style))
         story.append(Paragraph(
             "This chart shows the number of jobs submitted daily, tracking job submission patterns and comparing them to the previous period.",
             description_style
@@ -248,8 +248,8 @@ def format_report_as_pdf(report_data: dict[str, Any]) -> bytes:
         jobs_chart = create_comparison_timeline(
             report_data['timeline'],
             report_data['comparison'].get('previous_timeline') if report_data.get('comparison') else None,
-            'Jobs Over Time',
-            'Number of Jobs',
+            'Submitted Jobs Over Time',
+            'Number of Submitted Jobs',
             'jobs',
             color='#8b5cf6'  # Purple
         )

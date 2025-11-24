@@ -124,7 +124,7 @@ const ReportTimelines: React.FC<ReportTimelinesProps> = ({
         marginBottom: '1.5rem',
       }}>
         <h3 style={{ marginTop: 0, marginBottom: '0.5rem', color: '#000', fontSize: '1.1rem' }}>
-          Jobs Over Time
+          Submitted Jobs Over Time
         </h3>
         <p style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', color: '#666', lineHeight: '1.5' }}>
           This chart shows the number of jobs submitted daily, tracking job submission patterns and comparing them to the previous period.
@@ -163,7 +163,7 @@ const ReportTimelines: React.FC<ReportTimelinesProps> = ({
               tickangle: -45,
             },
             yaxis: {
-              title: { text: 'Number of Jobs', font: { size: 11 } },
+              title: { text: 'Number of Submitted Jobs', font: { size: 11 } },
               gridcolor: '#e0e0e0',
               tickfont: { size: 10 },
             },

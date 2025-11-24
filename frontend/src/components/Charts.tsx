@@ -191,11 +191,11 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
         <div className="chart-row">
           {data.jobs_over_time && data.jobs_over_time.x.length > 0 && (
             <div className="card">
-              <h3>Number of Jobs</h3>
+              <h3>Number of Submitted Jobs</h3>
               <StackedAreaChart
                 data={data.jobs_over_time}
                 xTitle="Period"
-                yTitle="Number of Jobs"
+                yTitle="Number of Submitted Jobs"
                 defaultColor="#6f42c1"
                 colorMap={colorMap}
                 defaultName="Jobs"
