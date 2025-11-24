@@ -134,12 +134,13 @@ def generate_report_data(
     timeline = []
 
     # Determine which time column to use based on report type
+    # Use Submit time to match datastore filtering and prevent date leakage
     if "Annual" in report_type:
         # Annual reports: aggregate by month
-        time_column = "StartYearMonth"
+        time_column = "SubmitYearMonth"
     elif "Quarterly" in report_type:
         # Quarterly reports: aggregate by week
-        time_column = "StartYearWeek"
+        time_column = "SubmitYearWeek"
     else:
         # Monthly reports: aggregate by day
         time_column = "SubmitDay"
@@ -158,7 +159,7 @@ def generate_report_data(
         timeline_stats.columns = ["date", "jobs", "cpu_hours", "gpu_hours", "users"]
 
         # For week and month aggregations, convert datetime to string for JSON serialization
-        if time_column in ["StartYearWeek", "StartYearMonth"]:
+        if time_column in ["SubmitYearWeek", "SubmitYearMonth"]:
             timeline_stats["date"] = pd.to_datetime(timeline_stats["date"]).dt.strftime("%Y-%m-%d")
 
         timeline = convert_numpy_to_native(timeline_stats.to_dict(orient="records"))

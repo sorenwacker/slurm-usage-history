@@ -46,11 +46,21 @@ async def generate_report(
         if hostname not in datastore.get_hostnames():
             raise HTTPException(status_code=404, detail=f"Cluster {hostname} not found")
 
+        # Check if period is complete (not current/future period)
+        from datetime import datetime
+        now = datetime.now()
+        current_year = now.year
+        current_month = now.month
+        current_quarter = (current_month - 1) // 3 + 1
+
         if type == "monthly":
             if month is None:
                 raise HTTPException(status_code=400, detail="Month is required for monthly reports")
             if not 1 <= month <= 12:
                 raise HTTPException(status_code=400, detail="Month must be between 1 and 12")
+            # Prevent reports for current or future months
+            if year > current_year or (year == current_year and month >= current_month):
+                raise HTTPException(status_code=400, detail=f"Cannot generate report for incomplete or future period: {year}-{month:02d}")
             start_date, end_date = get_month_date_range(year, month)
             report_type = f"Monthly Report - {year}-{month:02d}"
             filename_suffix = f"{year}_{month:02d}"
@@ -59,10 +69,16 @@ async def generate_report(
                 raise HTTPException(status_code=400, detail="Quarter is required for quarterly reports")
             if not 1 <= quarter <= 4:
                 raise HTTPException(status_code=400, detail="Quarter must be between 1 and 4")
+            # Prevent reports for current or future quarters
+            if year > current_year or (year == current_year and quarter >= current_quarter):
+                raise HTTPException(status_code=400, detail=f"Cannot generate report for incomplete or future period: {year} Q{quarter}")
             start_date, end_date = get_quarter_date_range(year, quarter)
             report_type = f"Quarterly Report - {year} Q{quarter}"
             filename_suffix = f"{year}_Q{quarter}"
         else:
+            # Prevent reports for current or future years
+            if year >= current_year:
+                raise HTTPException(status_code=400, detail=f"Cannot generate report for incomplete or future period: {year}")
             start_date, end_date = get_year_date_range(year)
             report_type = f"Annual Report - {year}"
             filename_suffix = f"{year}"
@@ -130,11 +146,21 @@ async def preview_report(
         if hostname not in datastore.get_hostnames():
             raise HTTPException(status_code=404, detail=f"Cluster {hostname} not found")
 
+        # Check if period is complete (not current/future period)
+        from datetime import datetime
+        now = datetime.now()
+        current_year = now.year
+        current_month = now.month
+        current_quarter = (current_month - 1) // 3 + 1
+
         if type == "monthly":
             if month is None:
                 raise HTTPException(status_code=400, detail="Month is required for monthly reports")
             if not 1 <= month <= 12:
                 raise HTTPException(status_code=400, detail="Month must be between 1 and 12")
+            # Prevent reports for current or future months
+            if year > current_year or (year == current_year and month >= current_month):
+                raise HTTPException(status_code=400, detail=f"Cannot generate report for incomplete or future period: {year}-{month:02d}")
             start_date, end_date = get_month_date_range(year, month)
             report_type = f"Monthly Report - {year}-{month:02d}"
         elif type == "quarterly":
@@ -142,9 +168,15 @@ async def preview_report(
                 raise HTTPException(status_code=400, detail="Quarter is required for quarterly reports")
             if not 1 <= quarter <= 4:
                 raise HTTPException(status_code=400, detail="Quarter must be between 1 and 4")
+            # Prevent reports for current or future quarters
+            if year > current_year or (year == current_year and quarter >= current_quarter):
+                raise HTTPException(status_code=400, detail=f"Cannot generate report for incomplete or future period: {year} Q{quarter}")
             start_date, end_date = get_quarter_date_range(year, quarter)
             report_type = f"Quarterly Report - {year} Q{quarter}"
         else:
+            # Prevent reports for current or future years
+            if year >= current_year:
+                raise HTTPException(status_code=400, detail=f"Cannot generate report for incomplete or future period: {year}")
             start_date, end_date = get_year_date_range(year)
             report_type = f"Annual Report - {year}"
 

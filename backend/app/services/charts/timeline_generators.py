@@ -23,27 +23,26 @@ def generate_cpu_usage_over_time(df: pd.DataFrame, period_type: str = "month", c
         return {"x": [], "y": []}
 
     # Select time column based on period type
-    # CRITICAL: Use Start time, not Submit time (matching original Dash implementation)
+    # Use Submit time to match datastore filtering and prevent date leakage
     time_column_map = {
-        "day": "StartDay",
-        "week": "StartYearWeek",
-        "month": "StartYearMonth",
-        "year": "StartYear",
+        "day": "SubmitDay",
+        "week": "SubmitYearWeek",
+        "month": "SubmitYearMonth",
+        "year": "SubmitYear",
     }
-    time_column = time_column_map.get(period_type, "StartYearMonth")
+    time_column = time_column_map.get(period_type, "SubmitYearMonth")
 
     # Handle year extraction and week normalization
     df_copy = df.copy()
 
     if time_column not in df.columns:
         logger.warning(f"Time column '{time_column}' not found in DataFrame. Available columns: {df.columns.tolist()}")
-        if period_type == "year" and "StartYearMonth" in df.columns:
-            df_copy["StartYear"] = df_copy["StartYearMonth"].astype(str).str[:4]
+        if period_type == "year" and "SubmitYearMonth" in df.columns:
+            df_copy["SubmitYear"] = df_copy["SubmitYearMonth"].astype(str).str[:4]
         else:
             return {"x": [], "y": []}
 
-    # CRITICAL FIX: Normalize week timestamps to Monday 00:00:00
-    # The parquet files have exact job start times in StartYearWeek instead of week-start Mondays
+    # Normalize week timestamps to Monday 00:00:00 if needed
     if period_type == "week" and time_column in df_copy.columns:
         # Convert to pandas datetime if not already
         df_copy[time_column] = pd.to_datetime(df_copy[time_column])
@@ -106,27 +105,26 @@ def generate_gpu_usage_over_time(df: pd.DataFrame, period_type: str = "month", c
         return {"x": [], "y": []}
 
     # Select time column based on period type
-    # CRITICAL: Use Start time, not Submit time (matching original Dash implementation)
+    # Use Submit time to match datastore filtering and prevent date leakage
     time_column_map = {
-        "day": "StartDay",
-        "week": "StartYearWeek",
-        "month": "StartYearMonth",
-        "year": "StartYear",
+        "day": "SubmitDay",
+        "week": "SubmitYearWeek",
+        "month": "SubmitYearMonth",
+        "year": "SubmitYear",
     }
-    time_column = time_column_map.get(period_type, "StartYearMonth")
+    time_column = time_column_map.get(period_type, "SubmitYearMonth")
 
     # Handle year extraction and week normalization
     df_copy = df.copy()
 
     if time_column not in df.columns:
         logger.warning(f"Time column '{time_column}' not found in DataFrame. Available columns: {df.columns.tolist()}")
-        if period_type == "year" and "StartYearMonth" in df.columns:
-            df_copy["StartYear"] = df_copy["StartYearMonth"].astype(str).str[:4]
+        if period_type == "year" and "SubmitYearMonth" in df.columns:
+            df_copy["SubmitYear"] = df_copy["SubmitYearMonth"].astype(str).str[:4]
         else:
             return {"x": [], "y": []}
 
-    # CRITICAL FIX: Normalize week timestamps to Monday 00:00:00
-    # The parquet files have exact job start times in StartYearWeek instead of week-start Mondays
+    # Normalize week timestamps to Monday 00:00:00 if needed
     if period_type == "week" and time_column in df_copy.columns:
         # Convert to pandas datetime if not already
         df_copy[time_column] = pd.to_datetime(df_copy[time_column])
@@ -189,21 +187,21 @@ def generate_active_users_over_time(df: pd.DataFrame, period_type: str = "month"
         return {"x": [], "y": []}
 
     # Select time column based on period type
-    # CRITICAL: Use Start time, not Submit time (matching CPU/GPU implementation)
+    # Use Submit time to match datastore filtering and prevent date leakage
     time_column_map = {
-        "day": "StartDay",
-        "week": "StartYearWeek",
-        "month": "StartYearMonth",
-        "year": "StartYear",
+        "day": "SubmitDay",
+        "week": "SubmitYearWeek",
+        "month": "SubmitYearMonth",
+        "year": "SubmitYear",
     }
-    time_column = time_column_map.get(period_type, "StartYearMonth")
+    time_column = time_column_map.get(period_type, "SubmitYearMonth")
 
     # Handle year extraction if needed
     df_copy = df
     if time_column not in df.columns:
-        if period_type == "year" and "StartYearMonth" in df.columns:
+        if period_type == "year" and "SubmitYearMonth" in df.columns:
             df_copy = df.copy()
-            df_copy["StartYear"] = df_copy["StartYearMonth"].astype(str).str[:4]
+            df_copy["SubmitYear"] = df_copy["SubmitYearMonth"].astype(str).str[:4]
         else:
             return {"x": [], "y": []}
 
