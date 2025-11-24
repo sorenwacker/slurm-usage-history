@@ -300,6 +300,9 @@ const Filters: React.FC<FiltersProps> = ({
           onChange={(e) => setStartDate(e.target.value)}
           min={dateRange?.min_date}
           max={dateRange?.max_date}
+          style={{
+            borderColor: startDate && endDate && startDate > endDate ? '#dc3545' : undefined
+          }}
         />
       </div>
 
@@ -312,8 +315,26 @@ const Filters: React.FC<FiltersProps> = ({
           onChange={(e) => setEndDate(e.target.value)}
           min={dateRange?.min_date}
           max={dateRange?.max_date}
+          style={{
+            borderColor: startDate && endDate && startDate > endDate ? '#dc3545' : undefined
+          }}
         />
       </div>
+
+      {/* Date validation warning */}
+      {startDate && endDate && startDate > endDate && (
+        <div style={{
+          padding: '0.75rem',
+          background: '#fee',
+          border: '1px solid #fcc',
+          borderRadius: '4px',
+          color: '#c00',
+          fontSize: '0.875rem',
+          marginTop: '0.5rem',
+        }}>
+          <strong>Invalid date range:</strong> Start date must be before end date.
+        </div>
+      )}
 
       {/* Always visible: Time Period */}
       <div className="filter-group">

@@ -147,7 +147,20 @@ const ReportPreview: React.FC<ReportPreviewProps> = ({
           borderRadius: '4px',
           color: '#c00',
         }}>
-          Error loading report: {error instanceof Error ? error.message : 'Unknown error'}
+          <strong>Unable to generate report</strong>
+          <p style={{ marginTop: '0.5rem', marginBottom: 0 }}>
+            {(() => {
+              // Extract user-friendly error message from API response
+              const axiosError = error as any;
+              if (axiosError?.response?.data?.detail) {
+                return axiosError.response.data.detail;
+              }
+              if (axiosError?.message?.includes('400')) {
+                return 'Please select a valid cluster and time period for the report.';
+              }
+              return 'Please check your selections and try again.';
+            })()}
+          </p>
         </div>
       )}
 
