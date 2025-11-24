@@ -9,16 +9,6 @@ Web dashboard for SLURM cluster usage analytics powered by DuckDB.
 
 ![SLURM Dashboard Screenshot](docs/images/SLURM-Dashboard.png)
 
-## Key Features
-
-- **92% less memory** (13GB → 1.1GB) and **15x faster** queries with DuckDB
-- React + FastAPI interface with interactive charts
-- SAML 2.0 authentication with admin panel
-- Multi-cluster management with API key authentication
-- Auto-generate cluster configurations from existing data
-- Demo cluster generation with synthetic data
-- PDF report generation with customizable templates
-
 ## Quick Start with Docker (Demo)
 
 Try the dashboard with synthetic demo data in 3 steps:
