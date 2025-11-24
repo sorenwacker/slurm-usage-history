@@ -407,7 +407,9 @@ class DuckDBDataStore(metaclass=Singleton):
         if start_date:
             where_clauses.append(f"Submit >= '{start_date}'")
         if end_date:
-            where_clauses.append(f"Submit <= '{end_date}'")
+            # Make end_date inclusive by adding 1 day and using < comparison
+            end_date_exclusive = (pd.to_datetime(end_date) + pd.Timedelta(days=1)).strftime('%Y-%m-%d')
+            where_clauses.append(f"Submit < '{end_date_exclusive}'")
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
         conn = self._get_connection()
@@ -500,7 +502,9 @@ class DuckDBDataStore(metaclass=Singleton):
         if start_date:
             where_clauses.append(f"Submit >= '{start_date}'")
         if end_date:
-            where_clauses.append(f"Submit <= '{end_date}'")
+            # Make end_date inclusive by adding 1 day and using < comparison
+            end_date_exclusive = (pd.to_datetime(end_date) + pd.Timedelta(days=1)).strftime('%Y-%m-%d')
+            where_clauses.append(f"Submit < '{end_date_exclusive}'")
         if partitions:
             # Handle comma-separated partitions: match if any selected partition appears in the list
             partition_conditions = []

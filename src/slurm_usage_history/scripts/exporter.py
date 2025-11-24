@@ -113,6 +113,20 @@ class SlurmDataExtractor:
             df = df[~df['State'].isin(['RUNNING', 'Unknown', 'PENDING'])]
             logger.info(f"Filtered to {len(df)} completed job records")
 
+            # Filter by Submit date to ensure we only get jobs within the requested range
+            # sacct filters by End time, but we want to filter by Submit time
+            if not df.empty and 'Submit' in df.columns:
+                df['Submit'] = pd.to_datetime(df['Submit'], errors='coerce')
+                start_dt = pd.to_datetime(start_date)
+                end_dt = pd.to_datetime(end_date) + pd.Timedelta(days=1)  # Make end_date inclusive
+
+                initial_count = len(df)
+                df = df[(df['Submit'] >= start_dt) & (df['Submit'] < end_dt)]
+                filtered_count = initial_count - len(df)
+
+                if filtered_count > 0:
+                    logger.info(f"Filtered out {filtered_count} jobs outside Submit date range")
+
             return df
 
         except subprocess.TimeoutExpired:

@@ -80,7 +80,7 @@ def test_data():
 def temp_datadir(test_data):
     """Create a temporary directory with test data files."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        host_dir = Path(temp_dir) / "testhost" / "weekly-data"
+        host_dir = Path(temp_dir) / "testhost" / "data"
         host_dir.mkdir(parents=True)
 
         # Save test data to a parquet file
@@ -234,6 +234,83 @@ def test_filter_data(temp_datadir, test_data):
         )
         # Just verify we get some results back
         assert not result.empty
+
+
+def test_date_boundary_filtering():
+    """Test that date filtering correctly handles boundaries to avoid leaking data across periods."""
+    # Create test data spanning Dec 31, 2023 to Jan 1, 2024
+    data = []
+    dates = [
+        datetime(2023, 12, 31, 8, 0, 0),   # Dec 31 morning
+        datetime(2023, 12, 31, 23, 59, 59),  # Dec 31 end of day
+        datetime(2024, 1, 1, 0, 0, 0),     # Jan 1 midnight
+        datetime(2024, 1, 1, 12, 0, 0),    # Jan 1 noon
+        datetime(2024, 1, 31, 23, 59, 59), # Jan 31 end of day
+        datetime(2024, 2, 1, 0, 0, 0),     # Feb 1 midnight
+    ]
+
+    for i, date in enumerate(dates):
+        data.append({
+            "User": f"user{i}",
+            "Account": f"account{i}",
+            "Partition": "partition1",
+            "QOS": "normal",
+            "Submit": date,
+            "Start": date + timedelta(hours=1),
+            "State": "COMPLETED",
+            "SubmitYearWeek": (date - timedelta(days=date.weekday())).strftime("%Y-%m-%d"),
+            "SubmitYearMonth": date.strftime("%Y-%m"),
+            "StartYearWeek": ((date + timedelta(hours=1)) - timedelta(days=(date + timedelta(hours=1)).weekday())).strftime("%Y-%m-%d"),
+            "StartYearMonth": (date + timedelta(hours=1)).strftime("%Y-%m"),
+            "CPUHours": 10.0,
+            "GPUHours": 0.0,
+        })
+
+    df = pd.DataFrame(data)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        host_dir = Path(temp_dir) / "testhost" / "data"
+        host_dir.mkdir(parents=True)
+        df.to_parquet(host_dir / "test.parquet")
+
+        ds = PandasDataStore(directory=temp_dir)
+        ds.load_data()
+
+        # Test 1: Filter for year 2023 should NOT include Jan 1, 2024
+        result_2023 = ds._filter_data(
+            hostname="testhost",
+            start_date="2023-01-01",
+            end_date="2023-12-31"
+        )
+        # Should only include Dec 31 jobs (indices 0 and 1)
+        assert len(result_2023) == 2
+        assert all(result_2023["Submit"] < pd.to_datetime("2024-01-01"))
+
+        # Test 2: Filter for Jan 2024 should include entire Jan 31 but NOT Feb 1
+        result_jan_2024 = ds._filter_data(
+            hostname="testhost",
+            start_date="2024-01-01",
+            end_date="2024-01-31"
+        )
+        # Should include Jan 1 and Jan 31 jobs (indices 2, 3, 4)
+        assert len(result_jan_2024) == 3
+        assert all(result_jan_2024["Submit"] >= pd.to_datetime("2024-01-01"))
+        assert all(result_jan_2024["Submit"] < pd.to_datetime("2024-02-01"))
+
+        # Test 3: Verify no overlap between consecutive periods
+        result_dec_2023 = ds._filter_data(
+            hostname="testhost",
+            start_date="2023-12-01",
+            end_date="2023-12-31"
+        )
+        # Union of dec and jan should equal their sum (no overlap)
+        assert len(result_dec_2023) + len(result_jan_2024) == len(result_dec_2023) + len(result_jan_2024)
+
+
+def test_filter_data_partitions(temp_datadir, test_data):
+    """Test filtering by partitions."""
+    ds = PandasDataStore(directory=temp_datadir)
+    ds.load_data()
 
     # Test filtering by partitions
     partitions = frozenset([test_data["Partition"].iloc[0]])
@@ -406,7 +483,7 @@ def test_check_for_updates(temp_datadir, test_data):
     assert not updated
 
     # Add a new file
-    host_dir = Path(temp_datadir) / "testhost" / "weekly-data"
+    host_dir = Path(temp_datadir) / "testhost" / "data"
     new_file = host_dir / "new_data.parquet"
     test_data.to_parquet(new_file)
 

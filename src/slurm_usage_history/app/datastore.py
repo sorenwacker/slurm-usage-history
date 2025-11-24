@@ -477,8 +477,8 @@ class PandasDataStore(metaclass=Singleton):
 
         Args:
             hostname: The cluster hostname.
-            start_date: Start date filter.
-            end_date: End date filter.
+            start_date: Start date filter (inclusive).
+            end_date: End date filter (inclusive - includes entire day).
             partitions: Set of partitions to include.
             accounts: Set of accounts to include.
             users: Set of users to include.
@@ -497,8 +497,9 @@ class PandasDataStore(metaclass=Singleton):
             df_filtered = df_filtered[df_filtered["Submit"] >= start_date]
 
         if end_date:
-            end_date = pd.to_datetime(end_date)
-            df_filtered = df_filtered[df_filtered["Submit"] <= end_date]
+            # Make end_date inclusive of the entire day by adding 1 day and using < comparison
+            end_date = pd.to_datetime(end_date) + pd.Timedelta(days=1)
+            df_filtered = df_filtered[df_filtered["Submit"] < end_date]
 
         if partitions and "Partition" in df_filtered.columns:
             df_filtered = df_filtered[df_filtered["Partition"].isin(partitions)]
