@@ -7,6 +7,8 @@ Web dashboard for SLURM cluster usage analytics powered by DuckDB.
 
 **[Documentation](https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history)** | **[GitHub](https://github.com/tudelft-reit/slurm-dashboard)**
 
+![SLURM Dashboard Screenshot](docs/images/SLURM-Dashboard.png)
+
 ## Key Features
 
 - **92% less memory** (13GB → 1.1GB) and **15x faster** queries with DuckDB
