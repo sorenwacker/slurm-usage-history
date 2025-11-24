@@ -12,6 +12,7 @@ interface StackedAreaChartProps {
   defaultName?: string;
   chartType?: 'area' | 'bar';
   barMode?: 'stack' | 'group';
+  periodType?: string;
 }
 
 const StackedAreaChart: React.FC<StackedAreaChartProps> = ({
@@ -23,6 +24,7 @@ const StackedAreaChart: React.FC<StackedAreaChartProps> = ({
   defaultName = '',
   chartType = 'area',
   barMode = 'stack',
+  periodType,
 }) => {
   if (!data || !data.x || data.x.length === 0) {
     return null;
@@ -33,6 +35,11 @@ const StackedAreaChart: React.FC<StackedAreaChartProps> = ({
   const layout: any = {
     ...getCommonLayout(xTitle, yTitle, showLegend),
   };
+
+  // Add day of week to daily x-axis labels
+  if (periodType === 'day') {
+    layout.xaxis.tickformat = '%a %b %-d';  // e.g., "Mon Jan 1"
+  }
 
   // Add barmode for bar charts
   if (chartType === 'bar') {

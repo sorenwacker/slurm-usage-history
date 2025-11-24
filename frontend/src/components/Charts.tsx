@@ -14,9 +14,10 @@ interface ChartsProps {
   sortByUsage: boolean;
   setSortByUsage: (value: boolean) => void;
   colorBy: string;  // The selected "color by" dimension (or "None")
+  periodType: string;  // The period type (day, week, month, year)
 }
 
-const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNodes, sortByUsage, setSortByUsage, colorBy }) => {
+const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNodes, sortByUsage, setSortByUsage, colorBy, periodType }) => {
   const [waitingTimeTrendStat, setWaitingTimeTrendStat] = useState<string>('median');
   const [jobDurationTrendStat, setJobDurationTrendStat] = useState<string>('median');
   const renderStartTime = useRef<number>(Date.now());
@@ -163,6 +164,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 colorMap={colorMap}
                 defaultName="Active Users"
                 chartType="area"
+                periodType={periodType}
               />
             </div>
           )}
@@ -200,6 +202,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 colorMap={colorMap}
                 defaultName="Jobs"
                 chartType="area"
+                periodType={periodType}
               />
             </div>
           )}
@@ -243,6 +246,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 colorMap={colorMap}
                 defaultName="CPU Hours"
                 chartType="area"
+                periodType={periodType}
               />
             </div>
           )}
@@ -276,6 +280,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 colorMap={colorMap}
                 defaultName="GPU Hours"
                 chartType="area"
+                periodType={periodType}
               />
             </div>
           )}

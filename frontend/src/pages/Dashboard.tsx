@@ -380,6 +380,7 @@ const Dashboard: React.FC = () => {
                     sortByUsage={sortByUsage}
                     setSortByUsage={setSortByUsage}
                     colorBy={colorBy}
+                    periodType={actualPeriodType}
                   />
                 </>
               )}
