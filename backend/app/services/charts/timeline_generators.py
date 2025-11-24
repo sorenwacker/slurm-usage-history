@@ -23,22 +23,22 @@ def generate_cpu_usage_over_time(df: pd.DataFrame, period_type: str = "month", c
         return {"x": [], "y": []}
 
     # Select time column based on period type
-    # Use Submit time to match datastore filtering and prevent date leakage
+    # Use Start time to reflect when resources were actually consumed
     time_column_map = {
-        "day": "SubmitDay",
-        "week": "SubmitYearWeek",
-        "month": "SubmitYearMonth",
-        "year": "SubmitYear",
+        "day": "StartDay",
+        "week": "StartYearWeek",
+        "month": "StartYearMonth",
+        "year": "StartYear",
     }
-    time_column = time_column_map.get(period_type, "SubmitYearMonth")
+    time_column = time_column_map.get(period_type, "StartYearMonth")
 
     # Handle year extraction and week normalization
     df_copy = df.copy()
 
     if time_column not in df.columns:
         logger.warning(f"Time column '{time_column}' not found in DataFrame. Available columns: {df.columns.tolist()}")
-        if period_type == "year" and "SubmitYearMonth" in df.columns:
-            df_copy["SubmitYear"] = df_copy["SubmitYearMonth"].astype(str).str[:4]
+        if period_type == "year" and "StartYearMonth" in df.columns:
+            df_copy["StartYear"] = df_copy["StartYearMonth"].astype(str).str[:4]
         else:
             return {"x": [], "y": []}
 
@@ -105,22 +105,22 @@ def generate_gpu_usage_over_time(df: pd.DataFrame, period_type: str = "month", c
         return {"x": [], "y": []}
 
     # Select time column based on period type
-    # Use Submit time to match datastore filtering and prevent date leakage
+    # Use Start time to reflect when resources were actually consumed
     time_column_map = {
-        "day": "SubmitDay",
-        "week": "SubmitYearWeek",
-        "month": "SubmitYearMonth",
-        "year": "SubmitYear",
+        "day": "StartDay",
+        "week": "StartYearWeek",
+        "month": "StartYearMonth",
+        "year": "StartYear",
     }
-    time_column = time_column_map.get(period_type, "SubmitYearMonth")
+    time_column = time_column_map.get(period_type, "StartYearMonth")
 
     # Handle year extraction and week normalization
     df_copy = df.copy()
 
     if time_column not in df.columns:
         logger.warning(f"Time column '{time_column}' not found in DataFrame. Available columns: {df.columns.tolist()}")
-        if period_type == "year" and "SubmitYearMonth" in df.columns:
-            df_copy["SubmitYear"] = df_copy["SubmitYearMonth"].astype(str).str[:4]
+        if period_type == "year" and "StartYearMonth" in df.columns:
+            df_copy["StartYear"] = df_copy["StartYearMonth"].astype(str).str[:4]
         else:
             return {"x": [], "y": []}
 
@@ -266,20 +266,21 @@ def generate_jobs_over_time(df: pd.DataFrame, period_type: str = "month", color_
         With color_by: {"x": [...], "series": [{"name": "group", "data": [...]}, ...]}
     """
     # Select time column based on period type
+    # Use Submit time to match datastore filtering and prevent date leakage
     time_column_map = {
-        "day": "StartDay",
-        "week": "StartYearWeek",
-        "month": "StartYearMonth",
-        "year": "StartYear",
+        "day": "SubmitDay",
+        "week": "SubmitYearWeek",
+        "month": "SubmitYearMonth",
+        "year": "SubmitYear",
     }
-    time_column = time_column_map.get(period_type, "StartYearMonth")
+    time_column = time_column_map.get(period_type, "SubmitYearMonth")
 
     # Handle year extraction if needed
     df_copy = df
     if time_column not in df.columns:
-        if period_type == "year" and "StartYearMonth" in df.columns:
+        if period_type == "year" and "SubmitYearMonth" in df.columns:
             df_copy = df.copy()
-            df_copy["StartYear"] = df_copy["StartYearMonth"].astype(str).str[:4]
+            df_copy["SubmitYear"] = df_copy["SubmitYearMonth"].astype(str).str[:4]
         else:
             return {"x": [], "y": []}
 
@@ -340,20 +341,21 @@ def generate_waiting_times_over_time(df: pd.DataFrame, period_type: str = "month
         return {"x": [], "y": []}
 
     # Select time column based on period type
+    # Use Submit time to match datastore filtering and prevent date leakage
     time_column_map = {
-        "day": "StartDay",
-        "week": "StartYearWeek",
-        "month": "StartYearMonth",
-        "year": "StartYear",
+        "day": "SubmitDay",
+        "week": "SubmitYearWeek",
+        "month": "SubmitYearMonth",
+        "year": "SubmitYear",
     }
-    time_column = time_column_map.get(period_type, "StartYearMonth")
+    time_column = time_column_map.get(period_type, "SubmitYearMonth")
 
     # Handle year extraction if needed
     df_copy = df
     if time_column not in df.columns:
-        if period_type == "year" and "StartYearMonth" in df.columns:
+        if period_type == "year" and "SubmitYearMonth" in df.columns:
             df_copy = df.copy()
-            df_copy["StartYear"] = df_copy["StartYearMonth"].astype(str).str[:4]
+            df_copy["SubmitYear"] = df_copy["SubmitYearMonth"].astype(str).str[:4]
         else:
             return {"x": [], "y": []}
 
@@ -418,20 +420,21 @@ def generate_job_duration_over_time(df: pd.DataFrame, period_type: str = "month"
         return {"x": [], "y": []}
 
     # Select time column based on period type
+    # Use Submit time to match datastore filtering and prevent date leakage
     time_column_map = {
-        "day": "StartDay",
-        "week": "StartYearWeek",
-        "month": "StartYearMonth",
-        "year": "StartYear",
+        "day": "SubmitDay",
+        "week": "SubmitYearWeek",
+        "month": "SubmitYearMonth",
+        "year": "SubmitYear",
     }
-    time_column = time_column_map.get(period_type, "StartYearMonth")
+    time_column = time_column_map.get(period_type, "SubmitYearMonth")
 
     # Handle year extraction if needed
     df_copy = df
     if time_column not in df.columns:
-        if period_type == "year" and "StartYearMonth" in df.columns:
+        if period_type == "year" and "SubmitYearMonth" in df.columns:
             df_copy = df.copy()
-            df_copy["StartYear"] = df_copy["StartYearMonth"].astype(str).str[:4]
+            df_copy["SubmitYear"] = df_copy["SubmitYearMonth"].astype(str).str[:4]
         else:
             return {"x": [], "y": []}
 
