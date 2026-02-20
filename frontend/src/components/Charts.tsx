@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Plot from 'react-plotly.js';
 import type { AggregatedChartsResponse, ChartData } from '../types';
-import { createGlobalColorMap } from './charts/chartHelpers';
+import { createGlobalColorMap, COLORS } from './charts/chartHelpers';
 import StackedAreaChart from './charts/StackedAreaChart';
 import PieChart from './charts/PieChart';
 import HistogramChart from './charts/HistogramChart';
 import TimelineChart from './charts/TimelineChart';
+import GaugeChart from './charts/GaugeChart';
 
 interface ChartsProps {
   data: AggregatedChartsResponse | undefined;
@@ -13,11 +14,13 @@ interface ChartsProps {
   setHideUnusedNodes: (value: boolean) => void;
   sortByUsage: boolean;
   setSortByUsage: (value: boolean) => void;
+  normalizeNodeUsage: boolean;
+  setNormalizeNodeUsage: (value: boolean) => void;
   colorBy: string;  // The selected "color by" dimension (or "None")
   periodType: string;  // The period type (day, week, month, year)
 }
 
-const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNodes, sortByUsage, setSortByUsage, colorBy, periodType }) => {
+const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNodes, sortByUsage, setSortByUsage, normalizeNodeUsage, setNormalizeNodeUsage, colorBy, periodType }) => {
   const [waitingTimeTrendStat, setWaitingTimeTrendStat] = useState<string>('median');
   const [jobDurationTrendStat, setJobDurationTrendStat] = useState<string>('median');
   const renderStartTime = useRef<number>(Date.now());
@@ -59,11 +62,17 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
     return allLabels.length > 0 ? createGlobalColorMap(allLabels) : null;
   }, [data, colorBy]);
 
-  // Filter and sort node data client-side to avoid re-fetching from backend
+  // Filter, sort, and optionally normalize node data client-side
   const processedNodeData = useMemo(() => {
     if (!data) return { cpu: null, gpu: null };
 
-    const filterAndSortNodeData = (nodeData: ChartData): ChartData => {
+    // Helper to normalize a value to percentage of max capacity
+    const normalizeValue = (value: number, maxCapacity: number): number => {
+      if (maxCapacity <= 0) return 0;
+      return Math.min(100, (value / maxCapacity) * 100);
+    };
+
+    const filterAndSortNodeData = (nodeData: ChartData, resourceType: 'cpu' | 'gpu'): ChartData => {
       let indices = nodeData.x.map((_, i) => i);
 
       // Filter: hide nodes with 0 usage (when series data, sum all series values)
@@ -98,23 +107,99 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
         });
       }
 
-      // Apply filtering/sorting
+      // Apply filtering/sorting, also remap hardware_config to match filtered nodes
+      const filteredNodes = indices.map(i => nodeData.x[i]);
+      const filteredHardwareConfig = nodeData.hardware_config
+        ? Object.fromEntries(
+            filteredNodes.map(node => [node, nodeData.hardware_config![String(node)]])
+              .filter(([_, config]) => config !== undefined)
+          )
+        : undefined;
+
+      // Get values (apply normalization if requested)
+      const totalHours = nodeData.total_hours || 0;
+      const shouldNormalize = normalizeNodeUsage && filteredHardwareConfig && totalHours > 0;
+
+      let processedY: (string | number)[] | undefined = undefined;
+      if (nodeData.y) {
+        processedY = indices.map(i => {
+          const node = String(nodeData.x[i]);
+          const rawValue = nodeData.y![i] as number;
+          if (shouldNormalize && filteredHardwareConfig[node]) {
+            const hw = filteredHardwareConfig[node];
+            const capacity = resourceType === 'cpu' ? hw.cpu_cores : hw.gpu_count;
+            const maxCapacity = capacity * totalHours;
+            return normalizeValue(rawValue, maxCapacity);
+          }
+          return rawValue;
+        });
+      }
+
+      let processedSeries = nodeData.series?.map(s => ({
+        ...s,
+        data: indices.map(i => {
+          const node = String(nodeData.x[i]);
+          const rawValue = s.data[i];
+          if (shouldNormalize && filteredHardwareConfig && filteredHardwareConfig[node]) {
+            const hw = filteredHardwareConfig[node];
+            const capacity = resourceType === 'cpu' ? hw.cpu_cores : hw.gpu_count;
+            const maxCapacity = capacity * totalHours;
+            return normalizeValue(rawValue, maxCapacity);
+          }
+          return rawValue;
+        })
+      }));
+
       return {
         ...nodeData,
-        x: indices.map(i => nodeData.x[i]),
-        y: nodeData.y ? indices.map(i => nodeData.y![i]) : undefined,
-        series: nodeData.series?.map(s => ({
-          ...s,
-          data: indices.map(i => s.data[i])
-        }))
+        x: filteredNodes,
+        y: processedY,
+        series: processedSeries,
+        normalized: shouldNormalize,  // Set based on actual normalization applied
+        hardware_config: filteredHardwareConfig,  // Preserve hardware config
       };
     };
 
     return {
-      cpu: data.node_cpu_usage ? filterAndSortNodeData(data.node_cpu_usage) : null,
-      gpu: data.node_gpu_usage ? filterAndSortNodeData(data.node_gpu_usage) : null
+      cpu: data.node_cpu_usage ? filterAndSortNodeData(data.node_cpu_usage, 'cpu') : null,
+      gpu: data.node_gpu_usage ? filterAndSortNodeData(data.node_gpu_usage, 'gpu') : null
     };
-  }, [data, hideUnusedNodes, sortByUsage]);
+  }, [data, hideUnusedNodes, sortByUsage, normalizeNodeUsage]);
+
+  // Calculate overall cluster utilization for gauges (when normalized)
+  const clusterUtilization = useMemo(() => {
+    if (!processedNodeData.cpu?.normalized && !processedNodeData.gpu?.normalized) {
+      return { cpu: null, gpu: null };
+    }
+
+    const calculateAverage = (nodeData: ChartData | null): number | null => {
+      if (!nodeData || !nodeData.normalized) return null;
+
+      let total = 0;
+      let count = 0;
+
+      if (nodeData.series && nodeData.series.length > 0) {
+        // Sum all series values for each node, then average
+        for (let i = 0; i < nodeData.x.length; i++) {
+          const nodeTotal = nodeData.series.reduce((sum, s) => sum + (s.data[i] || 0), 0);
+          total += nodeTotal;
+          count++;
+        }
+      } else if (nodeData.y) {
+        nodeData.y.forEach(val => {
+          total += val as number;
+          count++;
+        });
+      }
+
+      return count > 0 ? total / count : null;
+    };
+
+    return {
+      cpu: calculateAverage(processedNodeData.cpu),
+      gpu: calculateAverage(processedNodeData.gpu),
+    };
+  }, [processedNodeData]);
 
   // Performance logging - measure render time after charts are rendered
   useEffect(() => {
@@ -168,20 +253,45 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
               />
             </div>
           )}
-          {data.active_users_distribution && data.active_users_distribution.x && data.active_users_distribution.x.length > 0 && (
+          {data.user_activity_frequency && (
+            (data.user_activity_frequency.type === 'pie' && (data.user_activity_frequency.labels?.length ?? 0) > 0) ||
+            (data.user_activity_frequency.x && data.user_activity_frequency.x.length > 0)
+          ) && (
             <div className="card">
-              <h3>Active Users Distribution <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>(all periods)</span></h3>
-              <HistogramChart
-                data={data.active_users_distribution}
-                xTitle={data.active_users_distribution.type === 'histogram' ? 'Users per Period' : 'Category'}
-                yTitle={data.active_users_distribution.type === 'histogram' ? 'Number of Periods' : 'Count'}
-                defaultColor="#28a745"
-                colorMap={colorMap}
-                isHistogram={data.active_users_distribution.type === 'histogram'}
-                showMedianMean={data.active_users_distribution.type === 'histogram'}
-                unit=""
-                decimalPlaces={0}
-              />
+              <h3>
+                {data.user_activity_frequency.type === 'pie'
+                  ? (colorBy === 'User' ? 'Most Active Users' : `User Activity by ${colorBy}`)
+                  : 'User Activity Frequency'}
+                <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>
+                  {' '}({data.user_activity_frequency.total_users} users over {data.user_activity_frequency.total_periods} {data.user_activity_frequency.period_label})
+                </span>
+              </h3>
+              {data.user_activity_frequency.type === 'pie' ? (
+                <PieChart
+                  data={{
+                    labels: data.user_activity_frequency.labels || [],
+                    values: data.user_activity_frequency.values || [],
+                  }}
+                  valueLabel={colorBy === 'User'
+                    ? `Active ${data.user_activity_frequency.period_label || 'periods'}`
+                    : `User-${data.user_activity_frequency.period_label || 'periods'}`}
+                  colors={colorMap ? (data.user_activity_frequency.labels || []).map((label, idx) =>
+                    colorMap.get(label) || COLORS[idx % COLORS.length]
+                  ) : undefined}
+                />
+              ) : (
+                <HistogramChart
+                  data={data.user_activity_frequency}
+                  xTitle={`Active ${data.user_activity_frequency.period_label || 'periods'}`}
+                  yTitle="Number of Users"
+                  defaultColor="#28a745"
+                  colorMap={null}
+                  isHistogram={true}
+                  showMedianMean={true}
+                  unit={` ${data.user_activity_frequency.period_label || 'periods'}`}
+                  decimalPlaces={1}
+                />
+              )}
             </div>
           )}
         </div>
@@ -206,26 +316,43 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
               />
             </div>
           )}
-          {data.jobs_distribution && data.jobs_distribution.x && data.jobs_distribution.x.length > 0 && (
+          {data.jobs_distribution && (
+            (data.jobs_distribution.type === 'pie' && (data.jobs_distribution.labels?.length ?? 0) > 0) ||
+            (data.jobs_distribution.x && data.jobs_distribution.x.length > 0)
+          ) && (
             <div className="card">
-              <h3>Jobs Distribution <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>(all periods)</span></h3>
-              <HistogramChart
-                data={data.jobs_distribution}
-                xTitle={data.jobs_distribution.type === 'histogram' ? 'Jobs per Period' : 'Category'}
-                yTitle={data.jobs_distribution.type === 'histogram' ? 'Number of Periods' : 'Count'}
-                defaultColor="#6f42c1"
-                colorMap={colorMap}
-                isHistogram={data.jobs_distribution.type === 'histogram'}
-                showMedianMean={data.jobs_distribution.type === 'histogram'}
-                unit=""
-                decimalPlaces={0}
-              />
-            </div>
-          )}
-          {data.jobs_distribution && data.jobs_distribution.type === 'pie' && (
-            <div className="card">
-              <h3>Jobs Distribution</h3>
-              <PieChart data={data.jobs_by_state} />
+              <h3>
+                {data.jobs_distribution.type === 'pie'
+                  ? `Jobs by ${colorBy}`
+                  : 'Jobs Distribution'}
+                <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>
+                  {' '}({data.summary.total_jobs.toLocaleString()} jobs)
+                </span>
+              </h3>
+              {data.jobs_distribution.type === 'pie' ? (
+                <PieChart
+                  data={{
+                    labels: data.jobs_distribution.labels || [],
+                    values: data.jobs_distribution.values || [],
+                  }}
+                  valueLabel="Jobs"
+                  colors={colorMap ? (data.jobs_distribution.labels || []).map((label, idx) =>
+                    colorMap.get(label) || COLORS[idx % COLORS.length]
+                  ) : undefined}
+                />
+              ) : (
+                <HistogramChart
+                  data={data.jobs_distribution}
+                  xTitle="Jobs per Period"
+                  yTitle="Number of Periods"
+                  defaultColor="#6f42c1"
+                  colorMap={null}
+                  isHistogram={true}
+                  showMedianMean={true}
+                  unit=""
+                  decimalPlaces={0}
+                />
+              )}
             </div>
           )}
         </div>
@@ -250,21 +377,43 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
               />
             </div>
           )}
-          {data.cpu_hours_by_account && data.cpu_hours_by_account.x.length > 0 && (
+          {data.cpu_hours_by_account && (
+            (data.cpu_hours_by_account.type === 'pie' && (data.cpu_hours_by_account.labels?.length ?? 0) > 0) ||
+            (data.cpu_hours_by_account.x && data.cpu_hours_by_account.x.length > 0)
+          ) && (
             <div className="card">
-              <h3>CPU Usage Distribution</h3>
-              <HistogramChart
-                data={data.cpu_hours_by_account}
-                xTitle={data.cpu_hours_by_account.type === 'histogram' ? 'CPU Hours per Period' : 'Account'}
-                yTitle={data.cpu_hours_by_account.type === 'histogram' ? 'Number of Periods' : 'CPU Hours'}
-                defaultColor="#04A5D5"
-                colorMap={colorMap}
-                isHistogram={data.cpu_hours_by_account.type === 'histogram'}
-                showMedianMean={data.cpu_hours_by_account.type === 'histogram'}
-                unit="h"
-                decimalPlaces={0}
-                tickAngle={data.cpu_hours_by_account.type !== 'histogram' ? -45 : undefined}
-              />
+              <h3>
+                {data.cpu_hours_by_account.type === 'pie'
+                  ? `CPU Usage by ${colorBy}`
+                  : 'CPU Usage Distribution'}
+                <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>
+                  {' '}({Math.round(data.summary.total_cpu_hours).toLocaleString()} hours)
+                </span>
+              </h3>
+              {data.cpu_hours_by_account.type === 'pie' ? (
+                <PieChart
+                  data={{
+                    labels: data.cpu_hours_by_account.labels || [],
+                    values: data.cpu_hours_by_account.values || [],
+                  }}
+                  valueLabel="CPU Hours"
+                  colors={colorMap ? (data.cpu_hours_by_account.labels || []).map((label, idx) =>
+                    colorMap.get(label) || COLORS[idx % COLORS.length]
+                  ) : undefined}
+                />
+              ) : (
+                <HistogramChart
+                  data={data.cpu_hours_by_account}
+                  xTitle="CPU Hours per Period"
+                  yTitle="Number of Periods"
+                  defaultColor="#04A5D5"
+                  colorMap={null}
+                  isHistogram={true}
+                  showMedianMean={true}
+                  unit="h"
+                  decimalPlaces={0}
+                />
+              )}
             </div>
           )}
         </div>
@@ -284,54 +433,105 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
               />
             </div>
           )}
-          {data.gpu_hours_by_account && data.gpu_hours_by_account.x.length > 0 && (
+          {data.gpu_hours_by_account && (
+            (data.gpu_hours_by_account.type === 'pie' && (data.gpu_hours_by_account.labels?.length ?? 0) > 0) ||
+            (data.gpu_hours_by_account.x && data.gpu_hours_by_account.x.length > 0)
+          ) && (
             <div className="card">
-              <h3>GPU Usage Distribution</h3>
-              <HistogramChart
-                data={data.gpu_hours_by_account}
-                xTitle={data.gpu_hours_by_account.type === 'histogram' ? 'GPU Hours per Period' : 'Account'}
-                yTitle={data.gpu_hours_by_account.type === 'histogram' ? 'Number of Periods' : 'GPU Hours'}
-                defaultColor="#EC7300"
-                colorMap={colorMap}
-                isHistogram={data.gpu_hours_by_account.type === 'histogram'}
-                showMedianMean={data.gpu_hours_by_account.type === 'histogram'}
-                unit="h"
-                decimalPlaces={0}
-                tickAngle={data.gpu_hours_by_account.type !== 'histogram' ? -45 : undefined}
-              />
+              <h3>
+                {data.gpu_hours_by_account.type === 'pie'
+                  ? `GPU Usage by ${colorBy}`
+                  : 'GPU Usage Distribution'}
+                <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>
+                  {' '}({Math.round(data.summary.total_gpu_hours).toLocaleString()} hours)
+                </span>
+              </h3>
+              {data.gpu_hours_by_account.type === 'pie' ? (
+                <PieChart
+                  data={{
+                    labels: data.gpu_hours_by_account.labels || [],
+                    values: data.gpu_hours_by_account.values || [],
+                  }}
+                  valueLabel="GPU Hours"
+                  colors={colorMap ? (data.gpu_hours_by_account.labels || []).map((label, idx) =>
+                    colorMap.get(label) || COLORS[idx % COLORS.length]
+                  ) : undefined}
+                />
+              ) : (
+                <HistogramChart
+                  data={data.gpu_hours_by_account}
+                  xTitle="GPU Hours per Period"
+                  yTitle="Number of Periods"
+                  defaultColor="#EC7300"
+                  colorMap={null}
+                  isHistogram={true}
+                  showMedianMean={true}
+                  unit="h"
+                  decimalPlaces={0}
+                />
+              )}
             </div>
           )}
         </div>
         {(processedNodeData.cpu?.x.length || processedNodeData.gpu?.x.length) && (
-          <div style={{ marginTop: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3>CPU/GPU Usage by Node</h3>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+          <div className="node-usage-section">
+            <div className="node-usage-header">
+              <h3 className="section-title">CPU/GPU Usage by Node</h3>
+              <div className="node-usage-controls">
+                <label className="checkbox-label">
                   <input
                     type="checkbox"
                     checked={hideUnusedNodes}
                     onChange={(e) => setHideUnusedNodes(e.target.checked)}
                   />
-                  Hide unused nodes
+                  <span>Hide unused</span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+                <label className="checkbox-label">
                   <input
                     type="checkbox"
                     checked={sortByUsage}
                     onChange={(e) => setSortByUsage(e.target.checked)}
                   />
-                  Sort by usage
+                  <span>Sort by usage</span>
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={normalizeNodeUsage}
+                    onChange={(e) => setNormalizeNodeUsage(e.target.checked)}
+                  />
+                  <span>Normalize %</span>
                 </label>
               </div>
             </div>
+            {/* Utilization gauges - show when normalization is enabled */}
+            {(clusterUtilization.cpu !== null || clusterUtilization.gpu !== null) && (
+              <div className="gauge-grid">
+                {clusterUtilization.cpu !== null && (
+                  <div className="card gauge-card">
+                    <GaugeChart
+                      value={Math.round(clusterUtilization.cpu * 10) / 10}
+                      title="Average CPU Utilization"
+                    />
+                  </div>
+                )}
+                {clusterUtilization.gpu !== null && (
+                  <div className="card gauge-card">
+                    <GaugeChart
+                      value={Math.round(clusterUtilization.gpu * 10) / 10}
+                      title="Average GPU Utilization"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             {processedNodeData.cpu && processedNodeData.cpu.x.length > 0 && (
               <div className="card" style={{ marginBottom: '1.5rem' }}>
-                <h3>CPU Usage by Node</h3>
+                <h3>CPU Usage by Node {processedNodeData.cpu.normalized && <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>(% of capacity)</span>}</h3>
                 <StackedAreaChart
                   data={processedNodeData.cpu}
                   xTitle="Node"
-                  yTitle="CPU Hours"
+                  yTitle={processedNodeData.cpu.normalized ? "Utilization (%)" : "CPU Hours"}
                   defaultColor="#04A5D5"
                   colorMap={colorMap}
                   chartType="bar"
@@ -341,11 +541,11 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
             )}
             {processedNodeData.gpu && processedNodeData.gpu.x.length > 0 && (
               <div className="card">
-                <h3>GPU Usage by Node</h3>
+                <h3>GPU Usage by Node {processedNodeData.gpu.normalized && <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>(% of capacity)</span>}</h3>
                 <StackedAreaChart
                   data={processedNodeData.gpu}
                   xTitle="Node"
-                  yTitle="GPU Hours"
+                  yTitle={processedNodeData.gpu.normalized ? "Utilization (%)" : "GPU Hours"}
                   defaultColor="#EC7300"
                   colorMap={colorMap}
                   chartType="bar"
@@ -442,6 +642,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                       x: 0.5,
                       xanchor: 'center',
                       yanchor: 'top',
+                      font: { size: 10 },
                     },
                     plot_bgcolor: 'rgba(0, 0, 0, 0)',
                     paper_bgcolor: 'rgba(0, 0, 0, 0)',
@@ -454,21 +655,41 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
               </div>
             </div>
           )}
-          {data.waiting_times_hist && data.waiting_times_hist.x && data.waiting_times_hist.x.length > 0 && (
+          {data.waiting_times_hist && (
+            (data.waiting_times_hist.type === 'pie' && (data.waiting_times_hist.labels?.length ?? 0) > 0) ||
+            (data.waiting_times_hist.x && data.waiting_times_hist.x.length > 0)
+          ) && (
             <div className="card">
-              <h3>Job Waiting Times Distribution <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>(all jobs)</span></h3>
-              <HistogramChart
-                data={data.waiting_times_hist}
-                xTitle="Waiting Time (hours)"
-                yTitle="Percentage of Jobs (%)"
-                defaultColor="#dc3545"
-                colorMap={colorMap}
-                isHistogram={false}
-                showMedianMean={true}
-                unit="h"
-                decimalPlaces={1}
-                barMode={data.waiting_times_hist.series && data.waiting_times_hist.series.length > 0 ? 'group' : 'overlay'}
-              />
+              <h3>
+                {data.waiting_times_hist.type === 'pie'
+                  ? `Total Waiting Time by ${colorBy}`
+                  : 'Job Waiting Times Distribution'}
+                <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}> (all jobs)</span>
+              </h3>
+              {data.waiting_times_hist.type === 'pie' ? (
+                <PieChart
+                  data={{
+                    labels: data.waiting_times_hist.labels || [],
+                    values: data.waiting_times_hist.values || [],
+                  }}
+                  valueLabel="Hours waiting"
+                  colors={colorMap ? (data.waiting_times_hist.labels || []).map((label, idx) =>
+                    colorMap.get(label) || COLORS[idx % COLORS.length]
+                  ) : undefined}
+                />
+              ) : (
+                <HistogramChart
+                  data={data.waiting_times_hist}
+                  xTitle="Waiting Time (hours)"
+                  yTitle="Percentage of Jobs (%)"
+                  defaultColor="#dc3545"
+                  colorMap={null}
+                  isHistogram={false}
+                  showMedianMean={true}
+                  unit="h"
+                  decimalPlaces={1}
+                />
+              )}
             </div>
           )}
         </div>
@@ -556,6 +777,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                       x: 0.5,
                       xanchor: 'center',
                       yanchor: 'top',
+                      font: { size: 10 },
                     },
                     plot_bgcolor: 'rgba(0, 0, 0, 0)',
                     paper_bgcolor: 'rgba(0, 0, 0, 0)',
@@ -568,21 +790,41 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
               </div>
             </div>
           )}
-          {data.job_duration_hist && data.job_duration_hist.x && data.job_duration_hist.x.length > 0 && (
+          {data.job_duration_hist && (
+            (data.job_duration_hist.type === 'pie' && (data.job_duration_hist.labels?.length ?? 0) > 0) ||
+            (data.job_duration_hist.x && data.job_duration_hist.x.length > 0)
+          ) && (
             <div className="card">
-              <h3>Job Duration Distribution <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>(all jobs)</span></h3>
-              <HistogramChart
-                data={data.job_duration_hist}
-                xTitle="Job Duration (hours)"
-                yTitle="Percentage of Jobs (%)"
-                defaultColor="#28a745"
-                colorMap={colorMap}
-                isHistogram={false}
-                showMedianMean={true}
-                unit="h"
-                decimalPlaces={1}
-                barMode={data.job_duration_hist.series && data.job_duration_hist.series.length > 0 ? 'group' : 'overlay'}
-              />
+              <h3>
+                {data.job_duration_hist.type === 'pie'
+                  ? `Total Job Duration by ${colorBy}`
+                  : 'Job Duration Distribution'}
+                <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}> (all jobs)</span>
+              </h3>
+              {data.job_duration_hist.type === 'pie' ? (
+                <PieChart
+                  data={{
+                    labels: data.job_duration_hist.labels || [],
+                    values: data.job_duration_hist.values || [],
+                  }}
+                  valueLabel="Hours runtime"
+                  colors={colorMap ? (data.job_duration_hist.labels || []).map((label, idx) =>
+                    colorMap.get(label) || COLORS[idx % COLORS.length]
+                  ) : undefined}
+                />
+              ) : (
+                <HistogramChart
+                  data={data.job_duration_hist}
+                  xTitle="Job Duration (hours)"
+                  yTitle="Percentage of Jobs (%)"
+                  defaultColor="#28a745"
+                  colorMap={null}
+                  isHistogram={false}
+                  showMedianMean={true}
+                  unit="h"
+                  decimalPlaces={1}
+                />
+              )}
             </div>
           )}
         </div>

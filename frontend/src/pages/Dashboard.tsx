@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { dashboardApi, reportsApi, authApi } from '../api/client';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -13,12 +13,18 @@ import type { ReportData } from '../components/ReportPreview';
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'reports'>('overview');
+  const queryClient = useQueryClient();
 
   // Fetch current user info to check admin status
   const { data: userInfo } = useQuery({
     queryKey: ['currentUser'],
     queryFn: authApi.getCurrentUser,
   });
+
+  // Handler for dev admin toggle - refetches user info
+  const handleDevAdminToggle = () => {
+    queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+  };
   const [selectedHostname, setSelectedHostname] = useState<string>('');
   const previousHostname = useRef<string>('');
   const [startDate, setStartDate] = useState<string>('');
@@ -33,6 +39,7 @@ const Dashboard: React.FC = () => {
   const [periodType, setPeriodType] = useState<string>('auto'); // Time aggregation: auto, day, week, month, year
   const [hideUnusedNodes, setHideUnusedNodes] = useState<boolean>(true); // Hide nodes with 0 usage
   const [sortByUsage, setSortByUsage] = useState<boolean>(false); // Sort nodes by usage
+  const [normalizeNodeUsage, setNormalizeNodeUsage] = useState<boolean>(false); // Normalize to 100% capacity
 
   // Report state
   const [reportHostname, setReportHostname] = useState<string>('');
@@ -230,7 +237,7 @@ const Dashboard: React.FC = () => {
     period_type: actualPeriodType,  // Use the calculated or manually selected period type
     color_by: colorBy || undefined,  // Group/color charts by selected dimension
     account_segments: accountSegments > 0 ? accountSegments : undefined,  // Format account names
-    // Note: hide_unused_nodes and sort_by_usage are now handled client-side in Charts component
+    // Note: hide_unused_nodes, sort_by_usage, and normalize_node_usage are handled client-side in Charts component
   };
 
   const {
@@ -270,7 +277,7 @@ const Dashboard: React.FC = () => {
   if (metadataLoading) {
     return (
       <div className="app">
-        <Header userInfo={userInfo} />
+        <Header userInfo={userInfo} onDevAdminToggle={handleDevAdminToggle} />
         <div className="container">
           <div className="loading-screen">
             <div className="loading-spinner"></div>
@@ -287,7 +294,7 @@ const Dashboard: React.FC = () => {
   if (!metadata || metadata.hostnames.length === 0) {
     return (
       <div className="app">
-        <Header userInfo={userInfo} />
+        <Header userInfo={userInfo} onDevAdminToggle={handleDevAdminToggle} />
         <div className="container">
           <div className="error-screen">
             <h2>No Data Available</h2>
@@ -301,7 +308,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="app">
-      <Header activeTab={activeTab} onTabChange={setActiveTab} userInfo={userInfo} />
+      <Header activeTab={activeTab} onTabChange={setActiveTab} userInfo={userInfo} onDevAdminToggle={handleDevAdminToggle} />
       <div className="dashboard-layout">
         {/* Sidebar for both overview and reports */}
         <div className="sidebar">
@@ -379,6 +386,8 @@ const Dashboard: React.FC = () => {
                     setHideUnusedNodes={setHideUnusedNodes}
                     sortByUsage={sortByUsage}
                     setSortByUsage={setSortByUsage}
+                    normalizeNodeUsage={normalizeNodeUsage}
+                    setNormalizeNodeUsage={setNormalizeNodeUsage}
                     colorBy={colorBy}
                     periodType={actualPeriodType}
                   />

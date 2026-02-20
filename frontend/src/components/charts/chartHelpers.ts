@@ -122,13 +122,32 @@ export const generateChartTraces = (
         }];
       } else {
         console.log('generateChartTraces: Returning single bar trace with color', defaultColor);
+
+        // Build custom data with hardware config if available
+        let customdata: string[] | undefined = undefined;
+        let hovertemplate = '%{x}<br>Value: %{y:,.1f}';
+
+        if (chartData.hardware_config) {
+          customdata = chartData.x.map(node => {
+            const hw = chartData.hardware_config![String(node)];
+            if (hw) {
+              return `<br>Configured: ${hw.cpu_cores} cores, ${hw.gpu_count} GPUs`;
+            }
+            return '';
+          });
+          hovertemplate = '%{x}<br>Value: %{y:,.1f}%{customdata}<extra></extra>';
+        } else {
+          hovertemplate = '%{x}<br>Value: %{y:,.0f}<extra></extra>';
+        }
+
         return [{
           x: chartData.x,
           y: aggregatedData,
           type: 'bar',
           marker: { color: defaultColor },
           showlegend: false,
-          hovertemplate: '%{x}<br>Value: %{y:,.0f}<extra></extra>',
+          customdata: customdata,
+          hovertemplate: hovertemplate,
         }];
       }
     }
@@ -152,14 +171,34 @@ export const generateChartTraces = (
       });
     } else {
       // Stacked bar chart
-      return chartData.series.map((series) => ({
-        x: chartData.x,
-        y: series.data,
-        type: 'bar',
-        name: String(series.name),
-        marker: { color: getColorForLabel(String(series.name), colorMap, defaultColor) },
-        hovertemplate: '<b>%{fullData.name}</b><br>%{x}<br>Value: %{y:,.0f}<extra></extra>',
-      }));
+      return chartData.series.map((series) => {
+        // Build custom data with hardware config if available
+        let customdata: string[] | undefined = undefined;
+        let hovertemplate = '<b>%{fullData.name}</b><br>%{x}<br>Value: %{y:,.1f}';
+
+        if (chartData.hardware_config) {
+          customdata = chartData.x.map(node => {
+            const hw = chartData.hardware_config![String(node)];
+            if (hw) {
+              return `<br>Configured: ${hw.cpu_cores} cores, ${hw.gpu_count} GPUs`;
+            }
+            return '';
+          });
+          hovertemplate = '<b>%{fullData.name}</b><br>%{x}<br>Value: %{y:,.1f}%{customdata}<extra></extra>';
+        } else {
+          hovertemplate = '<b>%{fullData.name}</b><br>%{x}<br>Value: %{y:,.0f}<extra></extra>';
+        }
+
+        return {
+          x: chartData.x,
+          y: series.data,
+          type: 'bar',
+          name: String(series.name),
+          marker: { color: getColorForLabel(String(series.name), colorMap, defaultColor) },
+          customdata: customdata,
+          hovertemplate: hovertemplate,
+        };
+      });
     }
   }
 
@@ -197,13 +236,31 @@ export const generateChartTraces = (
         colors = defaultColor;
       }
 
+      // Build custom hover text with hardware config if available
+      let hovertemplate = '<b>%{x}</b><br>Value: %{y:,.1f}';
+      let customdata: string[] | undefined = undefined;
+
+      if (chartData.hardware_config) {
+        customdata = chartData.x.map(node => {
+          const hw = chartData.hardware_config![String(node)];
+          if (hw) {
+            return `<br>Configured: ${hw.cpu_cores} cores, ${hw.gpu_count} GPUs`;
+          }
+          return '';
+        });
+        hovertemplate = '<b>%{x}</b><br>Value: %{y:,.1f}%{customdata}<extra></extra>';
+      } else {
+        hovertemplate = '<b>%{x}</b><br>Value: %{y:,.0f}<extra></extra>';
+      }
+
       return [{
         x: chartData.x,
         y: chartData.y,
         type: 'bar',
         marker: { color: colors },
         name: defaultName,
-        hovertemplate: '<b>%{x}</b><br>Value: %{y:,.0f}<extra></extra>',
+        customdata: customdata,
+        hovertemplate: hovertemplate,
       }];
     }
   }
@@ -214,7 +271,7 @@ export const generateChartTraces = (
 // Common layout settings for better chart consistency
 export const getCommonLayout = (xTitle: string, yTitle: string, showLegend: boolean = false) => ({
   autosize: true,
-  margin: { l: 80, r: showLegend ? 220 : 20, t: 20, b: 60 },
+  margin: { l: 80, r: showLegend ? 220 : 20, t: 20, b: 80 },
   xaxis: {
     title: {
       text: xTitle,
@@ -224,6 +281,7 @@ export const getCommonLayout = (xTitle: string, yTitle: string, showLegend: bool
     showgrid: true,
     gridcolor: 'rgba(128, 128, 128, 0.1)',
     zeroline: false,
+    automargin: true,  // Automatically adjust margin for long labels
   },
   yaxis: {
     title: {
@@ -235,12 +293,14 @@ export const getCommonLayout = (xTitle: string, yTitle: string, showLegend: bool
     gridcolor: 'rgba(128, 128, 128, 0.1)',
     zeroline: false,
     tickformat: ',',  // Thousands separator
+    automargin: true,
   },
   hovermode: 'x unified',
   hoverlabel: {
     bgcolor: 'white',
     bordercolor: '#ddd',
     font: { color: 'black', size: 12 },
+    namelength: -1,  // Don't truncate names
   },
   showlegend: showLegend,
   legend: {
@@ -251,6 +311,7 @@ export const getCommonLayout = (xTitle: string, yTitle: string, showLegend: bool
     bgcolor: 'rgba(255, 255, 255, 0.9)',
     bordercolor: '#ddd',
     borderwidth: 1,
+    font: { size: 10 },
   },
   plot_bgcolor: 'rgba(0, 0, 0, 0)',
   paper_bgcolor: 'rgba(0, 0, 0, 0)',

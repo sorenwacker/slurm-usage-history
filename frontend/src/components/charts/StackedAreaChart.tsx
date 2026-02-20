@@ -41,9 +41,10 @@ const StackedAreaChart: React.FC<StackedAreaChartProps> = ({
     layout.xaxis.tickformat = '%a %b %-d';  // e.g., "Mon Jan 1"
   }
 
-  // Add barmode for bar charts
+  // Add barmode for bar charts and use 'closest' hover mode to prevent tooltip cutoff
   if (chartType === 'bar') {
     layout.barmode = barMode;
+    layout.hovermode = 'closest';  // Prevents tooltip from being cut off at chart edges
   }
 
   return (

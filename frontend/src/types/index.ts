@@ -32,6 +32,7 @@ export interface FilterRequest {
   period_type?: string;
   color_by?: string;
   account_segments?: number;
+  normalize_node_usage?: boolean;  // Normalize node CPU/GPU usage to 100% capacity
   // Note: hide_unused_nodes and sort_by_usage removed - handled client-side
 }
 
@@ -74,6 +75,11 @@ export interface SeriesData {
   data: number[];
 }
 
+export interface NodeHardwareConfig {
+  cpu_cores: number;
+  gpu_count: number;
+}
+
 export interface ChartData {
   x: (string | number)[];
   y?: (string | number)[];  // Optional for backward compatibility
@@ -85,6 +91,12 @@ export interface ChartData {
   bin_labels?: string[];    // For histogram hover text
   labels?: string[];        // For pie charts
   values?: number[];        // For pie charts
+  total_periods?: number;   // For user activity frequency chart
+  total_users?: number;     // For user activity frequency chart
+  period_label?: string;    // For user activity frequency chart (e.g., 'days', 'weeks')
+  normalized?: boolean;     // For node usage charts (indicates values are %)
+  hardware_config?: Record<string, NodeHardwareConfig>;  // Per-node hardware specs for hover info
+  total_hours?: number;     // Total hours in time range (for client-side normalization)
 }
 
 export interface TrendData {
@@ -139,4 +151,5 @@ export interface AggregatedChartsResponse {
   gpu_hours_by_account: ChartData;
   node_cpu_usage: ChartData;
   node_gpu_usage: ChartData;
+  user_activity_frequency: ChartData;
 }
