@@ -55,14 +55,46 @@ export interface UserInfo {
   attributes: Record<string, any>;
 }
 
+// Check if we're in dev mode (localhost)
+const isDevMode = () => API_BASE_URL.includes('localhost');
+
+// Get dev admin state from localStorage
+export const getDevAdminState = (): boolean => {
+  if (!isDevMode()) return false;
+  return localStorage.getItem('dev_admin') === 'true';
+};
+
+// Set dev admin state in localStorage
+export const setDevAdminState = (isAdmin: boolean): void => {
+  if (isAdmin) {
+    localStorage.setItem('dev_admin', 'true');
+  } else {
+    localStorage.removeItem('dev_admin');
+  }
+};
+
 export const authApi = {
   getCurrentUser: async (): Promise<UserInfo> => {
     // SAML endpoints are at /saml, not /api/saml
-    const response = await axios.get<UserInfo>(`${API_BASE_URL}/saml/me`, {
+    const params = new URLSearchParams();
+
+    // In dev mode, pass the dev_admin parameter if set
+    if (isDevMode()) {
+      const devAdmin = getDevAdminState();
+      params.append('dev_admin', devAdmin.toString());
+    }
+
+    const url = params.toString()
+      ? `${API_BASE_URL}/saml/me?${params.toString()}`
+      : `${API_BASE_URL}/saml/me`;
+
+    const response = await axios.get<UserInfo>(url, {
       withCredentials: true,
     });
     return response.data;
   },
+
+  isDevMode,
 };
 
 export const dashboardApi = {

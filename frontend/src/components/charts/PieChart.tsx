@@ -6,11 +6,13 @@ import { COLORS, getCommonConfig } from './chartHelpers';
 interface PieChartProps {
   data: PieChartData;
   colors?: string[];
+  valueLabel?: string;  // Custom label for values (e.g., "Days active", "Jobs")
 }
 
 const PieChart: React.FC<PieChartProps> = ({
   data,
   colors = COLORS,
+  valueLabel = 'Jobs',
 }) => {
   if (!data || !data.labels || !data.values || data.labels.length === 0) {
     return null;
@@ -27,14 +29,20 @@ const PieChart: React.FC<PieChartProps> = ({
             marker: { colors: colors },
             textposition: 'inside',
             textinfo: 'label+percent',
-            hovertemplate: '<b>%{label}</b><br>Jobs: %{value:,.0f}<br>Percentage: %{percent}<extra></extra>',
+            hovertemplate: `<b>%{label}</b><br>${valueLabel}: %{value:,.0f}<br>Percentage: %{percent}<extra></extra>`,
           },
         ]}
         layout={{
           autosize: true,
           margin: { l: 20, r: 20, t: 20, b: 20 },
           showlegend: true,
-          legend: { x: 1.05, y: 0.5, xanchor: 'left', yanchor: 'middle' },
+          legend: {
+            x: 1.05,
+            y: 0.5,
+            xanchor: 'left',
+            yanchor: 'middle',
+            font: { size: 10 },
+          },
           plot_bgcolor: 'rgba(0, 0, 0, 0)',
           paper_bgcolor: 'rgba(0, 0, 0, 0)',
         }}

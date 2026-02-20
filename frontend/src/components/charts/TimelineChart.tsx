@@ -91,6 +91,7 @@ const TimelineChart: React.FC<TimelineChartProps> = ({
             bgcolor: 'rgba(255, 255, 255, 0.8)',
             bordercolor: '#ddd',
             borderwidth: 1,
+            font: { size: 10 },
           },
         }}
         useResizeHandler={true}

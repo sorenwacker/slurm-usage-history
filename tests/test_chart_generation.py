@@ -40,6 +40,8 @@ def sample_dataframe():
         periods=n_rows
     )
 
+    submit_dates = start_dates - pd.to_timedelta(np.random.exponential(1, n_rows), unit='h')
+
     df = pd.DataFrame({
         'JobID': range(1, n_rows + 1),
         'State': np.random.choice(['COMPLETED', 'FAILED', 'CANCELLED', 'TIMEOUT'], n_rows),
@@ -55,11 +57,16 @@ def sample_dataframe():
         'AllocCPUS': np.random.choice([1, 2, 4, 8, 16], n_rows),
         'AllocGPUS': np.random.choice([0, 1, 2, 4], n_rows, p=[0.6, 0.3, 0.08, 0.02]),
         'Start': start_dates,
-        'Submit': start_dates - pd.to_timedelta(np.random.exponential(1, n_rows), unit='h'),
+        'Submit': submit_dates,
         'End': start_dates + pd.to_timedelta(np.random.exponential(3, n_rows), unit='h'),
+        # Start-based time columns (for CPU/GPU usage)
         'StartYearMonth': start_dates.to_period('M').astype(str),
         'StartYearWeek': start_dates,  # Timeline generator expects datetime, will normalize to week start
         'StartDay': start_dates.date.astype(str),
+        # Submit-based time columns (for jobs, users, waiting times, duration)
+        'SubmitYearMonth': pd.to_datetime(submit_dates).to_period('M').astype(str),
+        'SubmitYearWeek': pd.to_datetime(submit_dates),
+        'SubmitDay': pd.to_datetime(submit_dates).date.astype(str),
     })
 
     return df
