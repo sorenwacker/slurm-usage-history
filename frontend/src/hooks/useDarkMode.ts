@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface ChartColors {
   gridColor: string;
@@ -33,27 +33,77 @@ const darkColors: ChartColors = {
   legendBorderColor: '#475569',
 };
 
-export const useDarkMode = (): { isDark: boolean; chartColors: ChartColors } => {
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    return false;
-  });
+type ThemeMode = 'light' | 'dark' | 'system';
 
+const STORAGE_KEY = 'slurm-dashboard-theme';
+
+const getSystemPreference = (): boolean => {
+  if (typeof window !== 'undefined') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  return false;
+};
+
+const getStoredTheme = (): ThemeMode => {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === 'light' || stored === 'dark' || stored === 'system') {
+      return stored;
+    }
+  }
+  return 'system';
+};
+
+export const useDarkMode = (): {
+  isDark: boolean;
+  mode: ThemeMode;
+  setMode: (mode: ThemeMode) => void;
+  toggle: () => void;
+  chartColors: ChartColors;
+} => {
+  const [mode, setModeState] = useState<ThemeMode>(getStoredTheme);
+  const [systemDark, setSystemDark] = useState(getSystemPreference);
+
+  // Calculate actual dark state based on mode
+  const isDark = mode === 'system' ? systemDark : mode === 'dark';
+
+  // Apply theme class to document
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDark]);
+
+  // Listen for system preference changes
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
     const handleChange = (e: MediaQueryListEvent) => {
-      setIsDark(e.matches);
+      setSystemDark(e.matches);
     };
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
+  const setMode = useCallback((newMode: ThemeMode) => {
+    setModeState(newMode);
+    localStorage.setItem(STORAGE_KEY, newMode);
+  }, []);
+
+  const toggle = useCallback(() => {
+    // Cycle through: system -> light -> dark -> system
+    const nextMode: ThemeMode = mode === 'system' ? 'light' : mode === 'light' ? 'dark' : 'system';
+    setMode(nextMode);
+  }, [mode, setMode]);
+
   return {
     isDark,
+    mode,
+    setMode,
+    toggle,
     chartColors: isDark ? darkColors : lightColors,
   };
 };

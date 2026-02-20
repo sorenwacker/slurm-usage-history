@@ -1,6 +1,7 @@
 import React from 'react';
 import type { UserInfo } from '../api/client';
 import { authApi, getDevAdminState, setDevAdminState } from '../api/client';
+import useDarkMode from '../hooks/useDarkMode';
 
 interface HeaderProps {
   activeTab?: 'overview' | 'reports';
@@ -12,6 +13,13 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ activeTab = 'overview', onTabChange, userInfo, onDevAdminToggle }) => {
   const isDevMode = authApi.isDevMode();
   const devAdminEnabled = isDevMode && getDevAdminState();
+  const { isDark, mode, toggle } = useDarkMode();
+
+  const getThemeLabel = () => {
+    if (mode === 'system') return 'Auto';
+    if (mode === 'dark') return 'Dark';
+    return 'Light';
+  };
 
   const handleDevAdminToggle = () => {
     const newState = !getDevAdminState();
@@ -79,6 +87,14 @@ const Header: React.FC<HeaderProps> = ({ activeTab = 'overview', onTabChange, us
             }}
           >
             Reports
+          </button>
+          <button
+            onClick={toggle}
+            className="theme-toggle"
+            title={`Theme: ${getThemeLabel()} (click to cycle)`}
+          >
+            <span className="theme-toggle-icon">{isDark ? '\u263E' : '\u2600'}</span>
+            <span>{getThemeLabel()}</span>
           </button>
           {userInfo && (
             <>
