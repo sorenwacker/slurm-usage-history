@@ -7,10 +7,10 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Color System */
-  --primary: #0891b2;
-  --primary-light: #22d3ee;
-  --primary-dark: #0e7490;
+  /* Color System - TU Delft Cyan */
+  --primary: #00A6D6;
+  --primary-light: #00B8E6;
+  --primary-dark: #0093BE;
   --secondary: #1e293b;
   --accent: #f59e0b;
   --accent-gpu: #ea580c;
@@ -109,7 +109,7 @@ body {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .header {
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  background: var(--primary);
   color: white;
   padding: var(--space-sm) var(--space-md);
   position: sticky;
