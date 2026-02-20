@@ -98,7 +98,8 @@ const HistogramChart: React.FC<HistogramChartProps> = ({
       data.average || data.mean,
       defaultColor,
       decimalPlaces,
-      unit
+      unit,
+      chartColors
     );
   }
 

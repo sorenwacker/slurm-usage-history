@@ -421,8 +421,8 @@ const Filters: React.FC<FiltersProps> = ({
       )}
 
       {/* Global search - select matching items across all categories */}
-      <div className="filter-group" style={{ background: '#f8f9fa', padding: '0.75rem', borderRadius: '4px', border: '1px solid #dee2e6' }}>
-        <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#495057', marginBottom: '0.5rem', display: 'block' }}>
+      <div className="filter-group quick-select-box">
+        <label className="quick-select-label">
           Quick Select Across All Categories
         </label>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -436,35 +436,23 @@ const Filters: React.FC<FiltersProps> = ({
                 selectAllMatching();
               }
             }}
-            style={{
-              flex: 1,
-              padding: '0.5rem',
-              borderRadius: '4px',
-              border: '1px solid #ccc',
-              fontSize: '0.875rem',
-            }}
+            className="quick-select-input"
           />
           <button
             type="button"
             onClick={selectAllMatching}
             disabled={!globalSearch.trim()}
+            className="quick-select-button"
             style={{
-              fontSize: '0.75rem',
-              padding: '0.5rem 0.8rem',
-              background: globalSearch.trim() ? '#28a745' : '#ccc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
+              background: globalSearch.trim() ? 'var(--success)' : 'var(--border)',
               cursor: globalSearch.trim() ? 'pointer' : 'not-allowed',
-              fontWeight: 500,
-              whiteSpace: 'nowrap',
             }}
           >
             Select All{countMatching() > 0 ? ` (${countMatching()})` : ''}
           </button>
         </div>
         {globalSearch.trim() && countMatching() === 0 && (
-          <div style={{ fontSize: '0.75rem', color: '#dc3545', marginTop: '0.5rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--danger)', marginTop: '0.5rem' }}>
             No items match "{globalSearch}"
           </div>
         )}

@@ -446,6 +446,46 @@ body {
   min-height: 120px;
 }
 
+/* Quick Select Box */
+.quick-select-box {
+  background: var(--bg-tertiary);
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.quick-select-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.quick-select-input {
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 0.875rem;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.quick-select-input::placeholder {
+  color: var(--text-muted);
+}
+
+.quick-select-button {
+  font-size: 0.75rem;
+  padding: 0.5rem 0.8rem;
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Cards
    ═══════════════════════════════════════════════════════════════════════════ */

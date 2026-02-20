@@ -60,11 +60,15 @@ export const createMedianMeanAnnotation = (
   average: number | undefined,
   color: string,
   decimalPlaces: number = 0,
-  unit: string = ''
+  unit: string = '',
+  chartColors?: ChartColorOptions
 ): any[] => {
   if (median === undefined || average === undefined) {
     return [];
   }
+
+  const bgColor = chartColors?.legendBgColor || 'rgba(255,255,255,0.9)';
+  const textColor = chartColors?.textColor || color;
 
   return [{
     x: 0.5,
@@ -75,10 +79,10 @@ export const createMedianMeanAnnotation = (
     showarrow: false,
     font: {
       size: 12,
-      color: color,
+      color: textColor,
     },
-    bgcolor: 'rgba(255,255,255,0.9)',
-    bordercolor: color,
+    bgcolor: bgColor,
+    bordercolor: chartColors?.legendBorderColor || color,
     borderwidth: 1,
     borderpad: 4,
   }];
