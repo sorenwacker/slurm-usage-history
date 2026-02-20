@@ -23,7 +23,48 @@ interface ChartsProps {
 const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNodes, sortByUsage, setSortByUsage, normalizeNodeUsage, setNormalizeNodeUsage, colorBy, periodType }) => {
   const [waitingTimeTrendStat, setWaitingTimeTrendStat] = useState<string>('median');
   const [jobDurationTrendStat, setJobDurationTrendStat] = useState<string>('median');
+  const [showWaitingTimeCharts, setShowWaitingTimeCharts] = useState<boolean>(true);
+  const [showJobDurationCharts, setShowJobDurationCharts] = useState<boolean>(true);
   const renderStartTime = useRef<number>(Date.now());
+
+  // Calculate timing summary stats
+  const timingStats = useMemo(() => {
+    if (!data) return null;
+
+    const calcAverage = (arr: number[] | undefined): number | null => {
+      if (!arr || arr.length === 0) return null;
+      const valid = arr.filter(v => v != null && !isNaN(v));
+      if (valid.length === 0) return null;
+      return valid.reduce((a, b) => a + b, 0) / valid.length;
+    };
+
+    const calcMax = (arr: number[] | undefined): number | null => {
+      if (!arr || arr.length === 0) return null;
+      const valid = arr.filter(v => v != null && !isNaN(v));
+      if (valid.length === 0) return null;
+      return Math.max(...valid);
+    };
+
+    const waitStats = data.waiting_times_trends?.stats;
+    const durationStats = data.job_duration_trends?.stats;
+
+    return {
+      waitMedian: calcAverage(waitStats?.median),
+      waitP95: calcAverage(waitStats?.p95),
+      waitMax: calcMax(waitStats?.max),
+      durationMedian: calcAverage(durationStats?.median),
+      durationP95: calcAverage(durationStats?.p95),
+      durationMax: calcMax(durationStats?.max),
+    };
+  }, [data]);
+
+  // Format hours to readable string
+  const formatHours = (hours: number | null): string => {
+    if (hours === null) return '-';
+    if (hours < 1) return `${Math.round(hours * 60)}m`;
+    if (hours < 24) return `${hours.toFixed(1)}h`;
+    return `${(hours / 24).toFixed(1)}d`;
+  };
 
   // Create color map synchronously during render (not in useEffect)
   // This ensures the color map is available immediately when charts need it
@@ -561,50 +602,71 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
       <section className="section">
         <h2 className="section-title">Timing</h2>
 
-        {/* WAITING TIME CHARTS */}
-        <div className="chart-row">
-          {data.waiting_times_trends && data.waiting_times_trends.x.length > 0 && (
-            <div className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3>Waiting Time Trends</h3>
-                {!data.waiting_times_trends.series && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <label style={{ fontSize: '0.9rem', fontWeight: 'normal' }}>Statistic:</label>
-                    <select
-                      value={waitingTimeTrendStat}
-                      onChange={(e) => setWaitingTimeTrendStat(e.target.value)}
-                      style={{
-                        padding: '0.4rem 0.6rem',
-                        borderRadius: '4px',
-                        border: '1px solid #ccc',
-                        fontSize: '0.9rem',
-                      }}
-                    >
-                      <option value="mean">Mean</option>
-                      <option value="median">Median</option>
-                      <option value="max">Max</option>
-                      <option value="p75">P75</option>
-                      <option value="p90">P90</option>
-                      <option value="p95">P95</option>
-                      <option value="p99">P99</option>
-                    </select>
-                  </div>
-                )}
+        {/* WAITING TIME SUBSECTION */}
+        {data.waiting_times_trends && data.waiting_times_trends.x.length > 0 && (
+          <div className="collapsible-section">
+            <div
+              className="collapsible-header"
+              onClick={() => setShowWaitingTimeCharts(!showWaitingTimeCharts)}
+            >
+              <div className="collapsible-title">
+                <span className="collapse-icon">{showWaitingTimeCharts ? '−' : '+'}</span>
+                <h3>Waiting Times</h3>
               </div>
-              <TimelineChart
-                data={data.waiting_times_trends}
-                xTitle="Period"
-                yTitle="Waiting Time (hours)"
-                colorMap={colorMap}
-                defaultColor="#dc3545"
-                statistic={waitingTimeTrendStat}
-              />
+              {/* Summary stats - always visible */}
+              <div className="timing-stats-row">
+                <div className="timing-stat">
+                  <span className="timing-stat-label">Median</span>
+                  <span className="timing-stat-value">{formatHours(timingStats?.waitMedian ?? null)}</span>
+                </div>
+                <div className="timing-stat">
+                  <span className="timing-stat-label">P95</span>
+                  <span className="timing-stat-value timing-stat-warning">{formatHours(timingStats?.waitP95 ?? null)}</span>
+                </div>
+                <div className="timing-stat">
+                  <span className="timing-stat-label">Max</span>
+                  <span className="timing-stat-value timing-stat-danger">{formatHours(timingStats?.waitMax ?? null)}</span>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+            {showWaitingTimeCharts && (
+              <div className="collapsible-content">
+                <div className="chart-row">
+                  <div className="card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h3>Waiting Time Trends</h3>
+                      {!data.waiting_times_trends.series && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <label style={{ fontSize: '0.9rem', fontWeight: 'normal' }}>Statistic:</label>
+                          <select
+                            value={waitingTimeTrendStat}
+                            onChange={(e) => setWaitingTimeTrendStat(e.target.value)}
+                            className="stat-select"
+                          >
+                            <option value="mean">Mean</option>
+                            <option value="median">Median</option>
+                            <option value="max">Max</option>
+                            <option value="p75">P75</option>
+                            <option value="p90">P90</option>
+                            <option value="p95">P95</option>
+                            <option value="p99">P99</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                    <TimelineChart
+                      data={data.waiting_times_trends}
+                      xTitle="Period"
+                      yTitle="Waiting Time (hours)"
+                      colorMap={colorMap}
+                      defaultColor="#dc3545"
+                      statistic={waitingTimeTrendStat}
+                    />
+                  </div>
+                </div>
 
-        <div className="chart-row">
-          {data.waiting_times_stacked && data.waiting_times_stacked.x && data.waiting_times_stacked.x.length > 0 && (
+                <div className="chart-row">
+                  {data.waiting_times_stacked && data.waiting_times_stacked.x && data.waiting_times_stacked.x.length > 0 && (
             <div className="card">
               <h3>Waiting Time Distribution Over Time <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>(stacked percentages)</span></h3>
               <div className="chart-container">
@@ -692,54 +754,79 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
               )}
             </div>
           )}
-        </div>
-
-        {/* JOB DURATION CHARTS */}
-        <div className="chart-row">
-          {data.job_duration_trends && data.job_duration_trends.x.length > 0 && (
-            <div className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3>Job Duration Trends</h3>
-                {!data.job_duration_trends.series && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <label style={{ fontSize: '0.9rem', fontWeight: 'normal' }}>Statistic:</label>
-                    <select
-                      value={jobDurationTrendStat}
-                      onChange={(e) => setJobDurationTrendStat(e.target.value)}
-                      style={{
-                        padding: '0.4rem 0.6rem',
-                        borderRadius: '4px',
-                        border: '1px solid #ccc',
-                        fontSize: '0.9rem',
-                      }}
-                    >
-                      <option value="mean">Mean</option>
-                      <option value="median">Median</option>
-                      <option value="max">Max</option>
-                      <option value="p05">P05</option>
-                      <option value="p25">P25</option>
-                      <option value="p75">P75</option>
-                      <option value="p90">P90</option>
-                      <option value="p95">P95</option>
-                      <option value="p99">P99</option>
-                    </select>
-                  </div>
-                )}
+                </div>
               </div>
-              <TimelineChart
-                data={data.job_duration_trends}
-                xTitle="Period"
-                yTitle="Job Duration (hours)"
-                colorMap={colorMap}
-                defaultColor="#28a745"
-                statistic={jobDurationTrendStat}
-              />
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
-        <div className="chart-row">
-          {data.job_duration_stacked && data.job_duration_stacked.x && data.job_duration_stacked.x.length > 0 && (
+        {/* JOB DURATION SUBSECTION */}
+        {data.job_duration_trends && data.job_duration_trends.x.length > 0 && (
+          <div className="collapsible-section">
+            <div
+              className="collapsible-header"
+              onClick={() => setShowJobDurationCharts(!showJobDurationCharts)}
+            >
+              <div className="collapsible-title">
+                <span className="collapse-icon">{showJobDurationCharts ? '−' : '+'}</span>
+                <h3>Job Duration</h3>
+              </div>
+              {/* Summary stats - always visible */}
+              <div className="timing-stats-row">
+                <div className="timing-stat">
+                  <span className="timing-stat-label">Median</span>
+                  <span className="timing-stat-value">{formatHours(timingStats?.durationMedian ?? null)}</span>
+                </div>
+                <div className="timing-stat">
+                  <span className="timing-stat-label">P95</span>
+                  <span className="timing-stat-value">{formatHours(timingStats?.durationP95 ?? null)}</span>
+                </div>
+                <div className="timing-stat">
+                  <span className="timing-stat-label">Max</span>
+                  <span className="timing-stat-value">{formatHours(timingStats?.durationMax ?? null)}</span>
+                </div>
+              </div>
+            </div>
+            {showJobDurationCharts && (
+              <div className="collapsible-content">
+                <div className="chart-row">
+                  <div className="card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h3>Job Duration Trends</h3>
+                      {!data.job_duration_trends.series && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <label style={{ fontSize: '0.9rem', fontWeight: 'normal' }}>Statistic:</label>
+                          <select
+                            value={jobDurationTrendStat}
+                            onChange={(e) => setJobDurationTrendStat(e.target.value)}
+                            className="stat-select"
+                          >
+                            <option value="mean">Mean</option>
+                            <option value="median">Median</option>
+                            <option value="max">Max</option>
+                            <option value="p05">P05</option>
+                            <option value="p25">P25</option>
+                            <option value="p75">P75</option>
+                            <option value="p90">P90</option>
+                            <option value="p95">P95</option>
+                            <option value="p99">P99</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                    <TimelineChart
+                      data={data.job_duration_trends}
+                      xTitle="Period"
+                      yTitle="Job Duration (hours)"
+                      colorMap={colorMap}
+                      defaultColor="#28a745"
+                      statistic={jobDurationTrendStat}
+                    />
+                  </div>
+                </div>
+
+                <div className="chart-row">
+                  {data.job_duration_stacked && data.job_duration_stacked.x && data.job_duration_stacked.x.length > 0 && (
             <div className="card">
               <h3>Job Duration Distribution Over Time <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>(stacked percentages)</span></h3>
               <div className="chart-container">
@@ -827,7 +914,11 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
               )}
             </div>
           )}
-        </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {/* RESOURCES SECTION */}

@@ -623,6 +623,143 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   Collapsible Sections
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.collapsible-section {
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.collapsible-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.collapsible-header:hover {
+  background: var(--border-light);
+}
+
+.collapsible-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.collapsible-title h3 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.collapse-icon {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary);
+  width: 1.5rem;
+  text-align: center;
+  user-select: none;
+}
+
+.collapsible-content {
+  padding: var(--space-md);
+  border-top: 1px solid var(--border);
+}
+
+/* Timing Stats Row */
+.timing-stats-row {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.timing-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  min-width: 60px;
+}
+
+.timing-stat-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.timing-stat-value {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.timing-stat-warning {
+  color: var(--warning);
+}
+
+.timing-stat-danger {
+  color: var(--danger);
+}
+
+/* Stat select dropdown */
+.stat-select {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 0.875rem;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.stat-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+@media (min-width: 768px) {
+  .collapsible-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  .timing-stat {
+    min-width: 70px;
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .timing-stat-label {
+    font-size: 0.6875rem;
+  }
+
+  .timing-stat-value {
+    font-size: 1rem;
+  }
+
+  .collapsible-content {
+    padding: var(--space-lg);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    Charts Container
    ═══════════════════════════════════════════════════════════════════════════ */
 
