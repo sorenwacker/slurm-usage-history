@@ -764,7 +764,22 @@ body {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .timing-subsection {
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-lg);
+}
+
+/* Timing trends row - side by side on larger screens */
+.timing-trends-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+@media (min-width: 1200px) {
+  .timing-trends-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg);
+  }
 }
 
 .timing-subsection-header {
