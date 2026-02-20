@@ -42,23 +42,23 @@ const SearchableCheckboxList: React.FC<{
 
   return (
     <div className="filter-group">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
         <div
           onClick={() => setIsExpanded(!isExpanded)}
           style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flex: 1 }}
         >
-          <span style={{ marginRight: '0.5rem', fontSize: '0.9rem' }}>
+          <span style={{ marginRight: '0.35rem', fontSize: '0.8rem' }}>
             {isExpanded ? '▼' : '▶'}
           </span>
-          <label style={{ cursor: 'pointer', margin: 0 }}>{label}</label>
+          <label style={{ cursor: 'pointer', margin: 0, fontSize: '0.8rem' }}>{label}</label>
           {selected.length > 0 && (
             <span style={{
-              marginLeft: '0.5rem',
-              fontSize: '0.75rem',
+              marginLeft: '0.35rem',
+              fontSize: '0.7rem',
               color: '#6366f1',
               fontWeight: 'bold'
             }}>
-              ({selected.length} selected)
+              ({selected.length})
             </span>
           )}
         </div>
@@ -70,8 +70,8 @@ const SearchableCheckboxList: React.FC<{
               setSelected([]);
             }}
             style={{
-              fontSize: '0.75rem',
-              padding: '0.2rem 0.5rem',
+              fontSize: '0.65rem',
+              padding: '0.15rem 0.35rem',
               background: '#dc3545',
               color: 'white',
               border: 'none',
@@ -92,43 +92,46 @@ const SearchableCheckboxList: React.FC<{
             onChange={(e) => setSearch(e.target.value)}
             style={{
               width: '100%',
-              padding: '0.5rem',
+              padding: '0.35rem',
               borderRadius: '4px',
-              border: '1px solid #ccc',
-              fontSize: '0.875rem',
-              marginBottom: '0.5rem',
+              border: '1px solid var(--border)',
+              fontSize: '0.8rem',
+              marginBottom: '0.35rem',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
             }}
           />
           <div style={{
-            maxHeight: '200px',
+            maxHeight: '180px',
             overflowY: 'auto',
-            border: '1px solid #dee2e6',
+            border: '1px solid var(--border)',
             borderRadius: '4px',
-            padding: '0.5rem',
+            padding: '0.35rem',
+            background: 'var(--bg-secondary)',
           }}>
             {filteredItems.length > 1 && (
-              <label style={{ display: 'flex', alignItems: 'center', padding: '0.25rem 0', cursor: 'pointer', fontWeight: 'bold', borderBottom: '1px solid #e0e0e0', marginBottom: '0.25rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', padding: '0.15rem 0', cursor: 'pointer', fontWeight: 'bold', borderBottom: '1px solid var(--border)', marginBottom: '0.15rem', fontSize: '0.75rem' }}>
                 <input
                   type="checkbox"
                   checked={allFiltered}
                   onChange={toggleAll}
-                  style={{ marginRight: '0.5rem' }}
+                  style={{ marginRight: '0.35rem' }}
                 />
                 Select All ({filteredItems.length})
               </label>
             )}
             {filteredItems.length === 0 && (
-              <div style={{ color: '#666', fontSize: '0.875rem', padding: '0.5rem', textAlign: 'center' }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', padding: '0.35rem', textAlign: 'center' }}>
                 No items found
               </div>
             )}
             {filteredItems.map((item) => (
-              <label key={item} style={{ display: 'flex', alignItems: 'center', padding: '0.25rem 0', cursor: 'pointer' }}>
+              <label key={item} style={{ display: 'flex', alignItems: 'center', padding: '0.12rem 0', cursor: 'pointer', fontSize: '0.75rem' }}>
                 <input
                   type="checkbox"
                   checked={selected.includes(item)}
                   onChange={() => toggleItem(item, selected, setSelected)}
-                  style={{ marginRight: '0.5rem' }}
+                  style={{ marginRight: '0.35rem' }}
                 />
                 {item}
               </label>
@@ -272,7 +275,7 @@ const Filters: React.FC<FiltersProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
       {/* Always visible: Cluster selection */}
       <div className="filter-group">
         <label htmlFor="hostname">Cluster</label>
@@ -421,14 +424,17 @@ const Filters: React.FC<FiltersProps> = ({
       )}
 
       {/* Global search - select matching items across all categories */}
-      <div className="filter-group quick-select-box">
+      <div className="quick-select-box">
         <label className="quick-select-label">
           Quick Select Across All Categories
         </label>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+          e.g. ewi, gpu, completed...
+        </div>
+        <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
           <input
             type="text"
-            placeholder="e.g. ewi, gpu, completed..."
+            placeholder="Search..."
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
             onKeyPress={(e) => {
@@ -448,12 +454,12 @@ const Filters: React.FC<FiltersProps> = ({
               cursor: globalSearch.trim() ? 'pointer' : 'not-allowed',
             }}
           >
-            Select All{countMatching() > 0 ? ` (${countMatching()})` : ''}
+            Select{countMatching() > 0 ? ` (${countMatching()})` : ''}
           </button>
         </div>
         {globalSearch.trim() && countMatching() === 0 && (
-          <div style={{ fontSize: '0.75rem', color: 'var(--danger)', marginTop: '0.5rem' }}>
-            No items match "{globalSearch}"
+          <div style={{ fontSize: '0.7rem', color: 'var(--danger)', marginTop: '0.25rem' }}>
+            No matches
           </div>
         )}
       </div>

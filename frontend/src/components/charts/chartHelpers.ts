@@ -283,6 +283,45 @@ export interface ChartColorOptions {
   legendBorderColor?: string;
 }
 
+// Helper function to invert color brightness for dark mode
+// In light mode: better values = brighter (toward white)
+// In dark mode: better values = darker (toward black), darkest colors stay unchanged
+export const adjustColorForDarkMode = (color: string, isDark: boolean): string => {
+  if (!isDark) return color;
+
+  // Parse hex color
+  let hex = color.replace('#', '');
+  if (hex.length === 3) {
+    hex = hex.split('').map(c => c + c).join('');
+  }
+
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  // Calculate brightness (0-255)
+  const brightness = (r + g + b) / 3;
+
+  // Dark/saturated colors (brightness < 95) stay unchanged
+  // This keeps #cc0000 (red, ~68) and #28a745 (green, ~92) intact
+  if (brightness < 95) {
+    return color;
+  }
+
+  // For colors above threshold: darken based on brightness
+  // brightness 255 -> factor ~0.03 (nearly black)
+  // brightness 95 -> factor ~1.0 (unchanged)
+  const normalizedBrightness = (brightness - 95) / (255 - 95); // 0 to 1
+  const factor = Math.pow(1 - normalizedBrightness, 2);
+
+  const newR = Math.round(r * factor);
+  const newG = Math.round(g * factor);
+  const newB = Math.round(b * factor);
+
+  const toHex = (n: number) => n.toString(16).padStart(2, '0');
+  return `#${toHex(newR)}${toHex(newG)}${toHex(newB)}`;
+};
+
 // Default light mode colors
 const defaultColors: ChartColorOptions = {
   gridColor: 'rgba(128, 128, 128, 0.1)',

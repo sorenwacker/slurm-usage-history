@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Plot from 'react-plotly.js';
 import type { AggregatedChartsResponse, ChartData } from '../types';
-import { createGlobalColorMap, COLORS } from './charts/chartHelpers';
+import { createGlobalColorMap, COLORS, adjustColorForDarkMode } from './charts/chartHelpers';
 import StackedAreaChart from './charts/StackedAreaChart';
 import PieChart from './charts/PieChart';
 import HistogramChart from './charts/HistogramChart';
@@ -27,7 +27,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
   const [showWaitingTimeCharts, setShowWaitingTimeCharts] = useState<boolean>(true);
   const [showJobDurationCharts, setShowJobDurationCharts] = useState<boolean>(true);
   const renderStartTime = useRef<number>(Date.now());
-  const { chartColors } = useDarkMode();
+  const { chartColors, isDark } = useDarkMode();
 
   // Calculate timing summary stats
   const timingStats = useMemo(() => {
@@ -768,7 +768,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   y: series.data,
                   name: series.name,
                   type: 'bar',
-                  marker: { color: series.color },
+                  marker: { color: adjustColorForDarkMode(series.color, isDark) },
                   hovertemplate: `<b>${series.name}</b><br>%{y:.1f}%<br>Period: %{x}<extra></extra>`,
                 })) || []}
                 layout={{
@@ -826,7 +826,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   y: series.data,
                   name: series.name,
                   type: 'bar',
-                  marker: { color: series.color },
+                  marker: { color: adjustColorForDarkMode(series.color, isDark) },
                   hovertemplate: `<b>${series.name}</b><br>%{y:.1f}%<br>Period: %{x}<extra></extra>`,
                 })) || []}
                 layout={{
