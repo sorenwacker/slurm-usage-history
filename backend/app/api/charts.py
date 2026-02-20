@@ -41,6 +41,7 @@ from ..services.charts import (
     generate_gpu_hours_by_account,
     generate_by_dimension,
     generate_node_usage,
+    generate_user_activity_frequency,
 )
 
 # Import datastore
@@ -87,6 +88,7 @@ def _generate_cache_key(request: FilterRequest) -> str:
         "color_by": request.color_by,
         "account_segments": request.account_segments,
         "complete_periods_only": request.complete_periods_only,
+        # Note: normalize_node_usage removed - now handled client-side
         # Note: hide_unused_nodes and sort_by_usage removed - now handled client-side
     }
     # Convert to JSON string and hash it
@@ -178,12 +180,34 @@ async def get_aggregated_charts(request: FilterRequest, current_user: dict = Dep
         period_type = request.period_type or "month"
         color_by = request.color_by  # Can be: Account, Partition, State, QOS, User, or None
 
-        # Get node usage data (always return full data - filtering/sorting done client-side)
+        # Calculate total hours for client-side normalization
+        total_hours = None
+        try:
+            if request.start_date and request.end_date:
+                start = datetime.strptime(request.start_date, "%Y-%m-%d")
+                end = datetime.strptime(request.end_date, "%Y-%m-%d")
+            elif "Submit" in df.columns:
+                start = pd.to_datetime(df["Submit"].min())
+                end = pd.to_datetime(df["Submit"].max())
+            else:
+                start = end = None
+
+            if start and end:
+                # Add 1 day to end to include the last day fully
+                delta = (end - start).days + 1
+                total_hours = delta * 24.0
+        except Exception:
+            total_hours = None
+
+        # Get node usage data (always return raw values - normalization done client-side)
         node_usage = generate_node_usage(
             df,
             color_by=color_by,
             hide_unused=False,  # Always return all nodes
             sort_by_usage=False,  # Alphabetical order (client handles sorting)
+            normalize=False,  # Always return raw values (normalization done client-side)
+            cluster_name=request.hostname,
+            total_hours=total_hours,
         )
 
         charts_data = {
@@ -218,9 +242,11 @@ async def get_aggregated_charts(request: FilterRequest, current_user: dict = Dep
             # Resource distribution charts - use color_by for dynamic grouping (with period_type for histogram mode)
             "cpu_hours_by_account": generate_by_dimension(df, color_by, metric="CPUHours", period_type=period_type),
             "gpu_hours_by_account": generate_by_dimension(df, color_by, metric="GPUHours", period_type=period_type),
-            # Node usage charts
-            "node_cpu_usage": node_usage["cpu_usage"],
-            "node_gpu_usage": node_usage["gpu_usage"],
+            # Node usage charts (include total_hours for client-side normalization)
+            "node_cpu_usage": {**node_usage["cpu_usage"], "total_hours": total_hours},
+            "node_gpu_usage": {**node_usage["gpu_usage"], "total_hours": total_hours},
+            # User activity frequency distribution
+            "user_activity_frequency": generate_user_activity_frequency(df, period_type, color_by),
         }
 
         # Save to cache before returning

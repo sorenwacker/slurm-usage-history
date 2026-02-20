@@ -18,6 +18,9 @@ def generate_node_usage(
     color_by: str | None = None,
     hide_unused: bool = True,
     sort_by_usage: bool = False,
+    normalize: bool = False,
+    cluster_name: str | None = None,
+    total_hours: float | None = None,
 ) -> dict[str, Any]:
     """Aggregate CPU and GPU usage by node.
 
@@ -26,10 +29,28 @@ def generate_node_usage(
         color_by: Optional dimension to group by (Account, Partition, State, QOS, User)
         hide_unused: Hide nodes with 0 usage
         sort_by_usage: Sort nodes by usage (default: alphabetical)
+        normalize: If True, normalize usage to percentage of max capacity (0-100%)
+        cluster_name: Cluster name for hardware lookups (required if normalize=True)
+        total_hours: Total hours in time range for normalization (required if normalize=True)
 
     Returns:
-        Dictionary with cpu_usage and gpu_usage data
+        Dictionary with cpu_usage and gpu_usage data. If normalize=True, values
+        represent percentage utilization (0-100).
     """
+    # Import cluster config for hardware lookups (only when needed)
+    from ...config import get_cluster_config
+
+    # Helper function to normalize a single value to percentage
+    def normalize_value(value: float, max_capacity: float) -> float:
+        if max_capacity <= 0:
+            return 0.0
+        return min(100.0, (value / max_capacity) * 100.0)
+
+    # Get hardware config if normalization is requested
+    cluster_config = None
+    if normalize and cluster_name and total_hours and total_hours > 0:
+        cluster_config = get_cluster_config()
+
     if "NodeList" not in df.columns:
         return {
             "cpu_usage": {"x": [], "y": [], "series": []},
@@ -112,6 +133,18 @@ def generate_node_usage(
         cpu_sorted_nodes = sorted(cpu_grouped["NodeList"].unique())
         gpu_sorted_nodes = sorted(gpu_grouped["NodeList"].unique())
 
+    # Pre-compute max capacities and hardware config for each node
+    cpu_max_capacities = {}
+    gpu_max_capacities = {}
+    hardware_config = {}  # Store per-node hardware specs for hover info
+    config = get_cluster_config()
+    for node in set(cpu_sorted_nodes + gpu_sorted_nodes):
+        hw = config.get_node_hardware(cluster_name, node) if cluster_name else {"cpu_cores": 64, "gpu_count": 0}
+        hardware_config[node] = hw
+        if cluster_config and total_hours:
+            cpu_max_capacities[node] = hw["cpu_cores"] * total_hours
+            gpu_max_capacities[node] = hw["gpu_count"] * total_hours
+
     # Build response
     if color_by and color_by in cpu_grouped.columns:
         # Multi-series for stacked bar chart
@@ -122,7 +155,10 @@ def generate_node_usage(
             data = []
             for node in cpu_sorted_nodes:
                 node_value = group_data[group_data["NodeList"] == node]["CPUHours"].sum()
-                data.append(float(node_value) if node_value > 0 else 0.0)
+                value = float(node_value) if node_value > 0 else 0.0
+                if cluster_config and node in cpu_max_capacities:
+                    value = normalize_value(value, cpu_max_capacities[node])
+                data.append(value)
             cpu_series.append({
                 "name": str(group),
                 "data": data,
@@ -135,7 +171,10 @@ def generate_node_usage(
             data = []
             for node in gpu_sorted_nodes:
                 node_value = group_data[group_data["NodeList"] == node]["GPUHours"].sum()
-                data.append(float(node_value) if node_value > 0 else 0.0)
+                value = float(node_value) if node_value > 0 else 0.0
+                if cluster_config and node in gpu_max_capacities:
+                    value = normalize_value(value, gpu_max_capacities[node])
+                data.append(value)
             gpu_series.append({
                 "name": str(group),
                 "data": data,
@@ -145,31 +184,43 @@ def generate_node_usage(
             "cpu_usage": {
                 "x": cpu_sorted_nodes,
                 "series": cpu_series,
+                "normalized": cluster_config is not None,
+                "hardware_config": {node: hardware_config.get(node, {}) for node in cpu_sorted_nodes},
             },
             "gpu_usage": {
                 "x": gpu_sorted_nodes,
                 "series": gpu_series,
+                "normalized": cluster_config is not None,
+                "hardware_config": {node: hardware_config.get(node, {}) for node in gpu_sorted_nodes},
             },
         }
     else:
         # Single series
         cpu_data = []
         for node in cpu_sorted_nodes:
-            value = cpu_grouped[cpu_grouped["NodeList"] == node]["CPUHours"].sum()
-            cpu_data.append(float(value))
+            value = float(cpu_grouped[cpu_grouped["NodeList"] == node]["CPUHours"].sum())
+            if cluster_config and node in cpu_max_capacities:
+                value = normalize_value(value, cpu_max_capacities[node])
+            cpu_data.append(value)
 
         gpu_data = []
         for node in gpu_sorted_nodes:
-            value = gpu_grouped[gpu_grouped["NodeList"] == node]["GPUHours"].sum()
-            gpu_data.append(float(value))
+            value = float(gpu_grouped[gpu_grouped["NodeList"] == node]["GPUHours"].sum())
+            if cluster_config and node in gpu_max_capacities:
+                value = normalize_value(value, gpu_max_capacities[node])
+            gpu_data.append(value)
 
         return {
             "cpu_usage": {
                 "x": cpu_sorted_nodes,
                 "y": cpu_data,
+                "normalized": cluster_config is not None,
+                "hardware_config": {node: hardware_config.get(node, {}) for node in cpu_sorted_nodes},
             },
             "gpu_usage": {
                 "x": gpu_sorted_nodes,
                 "y": gpu_data,
+                "normalized": cluster_config is not None,
+                "hardware_config": {node: hardware_config.get(node, {}) for node in gpu_sorted_nodes},
             },
         }
