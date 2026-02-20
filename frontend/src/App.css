@@ -515,6 +515,22 @@ body {
   }
 }
 
+/* Equal-width chart row */
+.chart-row-equal {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+@media (min-width: 900px) {
+  .chart-row-equal {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
+  }
+}
+
 /* 3-column layout for resource charts */
 .chart-row-3col {
   display: grid;

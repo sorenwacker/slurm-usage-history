@@ -842,7 +842,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
         )}
 
         {/* HISTOGRAM CHARTS - Together at the bottom */}
-        <div className="chart-row">
+        <div className="chart-row-equal">
           {data.waiting_times_hist && (
             (data.waiting_times_hist.type === 'pie' && (data.waiting_times_hist.labels?.length ?? 0) > 0) ||
             (data.waiting_times_hist.x && data.waiting_times_hist.x.length > 0)
