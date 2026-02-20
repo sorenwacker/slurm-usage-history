@@ -4,6 +4,285 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 
+# =============================================================================
+# Constants for bin configurations
+# =============================================================================
+
+# Time column mappings
+TIME_COLUMN_MAP = {
+    "day": "StartDay",
+    "week": "StartYearWeek",
+    "month": "StartYearMonth",
+    "year": "StartYear",
+}
+
+# Histogram bin edges for time-based distributions (in hours)
+HISTOGRAM_BIN_EDGES = [0, 1, 4, 12, 24, 72, 168, float('inf')]
+HISTOGRAM_BIN_LABELS = ["< 1h", "1h - 4h", "4h - 12h", "12h - 24h", "1d - 3d", "3d - 7d", "> 7d"]
+
+# Job duration stacked chart bins (7 bins with green gradient)
+DURATION_BINS = [
+    ("< 1h", 0, 1),
+    ("1h-4h", 1, 4),
+    ("4h-12h", 4, 12),
+    ("12h-24h", 12, 24),
+    ("1d-3d", 24, 72),
+    ("3d-7d", 72, 168),
+    ("> 7d", 168, float('inf')),
+]
+DURATION_COLORS = [
+    "#d4edda",  # Very light green
+    "#c3e6cb",
+    "#a3d5a1",
+    "#7bc77e",
+    "#52b058",
+    "#3d9142",
+    "#28a745",  # Dark green
+]
+
+# Waiting time stacked chart bins (6 bins with red gradient)
+WAITING_TIME_BINS = [
+    ("< 30min", 0, 0.5),
+    ("30min-1h", 0.5, 1),
+    ("1h-4h", 1, 4),
+    ("4h-12h", 4, 12),
+    ("12h-24h", 12, 24),
+    ("> 24h", 24, float('inf')),
+]
+WAITING_TIME_COLORS = [
+    "#ffe5e5",  # Very light red
+    "#ffb3b3",
+    "#ff8080",
+    "#ff4d4d",
+    "#ff1a1a",
+    "#cc0000",  # Dark red
+]
+
+
+# =============================================================================
+# Generic helper functions
+# =============================================================================
+
+def _get_time_column(df: pd.DataFrame, period_type: str) -> tuple[pd.DataFrame, str | None]:
+    """Get the appropriate time column for the period type, handling year extraction.
+
+    Returns:
+        Tuple of (possibly modified DataFrame, time_column name or None if not found)
+    """
+    time_column = TIME_COLUMN_MAP.get(period_type, "StartYearMonth")
+
+    if time_column not in df.columns:
+        if period_type == "year" and "StartYearMonth" in df.columns:
+            df_copy = df.copy()
+            df_copy["StartYear"] = df_copy["StartYearMonth"].astype(str).str[:4]
+            return df_copy, "StartYear"
+        return df, None
+
+    return df, time_column
+
+
+def _generate_stacked_distribution(
+    df: pd.DataFrame,
+    value_column: str,
+    period_type: str,
+    bins: list[tuple[str, float, float]],
+    colors: list[str],
+    bin_column_name: str,
+    filter_nulls: bool = False,
+    reverse_series: bool = False,
+) -> dict[str, Any]:
+    """Generic function to create stacked percentage bar charts over time.
+
+    Args:
+        df: Input DataFrame
+        value_column: Column containing the values to bin
+        period_type: Time period (day, week, month, year)
+        bins: List of (label, min_value, max_value) tuples
+        colors: List of colors corresponding to each bin
+        bin_column_name: Name for the temporary bin column
+        filter_nulls: Whether to filter out null values
+        reverse_series: Whether to reverse the series order
+
+    Returns:
+        {"x": time_periods, "series": [{"name": label, "data": percentages, "color": color}, ...]}
+    """
+    if value_column not in df.columns:
+        return {"x": [], "series": []}
+
+    df_work, time_column = _get_time_column(df, period_type)
+    if time_column is None:
+        return {"x": [], "series": []}
+
+    # Filter nulls if needed
+    if filter_nulls:
+        df_work = df_work[df_work[value_column].notna()].copy()
+        if df_work.empty:
+            return {"x": [], "series": []}
+    else:
+        df_work = df_work.copy()
+
+    # Categorize values into bins
+    bin_edges = [b[1] for b in bins] + [float('inf')]
+    bin_labels = [b[0] for b in bins]
+
+    df_work[bin_column_name] = pd.cut(
+        df_work[value_column],
+        bins=bin_edges,
+        labels=bin_labels,
+        right=False,
+        include_lowest=True
+    )
+
+    # Count per time period and bin
+    grouped = df_work.groupby([time_column, bin_column_name], observed=False).size().unstack(fill_value=0)
+
+    if grouped.empty:
+        return {"x": [], "series": []}
+
+    # Convert to percentages
+    grouped_pct = grouped.div(grouped.sum(axis=1), axis=0) * 100
+
+    # Build series
+    time_periods = grouped_pct.index.tolist()
+    series = []
+
+    for i, (bin_label, _, _) in enumerate(bins):
+        if bin_label in grouped_pct.columns:
+            series.append({
+                "name": bin_label,
+                "data": grouped_pct[bin_label].tolist(),
+                "color": colors[i],
+            })
+
+    if reverse_series:
+        series.reverse()
+
+    return {
+        "x": time_periods,
+        "series": series,
+    }
+
+
+def _generate_trends(
+    df: pd.DataFrame,
+    value_column: str,
+    period_type: str,
+    color_by: Optional[str],
+    stat: str,
+    filter_nulls: bool = False,
+    filter_positive: bool = False,
+) -> dict[str, Any]:
+    """Generic function to generate statistical trends over time.
+
+    Args:
+        df: Input DataFrame
+        value_column: Column to calculate statistics on
+        period_type: Time period (day, week, month, year)
+        color_by: Optional grouping dimension for multi-line mode
+        stat: Statistic to use when color_by is specified (mean, median, max, p25, p50, etc.)
+        filter_nulls: Filter out null values
+        filter_positive: Filter to only positive values
+
+    Returns:
+        Without color_by: {"x": periods, "stats": {"mean": [...], "median": [...], ...}}
+        With color_by: {"x": periods, "series": [{"name": group, "data": [...]}, ...]}
+    """
+    if value_column not in df.columns:
+        return {"x": [], "stats": {}}
+
+    df_work, time_column = _get_time_column(df, period_type)
+    if time_column is None:
+        return {"x": [], "stats": {}}
+
+    # Apply filters
+    if filter_nulls:
+        df_work = df_work[df_work[value_column].notna()]
+    if filter_positive:
+        df_work = df_work[df_work[value_column] > 0]
+
+    if df_work.empty:
+        return {"x": [], "stats": {}}
+
+    df_filtered = df_work.copy()
+    all_periods = sorted(df_filtered[time_column].unique())
+
+    # Helper to calculate a single statistic
+    def calc_stat(data: pd.Series, stat_name: str) -> float:
+        if data.empty:
+            return 0.0
+        if stat_name == "mean":
+            return float(data.mean())
+        elif stat_name == "median":
+            return float(data.median())
+        elif stat_name == "max":
+            return float(data.max())
+        elif stat_name.startswith("p"):
+            percentile = int(stat_name[1:]) / 100.0
+            return float(data.quantile(percentile))
+        return float(data.median())
+
+    # Multi-line mode when color_by is specified
+    if color_by and color_by != "None" and color_by in df_filtered.columns:
+        groups = sorted(df_filtered[color_by].dropna().unique())
+        series = []
+
+        for group in groups:
+            group_df = df_filtered[df_filtered[color_by] == group]
+            values = []
+
+            for period in all_periods:
+                period_data = group_df[group_df[time_column] == period][value_column]
+                values.append(calc_stat(period_data, stat))
+
+            series.append({
+                "name": str(group),
+                "data": values,
+            })
+
+        return {
+            "x": all_periods,
+            "series": series,
+        }
+
+    # Single line mode - calculate all statistics
+    stats = {
+        "mean": [],
+        "median": [],
+        "max": [],
+        "p25": [],
+        "p50": [],
+        "p75": [],
+        "p90": [],
+        "p95": [],
+        "p99": [],
+    }
+
+    for period in all_periods:
+        period_data = df_filtered[df_filtered[time_column] == period][value_column]
+
+        if not period_data.empty:
+            stats["mean"].append(float(period_data.mean()))
+            stats["median"].append(float(period_data.median()))
+            stats["max"].append(float(period_data.max()))
+            stats["p25"].append(float(period_data.quantile(0.25)))
+            stats["p50"].append(float(period_data.quantile(0.50)))
+            stats["p75"].append(float(period_data.quantile(0.75)))
+            stats["p90"].append(float(period_data.quantile(0.90)))
+            stats["p95"].append(float(period_data.quantile(0.95)))
+            stats["p99"].append(float(period_data.quantile(0.99)))
+        else:
+            for key in stats:
+                stats[key].append(0.0)
+
+    return {
+        "x": all_periods,
+        "stats": stats,
+    }
+
+
+# =============================================================================
+# Public API functions
+# =============================================================================
 
 def generate_by_dimension(df: pd.DataFrame, group_by: str | None, metric: str = "count", top_n: int = 10, period_type: str = "month") -> dict[str, list]:
     """Generic aggregation function that groups by a dimension.
@@ -19,7 +298,6 @@ def generate_by_dimension(df: pd.DataFrame, group_by: str | None, metric: str = 
         When group_by is None: Histogram data {"x": bins, "y": counts, "mean": value, "median": value, "type": "histogram"}
         When group_by is set: Bar chart data {"x": labels, "y": values}
     """
-    # Map of valid group_by values to DataFrame column names
     column_map = {
         "Account": "Account",
         "Partition": "Partition",
@@ -30,44 +308,25 @@ def generate_by_dimension(df: pd.DataFrame, group_by: str | None, metric: str = 
 
     # If no grouping, behavior depends on metric type
     if not group_by or group_by not in column_map:
-        # For CPU/GPU hours: create per-period histogram (matching original Dash behavior)
+        # For CPU/GPU hours: create per-period histogram
         if metric in ["CPUHours", "GPUHours"]:
             if metric not in df.columns:
                 return {"x": [], "y": [], "mean": 0, "median": 0, "type": "histogram"}
 
-            # Get time column based on period type
-            time_column_map = {
-                "day": "StartDay",
-                "week": "StartYearWeek",
-                "month": "StartYearMonth",
-                "year": "StartYear",
-            }
-            time_column = time_column_map.get(period_type, "StartYearMonth")
+            df_work, time_column = _get_time_column(df, period_type)
+            if time_column is None:
+                return {"x": [], "y": [], "mean": 0, "median": 0, "type": "histogram"}
 
-            # Handle year extraction if needed
-            df_copy = df
-            if time_column not in df.columns:
-                if period_type == "year" and "StartYearMonth" in df.columns:
-                    df_copy = df.copy()
-                    df_copy["StartYear"] = df_copy["StartYearMonth"].astype(str).str[:4]
-                else:
-                    return {"x": [], "y": [], "mean": 0, "median": 0, "type": "histogram"}
-
-            # Group by time period and sum hours
-            usage_per_period = df_copy.groupby(time_column)[metric].sum()
+            usage_per_period = df_work.groupby(time_column)[metric].sum()
 
             if len(usage_per_period) == 0:
                 return {"x": [], "y": [], "mean": 0, "median": 0, "type": "histogram"}
 
-            # Calculate mean and median
             mean_val = float(usage_per_period.mean())
             median_val = float(usage_per_period.median())
 
-            # Create histogram with 20 bins (matching original)
             n_bins = 20
             counts, bin_edges = np.histogram(usage_per_period, bins=n_bins)
-
-            # Use bin centers for plotting
             bin_centers = [(bin_edges[i] + bin_edges[i+1]) / 2 for i in range(len(bin_edges)-1)]
 
             return {
@@ -75,65 +334,67 @@ def generate_by_dimension(df: pd.DataFrame, group_by: str | None, metric: str = 
                 "y": counts.tolist(),
                 "mean": mean_val,
                 "median": median_val,
-                "type": "histogram",  # Flag to indicate this is a histogram
+                "type": "histogram",
             }
 
         # For job counts: create histogram showing distribution of jobs per user
         if "User" not in df.columns:
             return {"x": [], "y": [], "mean": 0, "median": 0}
 
-        # Count jobs per user
         jobs_per_user = df["User"].value_counts()
 
         if len(jobs_per_user) == 0:
             return {"x": [], "y": [], "mean": 0, "median": 0}
 
-        # Calculate mean and median from the raw data
         mean_val = float(jobs_per_user.mean())
         median_val = float(jobs_per_user.median())
 
-        # Use automatic binning with pandas/numpy histogram
-        # Determine optimal number of bins using Sturges' rule or sqrt
         n_bins = min(30, max(10, int(np.ceil(np.sqrt(len(jobs_per_user))))))
-
-        # Create histogram with automatic binning
         counts, bin_edges = np.histogram(jobs_per_user, bins=n_bins)
-
-        # Create bin labels as "low-high"
         bin_labels = [f"{int(bin_edges[i])}-{int(bin_edges[i+1])}" for i in range(len(bin_edges)-1)]
-
-        # Use bin centers for plotting (better for continuous data)
         bin_centers = [(bin_edges[i] + bin_edges[i+1]) / 2 for i in range(len(bin_edges)-1)]
 
         return {
-            "x": bin_centers,  # Use bin centers for better positioning
+            "x": bin_centers,
             "y": counts.tolist(),
             "mean": mean_val,
             "median": median_val,
-            "bin_labels": bin_labels,  # For hover text
+            "bin_labels": bin_labels,
         }
 
     group_column = column_map.get(group_by, "Account")
 
-    # Check if column exists
     if group_column not in df.columns:
-        return {"x": [], "y": []}
+        return {"type": "pie", "labels": [], "values": []}
 
-    # Aggregate based on metric type
     if metric == "count":
-        # Count jobs per group
-        grouped = df[group_column].value_counts().head(top_n)
+        all_grouped = df[group_column].value_counts()
     elif metric in ["CPUHours", "GPUHours"]:
-        # Sum hours per group
         if metric not in df.columns:
-            return {"x": [], "y": []}
-        grouped = df.groupby(group_column)[metric].sum().sort_values(ascending=False).head(top_n)
+            return {"type": "pie", "labels": [], "values": []}
+        all_grouped = df.groupby(group_column)[metric].sum().sort_values(ascending=False)
     else:
-        return {"x": [], "y": []}
+        return {"type": "pie", "labels": [], "values": []}
+
+    # Get top N
+    top_items = all_grouped.head(top_n)
+
+    # Calculate "Others" if there are more items
+    others_value = 0
+    if len(all_grouped) > top_n:
+        others_value = float(all_grouped.iloc[top_n:].sum())
+
+    labels = [str(x) for x in top_items.index.tolist()]
+    values = top_items.values.tolist()
+
+    if others_value > 0:
+        labels.append(f"Others ({len(all_grouped) - top_n})")
+        values.append(others_value)
 
     return {
-        "x": grouped.index.tolist(),
-        "y": grouped.values.tolist(),
+        "type": "pie",
+        "labels": labels,
+        "values": values,
     }
 
 
@@ -177,85 +438,73 @@ def _aggregate_value_histogram(
     df: pd.DataFrame,
     value_column: str,
     color_by: Optional[str] = None,
-    filter_positive: bool = False
+    filter_positive: bool = False,
+    top_n: int = 15,
 ) -> dict[str, Any]:
-    """Generic function to create histograms for numeric value distributions."""
+    """Generic function to create histograms or pie charts for numeric value distributions.
+
+    When color_by is None: Returns histogram with predefined time bins.
+    When color_by is set: Returns pie chart showing total hours by group.
+    """
     if value_column not in df.columns:
         return {"x": [], "y": [], "median": 0, "average": 0}
 
-    # Filter data if needed
     if filter_positive:
-        values = df[df[value_column] > 0][value_column].dropna()
+        df_work = df[df[value_column] > 0].copy()
     else:
-        values = df[value_column].dropna()
+        df_work = df.copy()
+
+    values = df_work[value_column].dropna()
 
     if values.empty:
         return {"x": [], "y": [], "median": 0, "average": 0}
 
-    # Calculate overall statistics
     median_val = float(values.median())
     mean_val = float(values.mean())
 
-    # If no grouping, return simple numeric histogram
+    # Histogram mode when no grouping
     if not color_by or color_by == "None":
-        # Use predefined bins matching the original Dash implementation
-        bin_edges = [0, 1, 4, 12, 24, 72, 168, float('inf')]
-        bin_labels = ["< 1h", "1h - 4h", "4h - 12h", "12h - 24h", "1d - 3d", "3d - 7d", "> 7d"]
-
-        # Create histogram with predefined bins
-        counts, _ = np.histogram(values, bins=bin_edges)
-
-        # Convert to percentage to make it consistent with frontend expectations
+        counts, _ = np.histogram(values, bins=HISTOGRAM_BIN_EDGES)
         total = counts.sum()
         percentages = [(count / total * 100) if total > 0 else 0 for count in counts]
 
         return {
             "type": "histogram",
-            "x": bin_labels,
+            "x": HISTOGRAM_BIN_LABELS,
             "y": percentages,
             "median": median_val,
             "average": mean_val,
         }
 
-    # Grouped histogram mode when color_by is specified
-    if color_by not in df.columns:
-        return {"type": "histogram", "x": [], "series": []}
+    # Pie chart mode when grouped
+    if color_by not in df_work.columns:
+        return {"type": "pie", "labels": [], "values": []}
 
-    # Filter df if needed
-    if filter_positive:
-        df = df[df[value_column] > 0]
+    # Sum total hours per group
+    all_grouped = df_work.groupby(color_by)[value_column].sum().sort_values(ascending=False)
 
-    # Predefined bins
-    bin_edges = [0, 1, 4, 12, 24, 72, 168, float('inf')]
-    bin_labels = ["< 1h", "1h - 4h", "4h - 12h", "12h - 24h", "1d - 3d", "3d - 7d", "> 7d"]
+    if all_grouped.empty:
+        return {"type": "pie", "labels": [], "values": []}
 
-    # Group by color_by dimension and create histogram for each group
-    series = []
-    for group_name in df[color_by].unique():
-        if pd.isna(group_name):
-            continue
-        group_df = df[df[color_by] == group_name]
-        group_values = group_df[value_column].values
+    # Get top N
+    top_items = all_grouped.head(top_n)
 
-        if len(group_values) == 0:
-            continue
+    # Calculate "Others" if there are more items
+    others_value = 0
+    if len(all_grouped) > top_n:
+        others_value = float(all_grouped.iloc[top_n:].sum())
 
-        # Create histogram with predefined bins
-        counts, _ = np.histogram(group_values, bins=bin_edges)
+    labels = [str(x) for x in top_items.index.tolist()]
+    values = top_items.values.tolist()
 
-        # Convert to percentage
-        total = counts.sum()
-        percentages = [(count / total * 100) if total > 0 else 0 for count in counts]
-
-        series.append({
-            "name": str(group_name),
-            "data": percentages
-        })
+    if others_value > 0:
+        labels.append(f"Others ({len(all_grouped) - top_n})")
+        values.append(others_value)
 
     return {
-        "type": "histogram",
-        "x": bin_labels,
-        "series": series,
+        "type": "pie",
+        "labels": labels,
+        "values": values,
         "median": median_val,
         "average": mean_val,
     }
@@ -279,34 +528,16 @@ def _aggregate_period_distribution(
     metric_name: str,
     allowed_pie_dimensions: Optional[list[str]] = None
 ) -> dict[str, Any]:
-    """
-    Generic function to create distribution histograms for period-based metrics.
-
-    Args:
-        df: Input DataFrame
-        period_type: Time period (day, week, month, year)
-        color_by: Optional dimension to group by (Account, Partition, User, QOS, State)
-        agg_func: Function to aggregate per period (e.g., lambda df, col: df.groupby(col).size())
-        metric_name: Name of the metric (for error messages)
-        allowed_pie_dimensions: Ignored (kept for API compatibility)
-
-    Returns:
-        WITHOUT color_by: Histogram {"type": "histogram", "x": bin_centers, "y": counts, "average": float, "median": float}
-        WITH color_by: Bar chart {"x": categories, "y": values}
-        On error: {"type": "empty"}
-    """
+    """Generic function to create distribution histograms for period-based metrics."""
     if df.empty:
         return {"type": "empty", "x": [], "y": []}
 
-    # If color_by is specified, group by that dimension instead of creating histogram
     if color_by and color_by in df.columns:
-        # Group by the color_by dimension and aggregate across all periods
         grouped = agg_func(df, color_by)
 
         if grouped.empty:
             return {"type": "empty", "x": [], "y": []}
 
-        # Sort by value (descending) and return as simple bar chart
         grouped_sorted = grouped.sort_values(ascending=False)
 
         return {
@@ -314,37 +545,21 @@ def _aggregate_period_distribution(
             "y": grouped_sorted.values.tolist(),
         }
 
-    # Determine time column based on period_type
-    time_column_map = {
-        "day": "StartDay",
-        "week": "StartYearWeek",
-        "month": "StartYearMonth",
-        "year": "StartYear",
-    }
-    time_column = time_column_map.get(period_type, "StartYearMonth")
-
-    if time_column not in df.columns:
+    df_work, time_column = _get_time_column(df, period_type)
+    if time_column is None:
         return {"type": "empty", "x": [], "y": []}
 
-    # Create histogram: distribution of metric per period
-    values_per_period = agg_func(df, time_column)
+    values_per_period = agg_func(df_work, time_column)
 
     if values_per_period.empty:
         return {"type": "empty", "x": [], "y": []}
 
-    # Create histogram bins for the values
     values = values_per_period.values
-
-    # Use adaptive binning based on data distribution
     num_bins = min(20, max(5, len(values)))
 
-    # Create histogram
     counts, bin_edges = np.histogram(values, bins=num_bins)
-
-    # Use bin centers for plotting (matching CPU/GPU distribution style)
     bin_centers = [(bin_edges[i] + bin_edges[i+1]) / 2 for i in range(len(bin_edges)-1)]
 
-    # Calculate statistics
     avg_value = float(values.mean())
     median_value = float(np.median(values))
 
@@ -358,460 +573,149 @@ def _aggregate_period_distribution(
 
 
 def generate_active_users_distribution(df: pd.DataFrame, period_type: str = "month", color_by: Optional[str] = None) -> dict[str, Any]:
-    """
-    Aggregate active users distribution (matching original Dash implementation).
+    """Aggregate active users distribution.
 
-    WITHOUT color_by: Histogram showing distribution of active users per time period (20 bins, average line)
-    WITH color_by="Account": Pie chart showing unique users per account
-    WITH other color_by: Returns warning message
+    Shows histogram of how many unique users were active per period.
+    Note: color_by="User" is ignored as it doesn't make sense for this chart
+    (grouping users by user would just show each user with count=1).
     """
     if "User" not in df.columns:
         return {"type": "empty", "x": [], "y": []}
 
-    # Aggregation function: count unique users per period or dimension
     def agg_unique_users(data, group_col):
         return data.groupby(group_col)["User"].nunique()
+
+    # Ignore color_by="User" - it doesn't make sense for user distribution
+    effective_color_by = None if color_by == "User" else color_by
 
     return _aggregate_period_distribution(
         df=df,
         period_type=period_type,
-        color_by=color_by,
+        color_by=effective_color_by,
         agg_func=agg_unique_users,
         metric_name="Active users",
         allowed_pie_dimensions=["Account"]
     )
 
 
-def generate_jobs_distribution(df: pd.DataFrame, period_type: str = "month", color_by: Optional[str] = None) -> dict[str, Any]:
-    """
-    Aggregate jobs distribution (matching original Dash implementation).
+def generate_jobs_distribution(df: pd.DataFrame, period_type: str = "month", color_by: Optional[str] = None, top_n: int = 15) -> dict[str, Any]:
+    """Aggregate jobs distribution.
 
-    WITHOUT color_by: Histogram showing distribution of job counts per period (20 bins, average line)
-    WITH color_by: Pie chart showing jobs by dimension (Account, Partition, State, QOS, User)
+    When color_by is set to a valid dimension:
+        Shows pie chart of jobs grouped by that dimension.
+
+    When color_by is None:
+        Shows histogram of jobs per period distribution.
+
+    Args:
+        df: Input DataFrame
+        period_type: Time period for histogram mode
+        color_by: Dimension to group by (User, Account, Partition, State, QOS)
+        top_n: Number of top items to show in pie chart
+
+    Returns:
+        Pie chart or histogram data
     """
-    # Aggregation function: count jobs per period or dimension
+    if df.empty:
+        return {"type": "histogram", "x": [], "y": []}
+
+    # Pie chart mode for grouping dimensions
+    pie_chart_dimensions = ["User", "Account", "Partition", "State", "QOS"]
+
+    if color_by in pie_chart_dimensions and color_by in df.columns:
+        # Count jobs per group
+        job_counts = df.groupby(color_by).size().sort_values(ascending=False)
+
+        top_items = job_counts.head(top_n)
+
+        # Calculate "Others" if there are more items
+        others_count = 0
+        if len(job_counts) > top_n:
+            others_count = int(job_counts.iloc[top_n:].sum())
+
+        labels = [str(x) for x in top_items.index.tolist()]
+        values = top_items.values.tolist()
+
+        if others_count > 0:
+            labels.append(f"Others ({len(job_counts) - top_n})")
+            values.append(others_count)
+
+        return {
+            "type": "pie",
+            "labels": labels,
+            "values": values,
+        }
+
+    # Histogram mode (default) - jobs per period distribution
     def agg_job_count(data, group_col):
         return data.groupby(group_col).size()
 
     return _aggregate_period_distribution(
         df=df,
         period_type=period_type,
-        color_by=color_by,
+        color_by=None,  # Always histogram when no meaningful grouping
         agg_func=agg_job_count,
         metric_name="Jobs",
-        allowed_pie_dimensions=None  # All dimensions allowed for jobs
+        allowed_pie_dimensions=None
     )
 
 
 def generate_job_duration_stacked(df: pd.DataFrame, period_type: str = "month") -> dict[str, Any]:
-    """
-    Aggregate job duration distribution as stacked percentage bar chart over time.
-
-    Original Dash implementation (callbacks.py:1275-1413):
-    - Stacked bar chart showing percentage distribution by time period
-    - 7 duration bins: < 1h, 1h-4h, 4h-12h, 12h-24h, 1d-3d, 3d-7d, > 7d
-    - Y-axis: Percentage (0-100%)
-    - Green color gradient (7 specific colors)
-    """
-    if "ElapsedHours" not in df.columns:
-        return {"x": [], "series": []}
-
-    # Determine time column
-    time_column_map = {
-        "day": "StartDay",
-        "week": "StartYearWeek",
-        "month": "StartYearMonth",
-        "year": "StartYear",
-    }
-    time_column = time_column_map.get(period_type, "StartYearMonth")
-
-    if time_column not in df.columns:
-        return {"x": [], "series": []}
-
-    # Define 7 duration bins with thresholds in hours
-    bins = [
-        ("< 1h", 0, 1),
-        ("1h-4h", 1, 4),
-        ("4h-12h", 4, 12),
-        ("12h-24h", 12, 24),
-        ("1d-3d", 24, 72),
-        ("3d-7d", 72, 168),
-        ("> 7d", 168, float('inf')),
-    ]
-
-    # Green color gradient (matching original)
-    colors = [
-        "#d4edda",  # Very light green
-        "#c3e6cb",
-        "#a3d5a1",
-        "#7bc77e",
-        "#52b058",
-        "#3d9142",
-        "#28a745",  # Dark green
-    ]
-
-    # Categorize jobs into duration bins
-    df_copy = df.copy()
-    df_copy["DurationBin"] = pd.cut(
-        df_copy["ElapsedHours"],
-        bins=[b[1] for b in bins] + [float('inf')],
-        labels=[b[0] for b in bins],
-        right=False,
-        include_lowest=True
+    """Aggregate job duration distribution as stacked percentage bar chart over time."""
+    return _generate_stacked_distribution(
+        df=df,
+        value_column="ElapsedHours",
+        period_type=period_type,
+        bins=DURATION_BINS,
+        colors=DURATION_COLORS,
+        bin_column_name="DurationBin",
+        filter_nulls=False,
+        reverse_series=True,  # Long duration jobs at bottom
     )
-
-    # Count jobs per time period and duration bin
-    grouped = df_copy.groupby([time_column, "DurationBin"], observed=False).size().unstack(fill_value=0)
-
-    if grouped.empty:
-        return {"x": [], "series": []}
-
-    # Convert counts to percentages
-    grouped_pct = grouped.div(grouped.sum(axis=1), axis=0) * 100
-
-    # Build time series for each bin
-    time_periods = grouped_pct.index.tolist()
-    series = []
-
-    for i, (bin_label, _, _) in enumerate(bins):
-        if bin_label in grouped_pct.columns:
-            series.append({
-                "name": bin_label,
-                "data": grouped_pct[bin_label].tolist(),
-                "color": colors[i],
-            })
-
-    # Reverse series so long duration jobs (> 7d) appear at bottom
-    series.reverse()
-
-    return {
-        "x": time_periods,
-        "series": series,
-    }
 
 
 def generate_waiting_times_stacked(df: pd.DataFrame, period_type: str = "month") -> dict[str, Any]:
-    """
-    Aggregate waiting time distribution as stacked percentage bar chart over time.
-
-    Original Dash implementation (callbacks.py:1416-1552):
-    - Stacked bar chart showing percentage distribution by time period
-    - 6 duration bins: < 30min, 30min-1h, 1h-4h, 4h-12h, 12h-24h, > 24h
-    - Y-axis: Percentage (0-100%)
-    - Red/orange gradient (6 specific colors)
-    """
-    if "WaitingTimeHours" not in df.columns:
-        return {"x": [], "series": []}
-
-    # Determine time column
-    time_column_map = {
-        "day": "StartDay",
-        "week": "StartYearWeek",
-        "month": "StartYearMonth",
-        "year": "StartYear",
-    }
-    time_column = time_column_map.get(period_type, "StartYearMonth")
-
-    if time_column not in df.columns:
-        return {"x": [], "series": []}
-
-    # Define 6 waiting time bins with thresholds in hours
-    bins = [
-        ("< 30min", 0, 0.5),
-        ("30min-1h", 0.5, 1),
-        ("1h-4h", 1, 4),
-        ("4h-12h", 4, 12),
-        ("12h-24h", 12, 24),
-        ("> 24h", 24, float('inf')),
-    ]
-
-    # Red/orange color gradient (matching original)
-    colors = [
-        "#ffe5e5",  # Very light red
-        "#ffb3b3",
-        "#ff8080",
-        "#ff4d4d",
-        "#ff1a1a",
-        "#cc0000",  # Dark red
-    ]
-
-    # Categorize jobs into waiting time bins
-    df_copy = df[df["WaitingTimeHours"].notna()].copy()
-    if df_copy.empty:
-        return {"x": [], "series": []}
-
-    df_copy["WaitingBin"] = pd.cut(
-        df_copy["WaitingTimeHours"],
-        bins=[b[1] for b in bins] + [float('inf')],
-        labels=[b[0] for b in bins],
-        right=False,
-        include_lowest=True
+    """Aggregate waiting time distribution as stacked percentage bar chart over time."""
+    return _generate_stacked_distribution(
+        df=df,
+        value_column="WaitingTimeHours",
+        period_type=period_type,
+        bins=WAITING_TIME_BINS,
+        colors=WAITING_TIME_COLORS,
+        bin_column_name="WaitingBin",
+        filter_nulls=True,
+        reverse_series=False,
     )
-
-    # Count jobs per time period and waiting bin
-    grouped = df_copy.groupby([time_column, "WaitingBin"], observed=False).size().unstack(fill_value=0)
-
-    if grouped.empty:
-        return {"x": [], "series": []}
-
-    # Convert counts to percentages
-    grouped_pct = grouped.div(grouped.sum(axis=1), axis=0) * 100
-
-    # Build time series for each bin
-    time_periods = grouped_pct.index.tolist()
-    series = []
-
-    for i, (bin_label, _, _) in enumerate(bins):
-        if bin_label in grouped_pct.columns:
-            series.append({
-                "name": bin_label,
-                "data": grouped_pct[bin_label].tolist(),
-                "color": colors[i],
-            })
-
-    return {
-        "x": time_periods,
-        "series": series,
-    }
 
 
 def generate_waiting_times_trends(df: pd.DataFrame, period_type: str = "month", color_by: Optional[str] = None, stat: str = "median") -> dict[str, Any]:
-    """Aggregate waiting time statistics (mean, median, max, percentiles) by time period.
-
-    Args:
-        df: Input DataFrame
-        period_type: Time period (day, week, month, year)
-        color_by: Optional grouping dimension for multi-line mode
-        stat: Statistic to use when color_by is specified (default: median)
-
-    Returns:
-        Dictionary with multiple statistical series for trend visualization
-    """
-    if "WaitingTimeHours" not in df.columns:
-        return {"x": [], "stats": {}}
-
-    # Select time column based on period type
-    time_column_map = {
-        "day": "StartDay",
-        "week": "StartYearWeek",
-        "month": "StartYearMonth",
-        "year": "StartYear",
-    }
-    time_column = time_column_map.get(period_type, "StartYearMonth")
-
-    # Handle year extraction if needed
-    df_copy = df
-    if time_column not in df.columns:
-        if period_type == "year" and "StartYearMonth" in df.columns:
-            df_copy = df.copy()
-            df_copy["StartYear"] = df_copy["StartYearMonth"].astype(str).str[:4]
-        else:
-            return {"x": [], "stats": {}}
-
-    # Filter out null waiting times
-    df_filtered = df_copy[df_copy["WaitingTimeHours"].notna()].copy()
-    if df_filtered.empty:
-        return {"x": [], "stats": {}}
-
-    # Get all time periods (sorted)
-    all_periods = sorted(df_filtered[time_column].unique())
-
-    # Multi-line mode when color_by is specified
-    if color_by and color_by != "None" and color_by in df_filtered.columns:
-        groups = sorted(df_filtered[color_by].dropna().unique())
-        series = []
-
-        for group in groups:
-            group_df = df_filtered[df_filtered[color_by] == group]
-            values = []
-
-            for period in all_periods:
-                period_data = group_df[group_df[time_column] == period]["WaitingTimeHours"]
-
-                if not period_data.empty:
-                    # Calculate the selected statistic
-                    if stat == "mean":
-                        values.append(float(period_data.mean()))
-                    elif stat == "median":
-                        values.append(float(period_data.median()))
-                    elif stat == "max":
-                        values.append(float(period_data.max()))
-                    elif stat.startswith("p"):
-                        # Handle percentiles (p25, p50, p75, p90, p95, p99)
-                        percentile = int(stat[1:]) / 100.0
-                        values.append(float(period_data.quantile(percentile)))
-                    else:
-                        values.append(float(period_data.median()))
-                else:
-                    values.append(0.0)
-
-            series.append({
-                "name": str(group),
-                "data": values,
-            })
-
-        return {
-            "x": all_periods,
-            "series": series,
-        }
-
-    # Single line mode - calculate all statistics
-    stats = {
-        "mean": [],
-        "median": [],
-        "max": [],
-        "p25": [],  # 25th percentile
-        "p50": [],  # 50th percentile (same as median)
-        "p75": [],  # 75th percentile
-        "p90": [],  # 90th percentile
-        "p95": [],  # 95th percentile
-        "p99": [],  # 99th percentile
-    }
-
-    for period in all_periods:
-        period_data = df_filtered[df_filtered[time_column] == period]["WaitingTimeHours"]
-
-        if not period_data.empty:
-            stats["mean"].append(float(period_data.mean()))
-            stats["median"].append(float(period_data.median()))
-            stats["max"].append(float(period_data.max()))
-            stats["p25"].append(float(period_data.quantile(0.25)))
-            stats["p50"].append(float(period_data.quantile(0.50)))
-            stats["p75"].append(float(period_data.quantile(0.75)))
-            stats["p90"].append(float(period_data.quantile(0.90)))
-            stats["p95"].append(float(period_data.quantile(0.95)))
-            stats["p99"].append(float(period_data.quantile(0.99)))
-        else:
-            # Fill with 0 for missing periods
-            for key in stats:
-                stats[key].append(0.0)
-
-    return {
-        "x": all_periods,
-        "stats": stats,
-    }
+    """Aggregate waiting time statistics (mean, median, max, percentiles) by time period."""
+    return _generate_trends(
+        df=df,
+        value_column="WaitingTimeHours",
+        period_type=period_type,
+        color_by=color_by,
+        stat=stat,
+        filter_nulls=True,
+        filter_positive=False,
+    )
 
 
 def generate_job_duration_trends(df: pd.DataFrame, period_type: str = "month", color_by: Optional[str] = None, stat: str = "median") -> dict[str, Any]:
-    """Aggregate job duration statistics (mean, median, max, percentiles) by time period.
-
-    Args:
-        df: Input DataFrame
-        period_type: Time period (day, week, month, year)
-        color_by: Optional grouping dimension for multi-line mode
-        stat: Statistic to use when color_by is specified (default: median)
-
-    Returns:
-        Dictionary with multiple statistical series for trend visualization
-    """
-    if "ElapsedHours" not in df.columns:
-        return {"x": [], "stats": {}}
-
-    # Select time column based on period type
-    time_column_map = {
-        "day": "StartDay",
-        "week": "StartYearWeek",
-        "month": "StartYearMonth",
-        "year": "StartYear",
-    }
-    time_column = time_column_map.get(period_type, "StartYearMonth")
-
-    # Handle year extraction if needed
-    df_copy = df
-    if time_column not in df.columns:
-        if period_type == "year" and "StartYearMonth" in df.columns:
-            df_copy = df.copy()
-            df_copy["StartYear"] = df_copy["StartYearMonth"].astype(str).str[:4]
-        else:
-            return {"x": [], "stats": {}}
-
-    # Filter out null or zero durations
-    df_filtered = df_copy[(df_copy["ElapsedHours"].notna()) & (df_copy["ElapsedHours"] > 0)].copy()
-    if df_filtered.empty:
-        return {"x": [], "stats": {}}
-
-    # Get all time periods (sorted)
-    all_periods = sorted(df_filtered[time_column].unique())
-
-    # Multi-line mode when color_by is specified
-    if color_by and color_by != "None" and color_by in df_filtered.columns:
-        groups = sorted(df_filtered[color_by].dropna().unique())
-        series = []
-
-        for group in groups:
-            group_df = df_filtered[df_filtered[color_by] == group]
-            values = []
-
-            for period in all_periods:
-                period_data = group_df[group_df[time_column] == period]["ElapsedHours"]
-
-                if not period_data.empty:
-                    # Calculate the selected statistic
-                    if stat == "mean":
-                        values.append(float(period_data.mean()))
-                    elif stat == "median":
-                        values.append(float(period_data.median()))
-                    elif stat == "max":
-                        values.append(float(period_data.max()))
-                    elif stat.startswith("p"):
-                        # Handle percentiles (p25, p50, p75, p90, p95, p99)
-                        percentile = int(stat[1:]) / 100.0
-                        values.append(float(period_data.quantile(percentile)))
-                    else:
-                        values.append(float(period_data.median()))
-                else:
-                    values.append(0.0)
-
-            series.append({
-                "name": str(group),
-                "data": values,
-            })
-
-        return {
-            "x": all_periods,
-            "series": series,
-        }
-
-    # Single line mode - calculate all statistics
-    stats = {
-        "mean": [],
-        "median": [],
-        "max": [],
-        "p25": [],  # 25th percentile
-        "p50": [],  # 50th percentile (same as median)
-        "p75": [],  # 75th percentile
-        "p90": [],  # 90th percentile
-        "p95": [],  # 95th percentile
-        "p99": [],  # 99th percentile
-    }
-
-    for period in all_periods:
-        period_data = df_filtered[df_filtered[time_column] == period]["ElapsedHours"]
-
-        if not period_data.empty:
-            stats["mean"].append(float(period_data.mean()))
-            stats["median"].append(float(period_data.median()))
-            stats["max"].append(float(period_data.max()))
-            stats["p25"].append(float(period_data.quantile(0.25)))
-            stats["p50"].append(float(period_data.quantile(0.50)))
-            stats["p75"].append(float(period_data.quantile(0.75)))
-            stats["p90"].append(float(period_data.quantile(0.90)))
-            stats["p95"].append(float(period_data.quantile(0.95)))
-            stats["p99"].append(float(period_data.quantile(0.99)))
-        else:
-            # Fill with 0 for missing periods
-            for key in stats:
-                stats[key].append(0.0)
-
-    return {
-        "x": all_periods,
-        "stats": stats,
-    }
+    """Aggregate job duration statistics (mean, median, max, percentiles) by time period."""
+    return _generate_trends(
+        df=df,
+        value_column="ElapsedHours",
+        period_type=period_type,
+        color_by=color_by,
+        stat=stat,
+        filter_nulls=True,
+        filter_positive=True,
+    )
 
 
 def generate_cpus_per_job(df: pd.DataFrame) -> dict[str, list]:
     """Aggregate CPUs per job distribution."""
-    # Support both AllocCPUS and CPUs column names
     cpu_col = "AllocCPUS" if "AllocCPUS" in df.columns else "CPUs"
     if cpu_col not in df.columns:
         return {"x": [], "y": []}
@@ -825,7 +729,6 @@ def generate_cpus_per_job(df: pd.DataFrame) -> dict[str, list]:
 
 def generate_gpus_per_job(df: pd.DataFrame) -> dict[str, list]:
     """Aggregate GPUs per job distribution (only jobs with GPUs, limited to 20 bins)."""
-    # Support both AllocGPUS and GPUs column names
     gpu_col = "AllocGPUS" if "AllocGPUS" in df.columns else "GPUs"
     if gpu_col not in df.columns:
         return {"x": [], "y": []}
@@ -843,7 +746,6 @@ def generate_gpus_per_job(df: pd.DataFrame) -> dict[str, list]:
 
 def generate_nodes_per_job(df: pd.DataFrame) -> dict[str, list]:
     """Aggregate nodes per job distribution."""
-    # Support both Nodes and AllocNodes column names
     node_col = "AllocNodes" if "AllocNodes" in df.columns else "Nodes"
     if node_col not in df.columns:
         return {"x": [], "y": []}
@@ -884,4 +786,148 @@ def generate_gpu_hours_by_account(df: pd.DataFrame) -> dict[str, list]:
     return {
         "x": totals.index.tolist(),
         "y": totals.values.tolist(),
+    }
+
+
+def generate_user_activity_frequency(
+    df: pd.DataFrame,
+    period_type: str = "day",
+    color_by: Optional[str] = None,
+    top_n: int = 15,
+) -> dict[str, Any]:
+    """Generate distribution of user activity frequency.
+
+    When color_by is None or not "User":
+        Shows histogram of how many users were active on N days/weeks/months.
+        E.g., "50 users were active on 1-5 days, 30 users on 6-10 days, etc."
+
+    When color_by="User":
+        Shows pie chart of top N most active users by number of active periods.
+
+    Args:
+        df: Input DataFrame with job data
+        period_type: Time granularity for counting activity (day, week, month)
+        color_by: Optional grouping dimension - "User" triggers pie chart mode
+        top_n: Number of top users to show in pie chart mode
+
+    Returns:
+        Histogram or pie chart data depending on color_by
+    """
+    if df.empty or "User" not in df.columns:
+        return {"type": "histogram", "x": [], "y": [], "bin_labels": []}
+
+    # Get appropriate time column based on period type
+    # Use Submit-based columns for user activity (when they submitted jobs)
+    submit_time_column_map = {
+        "day": "SubmitDay",
+        "week": "SubmitYearWeek",
+        "month": "SubmitYearMonth",
+        "year": "SubmitYear",
+    }
+    time_column = submit_time_column_map.get(period_type, "SubmitDay")
+
+    if time_column not in df.columns:
+        # Fallback to Start-based columns
+        time_column = TIME_COLUMN_MAP.get(period_type, "StartDay")
+        if time_column not in df.columns:
+            return {"type": "histogram", "x": [], "y": [], "bin_labels": []}
+
+    # Count unique periods per user
+    user_period_counts = df.groupby("User")[time_column].nunique()
+
+    if user_period_counts.empty:
+        return {"type": "histogram", "x": [], "y": [], "bin_labels": []}
+
+    # Period label for display
+    period_label = {
+        "day": "days",
+        "week": "weeks",
+        "month": "months",
+        "year": "years",
+    }.get(period_type, "periods")
+
+    total_periods = df[time_column].nunique()
+    total_users = int(len(user_period_counts))
+
+    # Pie chart mode for meaningful groupings
+    pie_chart_dimensions = ["User", "Account", "Partition", "QOS"]
+
+    if color_by in pie_chart_dimensions:
+        if color_by == "User":
+            # Show top users by activity (days/weeks active)
+            top_items = user_period_counts.sort_values(ascending=False).head(top_n)
+            others_label = "Others ({} users)"
+        else:
+            # For Account/Partition/QOS: sum user-periods per group
+            # This shows which groups have the most user-activity
+            if color_by not in df.columns:
+                # Fall through to histogram if column doesn't exist
+                pass
+            else:
+                # Count user-periods per group (sum of active periods across all users in group)
+                group_activity = df.groupby(color_by).apply(
+                    lambda g: g.groupby("User")[time_column].nunique().sum()
+                ).sort_values(ascending=False)
+
+                top_items = group_activity.head(top_n)
+                others_label = "Others ({} " + color_by.lower() + "s)"
+
+        if color_by == "User" or (color_by in df.columns):
+            # Calculate "Others" if there are more items
+            all_items = user_period_counts if color_by == "User" else group_activity
+            others_count = 0
+            if len(all_items) > top_n:
+                others_count = int(all_items.sort_values(ascending=False).iloc[top_n:].sum())
+
+            labels = [str(x) for x in top_items.index.tolist()]
+            values = top_items.values.tolist()
+
+            if others_count > 0:
+                labels.append(others_label.format(len(all_items) - top_n))
+                values.append(others_count)
+
+            return {
+                "type": "pie",
+                "labels": labels,
+                "values": values,
+                "total_periods": total_periods,
+                "total_users": total_users,
+                "period_label": period_label,
+            }
+
+    # Histogram mode (default)
+    max_periods = int(user_period_counts.max())
+
+    # Create appropriate bins based on the range
+    if max_periods <= 10:
+        # Small range: use 1-period bins
+        bins = list(range(1, max_periods + 2))
+        bin_labels = [str(i) for i in range(1, max_periods + 1)]
+    elif max_periods <= 30:
+        # Medium range: use 5-period bins
+        bins = list(range(1, max_periods + 6, 5))
+        bins[-1] = max_periods + 1  # Ensure last bin captures all
+        bin_labels = [f"{bins[i]}-{bins[i+1]-1}" for i in range(len(bins)-1)]
+    else:
+        # Large range: use 10-period bins
+        bins = list(range(1, max_periods + 11, 10))
+        bins[-1] = max_periods + 1
+        bin_labels = [f"{bins[i]}-{bins[i+1]-1}" for i in range(len(bins)-1)]
+
+    # Create histogram
+    counts, _ = np.histogram(user_period_counts.values, bins=bins)
+
+    # Calculate statistics
+    avg_periods = float(user_period_counts.mean())
+    median_periods = float(user_period_counts.median())
+
+    return {
+        "type": "histogram",
+        "x": bin_labels,
+        "y": counts.tolist(),
+        "average": avg_periods,
+        "median": median_periods,
+        "total_periods": total_periods,
+        "total_users": total_users,
+        "period_label": period_label,
     }

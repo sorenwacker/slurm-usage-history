@@ -25,6 +25,7 @@ from .distribution_generators import (
     generate_cpu_hours_by_account,
     generate_gpu_hours_by_account,
     generate_by_dimension,
+    generate_user_activity_frequency,
 )
 from .node_generators import (
     generate_node_usage,
@@ -60,6 +61,7 @@ __all__ = [
     "generate_cpu_hours_by_account",
     "generate_gpu_hours_by_account",
     "generate_by_dimension",
+    "generate_user_activity_frequency",
     # Node generators
     "generate_node_usage",
     # Helpers
