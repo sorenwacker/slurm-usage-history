@@ -127,11 +127,11 @@ const Header: React.FC<HeaderProps> = ({ activeTab = 'overview', onTabChange, us
                   onClick={handleDevAdminToggle}
                   style={{
                     padding: '0.5rem 1rem',
-                    color: devAdminEnabled ? '#10b981' : 'rgba(255, 255, 255, 0.7)',
-                    backgroundColor: devAdminEnabled ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+                    color: devAdminEnabled ? '#ef4444' : 'rgba(255, 255, 255, 0.7)',
+                    backgroundColor: devAdminEnabled ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
                     textDecoration: 'none',
                     borderRadius: '0.375rem',
-                    border: devAdminEnabled ? '1px solid #10b981' : '1px dashed rgba(255, 255, 255, 0.5)',
+                    border: devAdminEnabled ? '1px solid #ef4444' : '1px dashed rgba(255, 255, 255, 0.5)',
                     fontSize: '0.75rem',
                     fontWeight: 500,
                     cursor: 'pointer',

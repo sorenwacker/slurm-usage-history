@@ -81,22 +81,22 @@
   /* Primary colors stay the same for brand consistency */
   --primary: #00A6D6;
   --primary-light: #33B8E0;
-  --primary-dark: #0093BE;
+  --primary-dark: #007A9E;
 
   /* Adjusted semantic colors for dark backgrounds */
   --success: #34d399;
   --warning: #fbbf24;
   --danger: #f87171;
 
-  /* Dark neutrals */
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --border: #475569;
-  --border-light: #334155;
-  --text-primary: #f1f5f9;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
+  /* Dark neutrals - darker/blacker tones */
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-tertiary: #171717;
+  --border: #262626;
+  --border-light: #1a1a1a;
+  --text-primary: #ffffff;
+  --text-secondary: #d4d4d4;
+  --text-muted: #a3a3a3;
 
   /* Adjusted shadows for dark mode */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -140,6 +140,11 @@
 
 .dark .checkbox-label:hover {
   background: var(--border);
+}
+
+/* Dark mode header - darker than primary */
+.dark .header {
+  background: #004d66;
 }
 
 .dark ::-webkit-scrollbar-track {

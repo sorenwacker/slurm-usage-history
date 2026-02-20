@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useSyncExternalStore } from 'react';
 
 export interface ChartColors {
   gridColor: string;
@@ -37,6 +37,11 @@ type ThemeMode = 'light' | 'dark' | 'system';
 
 const STORAGE_KEY = 'slurm-dashboard-theme';
 
+// Global state for synchronization across components
+let globalMode: ThemeMode = 'system';
+let globalSystemDark = false;
+let listeners: Set<() => void> = new Set();
+
 const getSystemPreference = (): boolean => {
   if (typeof window !== 'undefined') {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -54,6 +59,42 @@ const getStoredTheme = (): ThemeMode => {
   return 'system';
 };
 
+// Initialize global state
+if (typeof window !== 'undefined') {
+  globalMode = getStoredTheme();
+  globalSystemDark = getSystemPreference();
+
+  // Listen for system preference changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    globalSystemDark = e.matches;
+    applyTheme();
+    notifyListeners();
+  });
+}
+
+const notifyListeners = () => {
+  listeners.forEach(listener => listener());
+};
+
+const applyTheme = () => {
+  const isDark = globalMode === 'system' ? globalSystemDark : globalMode === 'dark';
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+};
+
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+
+const getSnapshot = () => {
+  const isDark = globalMode === 'system' ? globalSystemDark : globalMode === 'dark';
+  return `${globalMode}-${isDark}`;
+};
+
 export const useDarkMode = (): {
   isDark: boolean;
   mode: ThemeMode;
@@ -61,47 +102,33 @@ export const useDarkMode = (): {
   toggle: () => void;
   chartColors: ChartColors;
 } => {
-  const [mode, setModeState] = useState<ThemeMode>(getStoredTheme);
-  const [systemDark, setSystemDark] = useState(getSystemPreference);
+  // Use useSyncExternalStore for synchronized state across components
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
-  // Calculate actual dark state based on mode
-  const isDark = mode === 'system' ? systemDark : mode === 'dark';
+  // Parse snapshot
+  const isDark = snapshot.endsWith('-true');
 
-  // Apply theme class to document
+  // Apply theme class on mount and changes
   useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDark]);
-
-  // Listen for system preference changes
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      setSystemDark(e.matches);
-    };
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
+    applyTheme();
+  }, [snapshot]);
 
   const setMode = useCallback((newMode: ThemeMode) => {
-    setModeState(newMode);
+    globalMode = newMode;
     localStorage.setItem(STORAGE_KEY, newMode);
+    applyTheme();
+    notifyListeners();
   }, []);
 
   const toggle = useCallback(() => {
     // Cycle through: system -> light -> dark -> system
-    const nextMode: ThemeMode = mode === 'system' ? 'light' : mode === 'light' ? 'dark' : 'system';
+    const nextMode: ThemeMode = globalMode === 'system' ? 'light' : globalMode === 'light' ? 'dark' : 'system';
     setMode(nextMode);
-  }, [mode, setMode]);
+  }, [setMode]);
 
   return {
     isDark,
-    mode,
+    mode: globalMode,
     setMode,
     toggle,
     chartColors: isDark ? darkColors : lightColors,
