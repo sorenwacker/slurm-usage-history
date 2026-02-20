@@ -684,7 +684,7 @@ def generate_waiting_times_stacked(df: pd.DataFrame, period_type: str = "month")
         colors=WAITING_TIME_COLORS,
         bin_column_name="WaitingBin",
         filter_nulls=True,
-        reverse_series=False,
+        reverse_series=True,  # Dark red (>24h) at bottom
     )
 
 
