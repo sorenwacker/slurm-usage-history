@@ -7,6 +7,7 @@ import PieChart from './charts/PieChart';
 import HistogramChart from './charts/HistogramChart';
 import TimelineChart from './charts/TimelineChart';
 import GaugeChart from './charts/GaugeChart';
+import useDarkMode from '../hooks/useDarkMode';
 
 interface ChartsProps {
   data: AggregatedChartsResponse | undefined;
@@ -26,6 +27,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
   const [showWaitingTimeCharts, setShowWaitingTimeCharts] = useState<boolean>(true);
   const [showJobDurationCharts, setShowJobDurationCharts] = useState<boolean>(true);
   const renderStartTime = useRef<number>(Date.now());
+  const { chartColors } = useDarkMode();
 
   // Calculate timing summary stats
   const timingStats = useMemo(() => {
@@ -740,7 +742,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
         {/* STACKED DISTRIBUTION CHARTS - Always visible, together for comparison */}
         {data.waiting_times_stacked && data.waiting_times_stacked.x && data.waiting_times_stacked.x.length > 0 && (
           <div className="card">
-            <h3>Waiting Time Distribution Over Time <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>(stacked percentages)</span></h3>
+            <h3>Waiting Time Distribution Over Time <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>(stacked percentages)</span></h3>
             <div className="chart-container">
               <Plot
                 data={data.waiting_times_stacked.series?.map((series: any) => ({
@@ -755,18 +757,20 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   autosize: true,
                   margin: { l: 80, r: 20, t: 20, b: 60 },
                   xaxis: {
-                    title: { text: 'Period', font: { size: 14 }, standoff: 10 },
+                    title: { text: 'Period', font: { size: 14, color: chartColors.textColor }, standoff: 10 },
                     showgrid: true,
-                    gridcolor: 'rgba(128, 128, 128, 0.1)',
+                    gridcolor: chartColors.gridColor,
                     zeroline: false,
+                    tickfont: { color: chartColors.textColor },
                   },
                   yaxis: {
-                    title: { text: 'Percentage (%)', font: { size: 14 }, standoff: 10 },
+                    title: { text: 'Percentage (%)', font: { size: 14, color: chartColors.textColor }, standoff: 10 },
                     showgrid: true,
-                    gridcolor: 'rgba(128, 128, 128, 0.1)',
+                    gridcolor: chartColors.gridColor,
                     zeroline: false,
                     tickformat: ',',
                     range: [0, 100],
+                    tickfont: { color: chartColors.textColor },
                   },
                   barmode: 'stack',
                   showlegend: true,
@@ -776,11 +780,16 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                     x: 0.5,
                     xanchor: 'center',
                     yanchor: 'top',
-                    font: { size: 10 },
+                    font: { size: 10, color: chartColors.textColor },
                   },
                   plot_bgcolor: 'rgba(0, 0, 0, 0)',
                   paper_bgcolor: 'rgba(0, 0, 0, 0)',
                   hovermode: 'x unified',
+                  hoverlabel: {
+                    bgcolor: chartColors.hoverBgColor,
+                    bordercolor: chartColors.hoverBorderColor,
+                    font: { color: chartColors.hoverTextColor },
+                  },
                 }}
                 useResizeHandler={true}
                 style={{ width: '100%', height: '400px' }}
@@ -791,7 +800,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
         )}
         {data.job_duration_stacked && data.job_duration_stacked.x && data.job_duration_stacked.x.length > 0 && (
           <div className="card">
-            <h3>Job Duration Distribution Over Time <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>(stacked percentages)</span></h3>
+            <h3>Job Duration Distribution Over Time <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>(stacked percentages)</span></h3>
             <div className="chart-container">
               <Plot
                 data={data.job_duration_stacked.series?.map((series: any) => ({
@@ -806,18 +815,20 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   autosize: true,
                   margin: { l: 80, r: 20, t: 20, b: 60 },
                   xaxis: {
-                    title: { text: 'Period', font: { size: 14 }, standoff: 10 },
+                    title: { text: 'Period', font: { size: 14, color: chartColors.textColor }, standoff: 10 },
                     showgrid: true,
-                    gridcolor: 'rgba(128, 128, 128, 0.1)',
+                    gridcolor: chartColors.gridColor,
                     zeroline: false,
+                    tickfont: { color: chartColors.textColor },
                   },
                   yaxis: {
-                    title: { text: 'Percentage (%)', font: { size: 14 }, standoff: 10 },
+                    title: { text: 'Percentage (%)', font: { size: 14, color: chartColors.textColor }, standoff: 10 },
                     showgrid: true,
-                    gridcolor: 'rgba(128, 128, 128, 0.1)',
+                    gridcolor: chartColors.gridColor,
                     zeroline: false,
                     tickformat: ',',
                     range: [0, 100],
+                    tickfont: { color: chartColors.textColor },
                   },
                   barmode: 'stack',
                   showlegend: true,
@@ -827,11 +838,16 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                     x: 0.5,
                     xanchor: 'center',
                     yanchor: 'top',
-                    font: { size: 10 },
+                    font: { size: 10, color: chartColors.textColor },
                   },
                   plot_bgcolor: 'rgba(0, 0, 0, 0)',
                   paper_bgcolor: 'rgba(0, 0, 0, 0)',
                   hovermode: 'x unified',
+                  hoverlabel: {
+                    bgcolor: chartColors.hoverBgColor,
+                    bordercolor: chartColors.hoverBorderColor,
+                    font: { color: chartColors.hoverTextColor },
+                  },
                 }}
                 useResizeHandler={true}
                 style={{ width: '100%', height: '400px' }}

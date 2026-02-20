@@ -268,54 +268,87 @@ export const generateChartTraces = (
   return [];
 };
 
+// Chart color options for dark/light mode support
+export interface ChartColorOptions {
+  gridColor?: string;
+  textColor?: string;
+  hoverBgColor?: string;
+  hoverBorderColor?: string;
+  hoverTextColor?: string;
+  legendBgColor?: string;
+  legendBorderColor?: string;
+}
+
+// Default light mode colors
+const defaultColors: ChartColorOptions = {
+  gridColor: 'rgba(128, 128, 128, 0.1)',
+  textColor: '#333',
+  hoverBgColor: 'white',
+  hoverBorderColor: '#ddd',
+  hoverTextColor: 'black',
+  legendBgColor: 'rgba(255, 255, 255, 0.9)',
+  legendBorderColor: '#ddd',
+};
+
 // Common layout settings for better chart consistency
-export const getCommonLayout = (xTitle: string, yTitle: string, showLegend: boolean = false) => ({
-  autosize: true,
-  margin: { l: 80, r: showLegend ? 220 : 20, t: 20, b: 80 },
-  xaxis: {
-    title: {
-      text: xTitle,
-      font: { size: 14 },
-      standoff: 10,
+export const getCommonLayout = (
+  xTitle: string,
+  yTitle: string,
+  showLegend: boolean = false,
+  colors: ChartColorOptions = {}
+) => {
+  const c = { ...defaultColors, ...colors };
+
+  return {
+    autosize: true,
+    margin: { l: 80, r: showLegend ? 220 : 20, t: 20, b: 80 },
+    xaxis: {
+      title: {
+        text: xTitle,
+        font: { size: 14, color: c.textColor },
+        standoff: 10,
+      },
+      showgrid: true,
+      gridcolor: c.gridColor,
+      zeroline: false,
+      automargin: true,
+      tickfont: { color: c.textColor },
     },
-    showgrid: true,
-    gridcolor: 'rgba(128, 128, 128, 0.1)',
-    zeroline: false,
-    automargin: true,  // Automatically adjust margin for long labels
-  },
-  yaxis: {
-    title: {
-      text: yTitle,
-      font: { size: 14 },
-      standoff: 10,
+    yaxis: {
+      title: {
+        text: yTitle,
+        font: { size: 14, color: c.textColor },
+        standoff: 10,
+      },
+      showgrid: true,
+      gridcolor: c.gridColor,
+      zeroline: false,
+      tickformat: ',',
+      automargin: true,
+      tickfont: { color: c.textColor },
     },
-    showgrid: true,
-    gridcolor: 'rgba(128, 128, 128, 0.1)',
-    zeroline: false,
-    tickformat: ',',  // Thousands separator
-    automargin: true,
-  },
-  hovermode: 'x unified',
-  hoverlabel: {
-    bgcolor: 'white',
-    bordercolor: '#ddd',
-    font: { color: 'black', size: 12 },
-    namelength: -1,  // Don't truncate names
-  },
-  showlegend: showLegend,
-  legend: {
-    x: 1.01,
-    y: 1,
-    xanchor: 'left',
-    yanchor: 'top',
-    bgcolor: 'rgba(255, 255, 255, 0.9)',
-    bordercolor: '#ddd',
-    borderwidth: 1,
-    font: { size: 10 },
-  },
-  plot_bgcolor: 'rgba(0, 0, 0, 0)',
-  paper_bgcolor: 'rgba(0, 0, 0, 0)',
-});
+    hovermode: 'x unified',
+    hoverlabel: {
+      bgcolor: c.hoverBgColor,
+      bordercolor: c.hoverBorderColor,
+      font: { color: c.hoverTextColor, size: 12 },
+      namelength: -1,
+    },
+    showlegend: showLegend,
+    legend: {
+      x: 1.01,
+      y: 1,
+      xanchor: 'left',
+      yanchor: 'top',
+      bgcolor: c.legendBgColor,
+      bordercolor: c.legendBorderColor,
+      borderwidth: 1,
+      font: { size: 10, color: c.textColor },
+    },
+    plot_bgcolor: 'rgba(0, 0, 0, 0)',
+    paper_bgcolor: 'rgba(0, 0, 0, 0)',
+  };
+};
 
 // Common config for all charts
 export const getCommonConfig = () => ({
