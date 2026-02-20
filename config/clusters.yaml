@@ -1,296 +1,631 @@
-# SLURM Cluster Configuration
-#
-# This file defines configuration for each SLURM cluster monitored by the dashboard.
-# You can customize display names, labels, and node synonyms for better data aggregation.
-
 clusters:
-  # Example cluster configuration
   DAIC:
-    # Display name shown in the dashboard
-    display_name: "DAIC Cluster"
-
-    # Description (optional)
-    description: "TU Delft AI Cluster"
-
-    # Cluster-level metadata
+    display_name: DAIC
+    description: DAIC Cluster
     metadata:
-      location: "TU Delft"
-      owner: "REIT"
-      contact: "reit@tudelft.nl"
-
-    # Node label mapping and synonyms
-    # This allows you to normalize node names that may appear in different formats
-    # Format: canonical_name -> list of synonyms
+      location: Unknown
+      contact: admin@example.com
     node_labels:
-      # GPU nodes
+      100plus:
+        synonyms: []
+        type: cpu
+        description: CPU Node 100plus
+      3dgi01:
+        synonyms: []
+        type: cpu
+        description: CPU Node 3dgi01
+      3dgi02:
+        synonyms: []
+        type: cpu
+        description: CPU Node 3dgi02
+      3dgi1:
+        synonyms: []
+        type: cpu
+        description: CPU Node 3dgi1
+      3dgi2:
+        synonyms: []
+        type: cpu
+        description: CPU Node 3dgi2
+      awi01:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi01
+      awi02:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi02
+      awi04:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi04
+      awi05:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi05
+      awi08:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi08
+      awi09:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi09
+      awi10:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi10
+      awi11:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi11
+      awi12:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi12
+      awi19:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi19
+      awi20:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi20
+      awi21:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi21
+      awi22:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi22
+      awi23:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi23
+      awi24:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi24
+      awi25:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi25
+      awi26:
+        synonyms: []
+        type: cpu
+        description: CPU Node awi26
+      cor1:
+        synonyms: []
+        type: cpu
+        description: CPU Node cor1
+      gpu01:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu01
+      gpu02:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu02
+      gpu03:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu03
+      gpu04:
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu04
       gpu05:
-        synonyms: ["gpu5", "Gpu05", "GPU05", "gpu-05"]
-        type: "gpu"
-        description: "GPU Node 05"
-        hardware:
-          cpu:
-            model: "Intel Xeon Gold 6248R"
-            cores: 48
-            threads: 96
-          ram:
-            total_gb: 384
-            type: "DDR4"
-          gpus:
-            - model: "NVIDIA A100"
-              count: 4
-              memory_gb: 40
-              nvlink: true
-              nvlink_topology: "4x NVLink"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu05
       gpu06:
-        synonyms: ["gpu6", "Gpu06", "GPU06", "gpu-06"]
-        type: "gpu"
-        description: "GPU Node 06"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu06
       gpu07:
-        synonyms: ["gpu7", "Gpu07", "GPU07", "gpu-07"]
-        type: "gpu"
-        description: "GPU Node 07"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu07
       gpu08:
-        synonyms: ["gpu8", "Gpu08", "GPU08", "gpu-08"]
-        type: "gpu"
-        description: "GPU Node 08"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu08
       gpu09:
-        synonyms: ["gpu9", "Gpu09", "GPU09", "gpu-09"]
-        type: "gpu"
-        description: "GPU Node 09"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu09
       gpu10:
-        synonyms: ["Gpu10", "GPU10", "gpu-10"]
-        type: "gpu"
-        description: "GPU Node 10"
-        hardware:
-          cpu:
-            model: "Intel Xeon Gold 6248R"
-            cores: 48
-            threads: 96
-          ram:
-            total_gb: 384
-            type: "DDR4"
-          gpus:
-            - model: "NVIDIA A100"
-              count: 4
-              memory_gb: 40
-              nvlink: true
-              nvlink_topology: "4x NVLink"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu10
       gpu11:
-        synonyms: ["Gpu11", "GPU11", "gpu-11"]
-        type: "gpu"
-        description: "GPU Node 11"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu11
       gpu12:
-        synonyms: ["Gpu12", "GPU12", "gpu-12"]
-        type: "gpu"
-        description: "GPU Node 12"
-
-      gpu13:
-        synonyms: ["Gpu13", "GPU13", "gpu-13"]
-        type: "gpu"
-        description: "GPU Node 13"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu12
       gpu14:
-        synonyms: ["Gpu14", "GPU14", "gpu-14"]
-        type: "gpu"
-        description: "GPU Node 14"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu14
       gpu15:
-        synonyms: ["Gpu15", "GPU15", "gpu-15"]
-        type: "gpu"
-        description: "GPU Node 15"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu15
       gpu16:
-        synonyms: ["Gpu16", "GPU16", "gpu-16"]
-        type: "gpu"
-        description: "GPU Node 16"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu16
       gpu17:
-        synonyms: ["Gpu17", "GPU17", "gpu-17"]
-        type: "gpu"
-        description: "GPU Node 17"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu17
       gpu18:
-        synonyms: ["Gpu18", "GPU18", "gpu-18"]
-        type: "gpu"
-        description: "GPU Node 18"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu18
       gpu19:
-        synonyms: ["Gpu19", "GPU19", "gpu-19"]
-        type: "gpu"
-        description: "GPU Node 19"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu19
       gpu20:
-        synonyms: ["Gpu20", "GPU20", "gpu-20"]
-        type: "gpu"
-        description: "GPU Node 20"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu20
       gpu21:
-        synonyms: ["Gpu21", "GPU21", "gpu-21"]
-        type: "gpu"
-        description: "GPU Node 21"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu21
       gpu22:
-        synonyms: ["Gpu22", "GPU22", "gpu-22"]
-        type: "gpu"
-        description: "GPU Node 22"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu22
       gpu23:
-        synonyms: ["Gpu23", "GPU23", "gpu-23"]
-        type: "gpu"
-        description: "GPU Node 23"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu23
       gpu24:
-        synonyms: ["Gpu24", "GPU24", "gpu-24"]
-        type: "gpu"
-        description: "GPU Node 24"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu24
       gpu25:
-        synonyms: ["Gpu25", "GPU25", "gpu-25"]
-        type: "gpu"
-        description: "GPU Node 25"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu25
       gpu26:
-        synonyms: ["Gpu26", "GPU26", "gpu-26"]
-        type: "gpu"
-        description: "GPU Node 26"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu26
       gpu27:
-        synonyms: ["Gpu27", "GPU27", "gpu-27"]
-        type: "gpu"
-        description: "GPU Node 27"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu27
       gpu28:
-        synonyms: ["Gpu28", "GPU28", "gpu-28"]
-        type: "gpu"
-        description: "GPU Node 28"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu28
       gpu29:
-        synonyms: ["Gpu29", "GPU29", "gpu-29"]
-        type: "gpu"
-        description: "GPU Node 29"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu29
       gpu30:
-        synonyms: ["Gpu30", "GPU30", "gpu-30"]
-        type: "gpu"
-        description: "GPU Node 30"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu30
       gpu31:
-        synonyms: ["Gpu31", "GPU31", "gpu-31"]
-        type: "gpu"
-        description: "GPU Node 31"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu31
       gpu32:
-        synonyms: ["Gpu32", "GPU32", "gpu-32"]
-        type: "gpu"
-        description: "GPU Node 32"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu32
       gpu33:
-        synonyms: ["Gpu33", "GPU33", "gpu-33"]
-        type: "gpu"
-        description: "GPU Node 33"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu33
       gpu34:
-        synonyms: ["Gpu34", "GPU34", "gpu-34"]
-        type: "gpu"
-        description: "GPU Node 34"
-
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu34
       gpu35:
-        synonyms: ["Gpu35", "GPU35", "gpu-35"]
-        type: "gpu"
-        description: "GPU Node 35"
-
-      # CPU compute nodes
-      compute01:
-        synonyms: ["compute1", "Compute01", "comp01", "comp-01"]
-        type: "cpu"
-        description: "Compute Node 01"
-        hardware:
-          cpu:
-            model: "Intel Xeon Silver 4214R"
-            cores: 24
-            threads: 48
-          ram:
-            total_gb: 192
-            type: "DDR4"
-
-      compute02:
-        synonyms: ["compute2", "Compute02", "comp02", "comp-02"]
-        type: "cpu"
-        description: "Compute Node 02"
-
-      # Login nodes
-      login01:
-        synonyms: ["login1", "Login01", "LOGIN01"]
-        type: "login"
-        description: "Login Node 01"
-
-    # Account label mapping (optional)
-    # Normalize account names for better display
+        synonyms: []
+        type: gpu
+        description: GPU Node gpu35
+      grs01:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs01
+      grs02:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs02
+      grs03:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs03
+      grs04:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs04
+      grs1:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs1
+      grs2:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs2
+      grs3:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs3
+      grs4:
+        synonyms: []
+        type: cpu
+        description: CPU Node grs4
+      influ01:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ01
+      influ02:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ02
+      influ03:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ03
+      influ04:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ04
+      influ05:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ05
+      influ06:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ06
+      influ1:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ1
+      influ2:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ2
+      influ3:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ3
+      influ4:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ4
+      influ5:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ5
+      influ6:
+        synonyms: []
+        type: cpu
+        description: CPU Node influ6
+      insy15:
+        synonyms: []
+        type: cpu
+        description: CPU Node insy15
+      insy16:
+        synonyms: []
+        type: cpu
+        description: CPU Node insy16
     account_labels:
-      "ewi-insy-prb":
-        display_name: "INSY - Pattern Recognition & Bioinformatics"
-        short_name: "PRB"
-        faculty: "EWI"
-        department: "INSY"
-
-      "ewi-insy-cys":
-        display_name: "INSY - Cybersecurity"
-        short_name: "CYS"
-        faculty: "EWI"
-        department: "INSY"
-
-      "ewi-insy-wis":
-        display_name: "INSY - Web Information Systems"
-        short_name: "WIS"
-        faculty: "EWI"
-        department: "INSY"
-
-    # Partition display names (optional)
+      bk-ar-bkn:
+        display_name: bk-ar-bkn
+        short_name: BKN
+      ewi-insy-cgv:
+        display_name: ewi-insy-cgv
+        short_name: CGV
+      ewi-insy-cys:
+        display_name: ewi-insy-cys
+        short_name: CYS
+      ewi-insy-ii:
+        display_name: ewi-insy-ii
+        short_name: II
+      ewi-insy-mmc:
+        display_name: ewi-insy-mmc
+        short_name: MMC
+      ewi-insy-prb:
+        display_name: ewi-insy-prb
+        short_name: PRB
+      ewi-insy-reit:
+        display_name: ewi-insy-reit
+        short_name: REIT
+      ewi-insy-sdm:
+        display_name: ewi-insy-sdm
+        short_name: SDM
+      ewi-me-sps:
+        display_name: ewi-me-sps
+        short_name: SPS
+      ewi-st:
+        display_name: ewi-st
+        short_name: ST
+      ewi-st-algor:
+        display_name: ewi-st-algor
+        short_name: ALGOR
+      ewi-st-dis:
+        display_name: ewi-st-dis
+        short_name: DIS
+      ewi-st-ns:
+        display_name: ewi-st-ns
+        short_name: NS
+      ewi-st-wis:
+        display_name: ewi-st-wis
+        short_name: WIS
+      lr-asm-giovan:
+        display_name: lr-asm-giovan
+        short_name: GIOVAN
+      lr-co-oe:
+        display_name: lr-co-oe
+        short_name: OE
+      me-cor:
+        display_name: me-cor
+        short_name: COR
+      tnw-imphys:
+        display_name: tnw-imphys
+        short_name: IMPHYS
+      ud-ict:
+        display_name: ud-ict
+        short_name: ICT
+      ewi-insy-ii-influence:
+        display_name: ewi-insy-ii-influence
+        short_name: INFLUENCE
+      ewi-insy-prb-dbl:
+        display_name: ewi-insy-prb-dbl
+        short_name: DBL
+      ewi-insy-prb-prlab:
+        display_name: ewi-insy-prb-prlab
+        short_name: PRLAB
+      ewi-insy-prb-spclab:
+        display_name: ewi-insy-prb-spclab
+        short_name: SPCLAB
+      ewi-insy-prb-visionlab:
+        display_name: ewi-insy-prb-visionlab
+        short_name: VISIONLAB
     partition_labels:
-      compute:
-        display_name: "Compute Partition"
-        description: "General purpose compute nodes"
-
-      gpu:
-        display_name: "GPU Partition"
-        description: "GPU-enabled compute nodes"
-
-      interactive:
-        display_name: "Interactive Partition"
-        description: "Interactive job partition"
-
-      long:
-        display_name: "Long Jobs Partition"
-        description: "Extended runtime jobs"
-
-  # Additional clusters can be added here
-  # Example of a second cluster:
-  # CLUSTER2:
-  #   display_name: "Production Cluster"
-  #   description: "Main production HPC cluster"
-  #   node_labels:
-  #     node001:
-  #       synonyms: ["node1", "Node001"]
-  #       type: "cpu"
-  #   account_labels:
-  #     research-group-1:
-  #       display_name: "Research Group 1"
-  #       short_name: "RG1"
-
-# Global settings (optional)
+      asm:
+        display_name: Asm Partition
+        description: asm partition
+      asm,general:
+        display_name: Asm,general Partition
+        description: asm,general partition
+      cor:
+        display_name: Cor Partition
+        description: cor partition
+      cor,general:
+        display_name: Cor,general Partition
+        description: cor,general partition
+      ewi-insy:
+        display_name: Ewi-insy Partition
+        description: ewi-insy partition
+      ewi-insy,ewi-insy-prb,ewi-insy-prb,general:
+        display_name: Ewi-insy,ewi-insy-prb,ewi-insy-prb,general Partition
+        description: ewi-insy,ewi-insy-prb,ewi-insy-prb,general partition
+      ewi-insy,ewi-insy-prb,general:
+        display_name: Ewi-insy,ewi-insy-prb,general Partition
+        description: ewi-insy,ewi-insy-prb,general partition
+      ewi-insy,general:
+        display_name: Ewi-insy,general Partition
+        description: ewi-insy,general partition
+      ewi-insy-prb:
+        display_name: Ewi-insy-prb Partition
+        description: ewi-insy-prb partition
+      ewi-insy-prb,ewi-insy,ewi-insy,general:
+        display_name: Ewi-insy-prb,ewi-insy,ewi-insy,general Partition
+        description: ewi-insy-prb,ewi-insy,ewi-insy,general partition
+      ewi-insy-prb,ewi-insy,general:
+        display_name: Ewi-insy-prb,ewi-insy,general Partition
+        description: ewi-insy-prb,ewi-insy,general partition
+      ewi-insy-prb,general:
+        display_name: Ewi-insy-prb,general Partition
+        description: ewi-insy-prb,general partition
+      ewi-insy-prb,influence,ewi-insy,general:
+        display_name: Ewi-insy-prb,influence,ewi-insy,general Partition
+        description: ewi-insy-prb,influence,ewi-insy,general partition
+      ewi-me-sps:
+        display_name: Ewi-me-sps Partition
+        description: ewi-me-sps partition
+      ewi-me-sps,general:
+        display_name: Ewi-me-sps,general Partition
+        description: ewi-me-sps,general partition
+      ewi-st:
+        display_name: Ewi-st Partition
+        description: ewi-st partition
+      ewi-st,general:
+        display_name: Ewi-st,general Partition
+        description: ewi-st,general partition
+      general:
+        display_name: General Partition
+        description: general partition
+      general,:
+        display_name: General, Partition
+        description: general, partition
+      general,bk-ar:
+        display_name: General,bk-ar Partition
+        description: general,bk-ar partition
+      general,cor:
+        display_name: General,cor Partition
+        description: general,cor partition
+      general,ewi-insy:
+        display_name: General,ewi-insy Partition
+        description: general,ewi-insy partition
+      general,ewi-insy,ewi-insy-prb:
+        display_name: General,ewi-insy,ewi-insy-prb Partition
+        description: general,ewi-insy,ewi-insy-prb partition
+      general,ewi-insy,ewi-insy-prb,influence:
+        display_name: General,ewi-insy,ewi-insy-prb,influence Partition
+        description: general,ewi-insy,ewi-insy-prb,influence partition
+      general,ewi-insy-prb,ewi-insy:
+        display_name: General,ewi-insy-prb,ewi-insy Partition
+        description: general,ewi-insy-prb,ewi-insy partition
+      general,ewi-me-sps:
+        display_name: General,ewi-me-sps Partition
+        description: general,ewi-me-sps partition
+      general,ewi-st:
+        display_name: General,ewi-st Partition
+        description: general,ewi-st partition
+      general,insy:
+        display_name: General,insy Partition
+        description: general,insy partition
+      general,insy,prb:
+        display_name: General,insy,prb Partition
+        description: general,insy,prb partition
+      general,me-cor:
+        display_name: General,me-cor Partition
+        description: general,me-cor partition
+      general,prb,insy:
+        display_name: General,prb,insy Partition
+        description: general,prb,insy partition
+      imphys:
+        display_name: Imphys Partition
+        description: imphys partition
+      imphys,general:
+        display_name: Imphys,general Partition
+        description: imphys,general partition
+      imphys,insy,general:
+        display_name: Imphys,insy,general Partition
+        description: imphys,insy,general partition
+      influence:
+        display_name: Influence Partition
+        description: influence partition
+      influence,insy,general:
+        display_name: Influence,insy,general Partition
+        description: influence,insy,general partition
+      insy:
+        display_name: Insy Partition
+        description: insy partition
+      insy,general:
+        display_name: Insy,general Partition
+        description: insy,general partition
+      insy,general,prb:
+        display_name: Insy,general,prb Partition
+        description: insy,general,prb partition
+      insy,influence,general:
+        display_name: Insy,influence,general Partition
+        description: insy,influence,general partition
+      insy,influence,mmll,prb,general:
+        display_name: Insy,influence,mmll,prb,general Partition
+        description: insy,influence,mmll,prb,general partition
+      insy,mmll,general:
+        display_name: Insy,mmll,general Partition
+        description: insy,mmll,general partition
+      insy,prb,general:
+        display_name: Insy,prb,general Partition
+        description: insy,prb,general partition
+      insy,st,general:
+        display_name: Insy,st,general Partition
+        description: insy,st,general partition
+      lr-asm:
+        display_name: Lr-asm Partition
+        description: lr-asm partition
+      lr-asm,general:
+        display_name: Lr-asm,general Partition
+        description: lr-asm,general partition
+      me-cor:
+        display_name: Me-cor Partition
+        description: me-cor partition
+      me-cor,general:
+        display_name: Me-cor,general Partition
+        description: me-cor,general partition
+      mmll:
+        display_name: Mmll Partition
+        description: mmll partition
+      mmll,insy,general:
+        display_name: Mmll,insy,general Partition
+        description: mmll,insy,general partition
+      prb:
+        display_name: Prb Partition
+        description: prb partition
+      prb,influence,insy,general:
+        display_name: Prb,influence,insy,general Partition
+        description: prb,influence,insy,general partition
+      prb,insy,general:
+        display_name: Prb,insy,general Partition
+        description: prb,insy,general partition
+      st:
+        display_name: St Partition
+        description: st partition
+      st,general:
+        display_name: St,general Partition
+        description: st,general partition
+      tnw-imphys:
+        display_name: Tnw-imphys Partition
+        description: tnw-imphys partition
+      tnw-imphys,general:
+        display_name: Tnw-imphys,general Partition
+        description: tnw-imphys,general partition
 settings:
-  # Default node type if not specified
-  default_node_type: "cpu"
-
-  # Case sensitivity for node name matching
+  default_node_type: cpu
   case_sensitive: false
-
-  # Auto-generate missing labels
   auto_generate_labels: true
+
+  # Default hardware specifications (used when node-specific config is missing)
+  hardware_defaults:
+    gpu:
+      cpu_cores: 48
+      gpu_count: 3
+    cpu:
+      cpu_cores: 32
+      gpu_count: 0
+
+  # Node type patterns based on implied usage from data
+  # Values are set to ~110% of max observed usage to allow headroom
+  node_type_patterns:
+    # GPU cluster nodes - 48 cores, 4 GPUs (observed max: 29 cores, 3.9 GPUs)
+    gpu:
+      pattern: "^gpu\\d+"
+      cpu_cores: 48
+      gpu_count: 4
+    # INSY nodes - 48 cores, 4 GPUs (observed max: 39 cores, 3.7 GPUs)
+    insy:
+      pattern: "^insy\\d+"
+      cpu_cores: 48
+      gpu_count: 4
+    # Influenza cluster nodes - 96 cores, 8 GPUs (observed max: 92 cores, 7.7 GPUs)
+    influ:
+      pattern: "^influ\\d+"
+      cpu_cores: 96
+      gpu_count: 8
+    # Corsair nodes - 32 cores, 12 GPUs (observed max: 26 cores, 10.4 GPUs)
+    cor:
+      pattern: "^cor\\d+"
+      cpu_cores: 32
+      gpu_count: 12
+    # AWI nodes with GPUs (awi01-02 have Tesla V100)
+    awi_gpu:
+      pattern: "^awi0[12]$"
+      cpu_cores: 48
+      gpu_count: 3
+    # AWI nodes - 48 cores, no GPU (observed max: 44 cores)
+    awi:
+      pattern: "^awi\\d+"
+      cpu_cores: 48
+      gpu_count: 0
+    # 3DGI nodes - 48 cores, no GPU (observed max: 43 cores)
+    3dgi:
+      pattern: "^3dgi\\d+"
+      cpu_cores: 48
+      gpu_count: 0
+    # GRS nodes - 16 cores, no GPU (observed max: 16 cores)
+    grs:
+      pattern: "^grs\\d+"
+      cpu_cores: 16
+      gpu_count: 0
+    # 100plus node - 32 cores, no GPU (observed max: 27 cores)
+    100plus:
+      pattern: "^100plus$"
+      cpu_cores: 32
+      gpu_count: 0
