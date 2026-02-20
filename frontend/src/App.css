@@ -760,6 +760,73 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   Timing Subsections
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.timing-subsection {
+  margin-bottom: var(--space-xl);
+}
+
+.timing-subsection-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-md);
+}
+
+.timing-subsection-header h3 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .timing-subsection-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+  }
+}
+
+/* Collapsible Chart Toggle */
+.collapsible-chart {
+  margin-bottom: var(--space-md);
+}
+
+.collapsible-chart-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.collapsible-chart-header:hover {
+  background: var(--border-light);
+  color: var(--text-primary);
+}
+
+.collapsible-chart-header .collapse-icon {
+  font-size: 1rem;
+  width: 1.25rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    Charts Container
    ═══════════════════════════════════════════════════════════════════════════ */
 
