@@ -313,8 +313,15 @@ async def saml_status(request: Request):
 
 
 @router.get("/me")
-async def get_current_user_info(current_user: dict = Depends(get_current_user_saml)):
+async def get_current_user_info(
+    current_user: dict = Depends(get_current_user_saml),
+    dev_admin: Optional[bool] = None,
+):
     """Get current authenticated user information including role.
+
+    Args:
+        dev_admin: Optional parameter to force admin mode in development.
+                   Only works when SAML is disabled (dev mode).
 
     Returns:
         User information with role (admin/user)
@@ -335,22 +342,27 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user_sa
 
     # Check if user is admin
     is_admin = False
-    if email:
+
+    # In dev mode (SAML disabled), allow dev_admin parameter to override
+    if not is_saml_enabled() and dev_admin is not None:
+        is_admin = dev_admin
+        print(f"[DEBUG] Dev mode: is_admin overridden to {is_admin}")
+    elif email:
         is_admin = settings.is_admin_email(email)
         # Debug logging
         print(f"[DEBUG] Email: {email}, is_admin: {is_admin}, admin_emails: {settings.get_admin_email_roles()}")
-
-    # If not found by email, check if username (netid) matches any admin email prefix
-    # E.g., username "jdoe" matches "jdoe@tudelft.nl"
-    if not is_admin and current_user.get("username"):
-        username = current_user.get("username")
-        # Check if username@tudelft.nl is in admin emails
-        full_email = f"{username}@tudelft.nl"
-        is_admin = settings.is_admin_email(full_email)
-        print(f"[DEBUG] Checking username: {username}, full_email: {full_email}, is_admin: {is_admin}")
-        # If we found a match, use the constructed email
-        if is_admin and not email:
-            email = full_email
+    else:
+        # If not found by email, check if username (netid) matches any admin email prefix
+        # E.g., username "jdoe" matches "jdoe@tudelft.nl"
+        if current_user.get("username"):
+            username = current_user.get("username")
+            # Check if username@tudelft.nl is in admin emails
+            full_email = f"{username}@tudelft.nl"
+            is_admin = settings.is_admin_email(full_email)
+            print(f"[DEBUG] Checking username: {username}, full_email: {full_email}, is_admin: {is_admin}")
+            # If we found a match, use the constructed email
+            if is_admin and not email:
+                email = full_email
 
     result = {
         "username": current_user.get("username"),

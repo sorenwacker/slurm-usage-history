@@ -55,6 +55,7 @@ class FilterRequest(BaseModel):
     period_type: str = "month"
     color_by: str | None = None  # Group/color charts by: Account, Partition, State, QoS, User
     account_segments: int | None = None  # Number of segments to keep in account names (0 = all)
+    normalize_node_usage: bool = False  # Normalize node CPU/GPU usage to 100% capacity
     # Note: hide_unused_nodes and sort_by_usage removed - now handled client-side
 
 

@@ -61,73 +61,52 @@ def get_quarter_date_range(year: int, quarter: int) -> tuple[str, str]:
     return start_date, end_date
 
 
-def calculate_duration_stats(df: pd.DataFrame) -> dict[str, Any]:
-    """Calculate job duration statistics in hours."""
-    if df.empty or "JobDuration" not in df.columns:
-        return {
-            "mean": 0.0,
-            "median": 0.0,
-            "p25": 0.0,
-            "p75": 0.0,
-            "p90": 0.0,
-            "min": 0.0,
-            "max": 0.0,
-        }
+def _empty_stats() -> dict[str, float]:
+    """Return empty statistics dictionary."""
+    return {
+        "mean": 0.0,
+        "median": 0.0,
+        "p25": 0.0,
+        "p75": 0.0,
+        "p90": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+    }
 
-    durations = df["JobDuration"].dropna()
-    if len(durations) == 0:
-        return {
-            "mean": 0.0,
-            "median": 0.0,
-            "p25": 0.0,
-            "p75": 0.0,
-            "p90": 0.0,
-            "min": 0.0,
-            "max": 0.0,
-        }
+
+def calculate_column_stats(df: pd.DataFrame, column: str) -> dict[str, Any]:
+    """Calculate statistics for a numeric column.
+
+    Args:
+        df: Input DataFrame
+        column: Name of the column to calculate statistics for
+
+    Returns:
+        Dictionary with mean, median, p25, p75, p90, min, max values
+    """
+    if df.empty or column not in df.columns:
+        return _empty_stats()
+
+    values = df[column].dropna()
+    if len(values) == 0:
+        return _empty_stats()
 
     return {
-        "mean": float(durations.mean()),
-        "median": float(durations.median()),
-        "p25": float(durations.quantile(0.25)),
-        "p75": float(durations.quantile(0.75)),
-        "p90": float(durations.quantile(0.90)),
-        "min": float(durations.min()),
-        "max": float(durations.max()),
+        "mean": float(values.mean()),
+        "median": float(values.median()),
+        "p25": float(values.quantile(0.25)),
+        "p75": float(values.quantile(0.75)),
+        "p90": float(values.quantile(0.90)),
+        "min": float(values.min()),
+        "max": float(values.max()),
     }
+
+
+def calculate_duration_stats(df: pd.DataFrame) -> dict[str, Any]:
+    """Calculate job duration statistics in hours."""
+    return calculate_column_stats(df, "JobDuration")
 
 
 def calculate_waiting_time_stats(df: pd.DataFrame) -> dict[str, Any]:
     """Calculate waiting time statistics in hours."""
-    if df.empty or "WaitingTime" not in df.columns:
-        return {
-            "mean": 0.0,
-            "median": 0.0,
-            "p25": 0.0,
-            "p75": 0.0,
-            "p90": 0.0,
-            "min": 0.0,
-            "max": 0.0,
-        }
-
-    waiting_times = df["WaitingTime"].dropna()
-    if len(waiting_times) == 0:
-        return {
-            "mean": 0.0,
-            "median": 0.0,
-            "p25": 0.0,
-            "p75": 0.0,
-            "p90": 0.0,
-            "min": 0.0,
-            "max": 0.0,
-        }
-
-    return {
-        "mean": float(waiting_times.mean()),
-        "median": float(waiting_times.median()),
-        "p25": float(waiting_times.quantile(0.25)),
-        "p75": float(waiting_times.quantile(0.75)),
-        "p90": float(waiting_times.quantile(0.90)),
-        "min": float(waiting_times.min()),
-        "max": float(waiting_times.max()),
-    }
+    return calculate_column_stats(df, "WaitingTime")

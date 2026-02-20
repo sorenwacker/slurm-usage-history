@@ -216,6 +216,70 @@ class ClusterConfig:
         """
         return list(self.config.get("clusters", {}).keys())
 
+    def get_node_hardware(self, cluster: str, node_name: str) -> Dict[str, int]:
+        """Get hardware specifications for a node.
+
+        Returns CPU cores and GPU count, using node-specific config if available,
+        then checking node_type_patterns, then falling back to hardware defaults.
+
+        Args:
+            cluster: Cluster name
+            node_name: Node name (will be normalized)
+
+        Returns:
+            Dictionary with 'cpu_cores' and 'gpu_count' keys
+        """
+        import re
+
+        node_info = self.get_node_info(cluster, node_name)
+
+        # Check for node-specific hardware config
+        hardware = node_info.get("hardware", {})
+        if hardware:
+            cpu_cores = hardware.get("cpu", {}).get("cores", 0)
+            gpus = hardware.get("gpus", [])
+            gpu_count = gpus[0].get("count", 0) if gpus else 0
+            if cpu_cores > 0:
+                return {"cpu_cores": cpu_cores, "gpu_count": gpu_count}
+
+        # Check node_type_patterns for matching pattern
+        patterns = self.config.get("settings", {}).get("node_type_patterns", {})
+        for pattern_name, pattern_config in patterns.items():
+            pattern = pattern_config.get("pattern", "")
+            if pattern and re.match(pattern, node_name, re.IGNORECASE):
+                return {
+                    "cpu_cores": pattern_config.get("cpu_cores", 48),
+                    "gpu_count": pattern_config.get("gpu_count", 0),
+                }
+
+        # Fall back to hardware defaults based on node type
+        node_type = node_info.get("type", "cpu")
+        defaults = self.config.get("settings", {}).get("hardware_defaults", {})
+        type_defaults = defaults.get(node_type, {})
+
+        return {
+            "cpu_cores": type_defaults.get("cpu_cores", 64),
+            "gpu_count": type_defaults.get("gpu_count", 0),
+        }
+
+    def get_hardware_defaults(self) -> Dict[str, Dict[str, int]]:
+        """Get hardware defaults for all node types.
+
+        Returns:
+            Dictionary with node type keys ('gpu', 'cpu') and hardware specs
+        """
+        defaults = self.config.get("settings", {}).get("hardware_defaults", {})
+        return {
+            "gpu": {
+                "cpu_cores": defaults.get("gpu", {}).get("cpu_cores", 48),
+                "gpu_count": defaults.get("gpu", {}).get("gpu_count", 4),
+            },
+            "cpu": {
+                "cpu_cores": defaults.get("cpu", {}).get("cpu_cores", 24),
+                "gpu_count": defaults.get("cpu", {}).get("gpu_count", 0),
+            },
+        }
+
 
 # Global instance
 _cluster_config: Optional[ClusterConfig] = None

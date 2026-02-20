@@ -1,3 +1,5 @@
+import logging
+import traceback
 from pathlib import Path
 
 import pandas as pd
@@ -6,11 +8,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from ..core.admin_auth import get_current_admin
 from ..core.auth import verify_api_key
 from ..core.config import get_settings
+from ..datastore_singleton import get_datastore
 from ..db.clusters import get_cluster_db
 from ..models.data_models import DataIngestionRequest, DataIngestionResponse
 
 router = APIRouter()
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 @router.post("/ingest", response_model=DataIngestionResponse)
@@ -77,9 +81,6 @@ async def ingest_data(
             df["ElapsedHours"] = (df["End"] - df["Start"]).dt.total_seconds() / 3600.0
 
         # Group by year and append to yearly files (instead of creating timestamped files)
-        import logging
-        logger = logging.getLogger(__name__)
-
         years = df["SubmitYear"].unique() if "SubmitYear" in df.columns else []
         jobs_saved = 0
 
@@ -119,18 +120,12 @@ async def ingest_data(
 
         # Trigger datastore reload for this hostname
         try:
-            from ..datastore_singleton import get_datastore
-            import logging
-            logger = logging.getLogger(__name__)
             logger.info(f"Triggering datastore reload after ingesting data for {request.hostname}")
             datastore = get_datastore()
             datastore.load_data()
             logger.info(f"Datastore reload completed. New date range: {datastore.get_min_max_dates(request.hostname)}")
         except Exception as e:
             # Log but don't fail the ingestion
-            import logging
-            import traceback
-            logger = logging.getLogger(__name__)
             logger.error(f"Failed to reload datastore after ingestion: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
 
@@ -162,10 +157,6 @@ async def reload_datastore(
         Status message with hostnames and date ranges
     """
     try:
-        from ..datastore_singleton import get_datastore
-        import logging
-        logger = logging.getLogger(__name__)
-
         logger.info(f"Admin {admin} triggered manual datastore reload")
         datastore = get_datastore()
         datastore.load_data()
@@ -187,9 +178,6 @@ async def reload_datastore(
         }
 
     except Exception as e:
-        import logging
-        import traceback
-        logger = logging.getLogger(__name__)
         logger.error(f"Manual datastore reload failed: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
