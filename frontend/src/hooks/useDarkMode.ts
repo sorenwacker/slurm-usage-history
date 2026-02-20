@@ -23,14 +23,14 @@ const lightColors: ChartColors = {
 };
 
 const darkColors: ChartColors = {
-  gridColor: 'rgba(148, 163, 184, 0.15)',
-  textColor: '#e2e8f0',
+  gridColor: 'rgba(255, 255, 255, 0.1)',
+  textColor: '#ffffff',
   bgColor: 'rgba(0, 0, 0, 0)',
-  hoverBgColor: '#1e293b',
-  hoverBorderColor: '#475569',
-  hoverTextColor: '#f1f5f9',
-  legendBgColor: 'rgba(30, 41, 59, 0.95)',
-  legendBorderColor: '#475569',
+  hoverBgColor: '#171717',
+  hoverBorderColor: '#404040',
+  hoverTextColor: '#ffffff',
+  legendBgColor: 'rgba(23, 23, 23, 0.95)',
+  legendBorderColor: '#404040',
 };
 
 type ThemeMode = 'light' | 'dark' | 'system';

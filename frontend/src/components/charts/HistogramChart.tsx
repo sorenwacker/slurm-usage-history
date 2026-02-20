@@ -7,6 +7,7 @@ import {
   getCommonLayout,
   getCommonConfig,
   createMedianMeanAnnotation,
+  type ChartColorOptions,
 } from './chartHelpers';
 
 interface HistogramChartProps {
@@ -21,6 +22,7 @@ interface HistogramChartProps {
   decimalPlaces?: number;
   tickAngle?: number;
   barMode?: 'stack' | 'group' | 'overlay';
+  chartColors?: ChartColorOptions;
 }
 
 const HistogramChart: React.FC<HistogramChartProps> = ({
@@ -35,6 +37,7 @@ const HistogramChart: React.FC<HistogramChartProps> = ({
   decimalPlaces = 0,
   tickAngle,
   barMode = 'overlay',
+  chartColors,
 }) => {
   if (!data || !data.x || data.x.length === 0) {
     return null;
@@ -72,7 +75,7 @@ const HistogramChart: React.FC<HistogramChartProps> = ({
   };
 
   const layout: any = {
-    ...getCommonLayout(xTitle, yTitle, data.series && data.series.length > 1),
+    ...getCommonLayout(xTitle, yTitle, data.series && data.series.length > 1, chartColors),
   };
 
   // Add tick angle if specified

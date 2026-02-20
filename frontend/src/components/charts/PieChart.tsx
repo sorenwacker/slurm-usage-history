@@ -1,18 +1,20 @@
 import React from 'react';
 import Plot from 'react-plotly.js';
 import type { PieChartData } from '../../types';
-import { COLORS, getCommonConfig } from './chartHelpers';
+import { COLORS, getCommonConfig, type ChartColorOptions } from './chartHelpers';
 
 interface PieChartProps {
   data: PieChartData;
   colors?: string[];
   valueLabel?: string;  // Custom label for values (e.g., "Days active", "Jobs")
+  chartColors?: ChartColorOptions;
 }
 
 const PieChart: React.FC<PieChartProps> = ({
   data,
   colors = COLORS,
   valueLabel = 'Jobs',
+  chartColors,
 }) => {
   if (!data || !data.labels || !data.values || data.labels.length === 0) {
     return null;
@@ -41,7 +43,7 @@ const PieChart: React.FC<PieChartProps> = ({
             y: 0.5,
             xanchor: 'left',
             yanchor: 'middle',
-            font: { size: 10 },
+            font: { size: 10, color: chartColors?.textColor || '#333' },
           },
           plot_bgcolor: 'rgba(0, 0, 0, 0)',
           paper_bgcolor: 'rgba(0, 0, 0, 0)',

@@ -1,7 +1,7 @@
 import React from 'react';
 import Plot from 'react-plotly.js';
 import type { ChartData } from '../../types';
-import { generateChartTraces, getCommonLayout, getCommonConfig } from './chartHelpers';
+import { generateChartTraces, getCommonLayout, getCommonConfig, type ChartColorOptions } from './chartHelpers';
 
 interface StackedAreaChartProps {
   data: ChartData;
@@ -13,6 +13,7 @@ interface StackedAreaChartProps {
   chartType?: 'area' | 'bar';
   barMode?: 'stack' | 'group';
   periodType?: string;
+  chartColors?: ChartColorOptions;
 }
 
 const StackedAreaChart: React.FC<StackedAreaChartProps> = ({
@@ -25,6 +26,7 @@ const StackedAreaChart: React.FC<StackedAreaChartProps> = ({
   chartType = 'area',
   barMode = 'stack',
   periodType,
+  chartColors,
 }) => {
   if (!data || !data.x || data.x.length === 0) {
     return null;
@@ -33,7 +35,7 @@ const StackedAreaChart: React.FC<StackedAreaChartProps> = ({
   const showLegend = data.series && data.series.length > 1;
 
   const layout: any = {
-    ...getCommonLayout(xTitle, yTitle, showLegend),
+    ...getCommonLayout(xTitle, yTitle, showLegend, chartColors),
   };
 
   // Add day of week to daily x-axis labels

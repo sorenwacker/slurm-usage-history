@@ -293,6 +293,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 defaultName="Active Users"
                 chartType="area"
                 periodType={periodType}
+                chartColors={chartColors}
               />
             </div>
           )}
@@ -321,6 +322,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   colors={colorMap ? (data.user_activity_frequency.labels || []).map((label, idx) =>
                     colorMap.get(label) || COLORS[idx % COLORS.length]
                   ) : undefined}
+                  chartColors={chartColors}
                 />
               ) : (
                 <HistogramChart
@@ -333,6 +335,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   showMedianMean={true}
                   unit={` ${data.user_activity_frequency.period_label || 'periods'}`}
                   decimalPlaces={1}
+                  chartColors={chartColors}
                 />
               )}
             </div>
@@ -356,6 +359,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 defaultName="Jobs"
                 chartType="area"
                 periodType={periodType}
+                chartColors={chartColors}
               />
             </div>
           )}
@@ -382,6 +386,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   colors={colorMap ? (data.jobs_distribution.labels || []).map((label, idx) =>
                     colorMap.get(label) || COLORS[idx % COLORS.length]
                   ) : undefined}
+                  chartColors={chartColors}
                 />
               ) : (
                 <HistogramChart
@@ -394,6 +399,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   showMedianMean={true}
                   unit=""
                   decimalPlaces={0}
+                  chartColors={chartColors}
                 />
               )}
             </div>
@@ -417,6 +423,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 defaultName="CPU Hours"
                 chartType="area"
                 periodType={periodType}
+                chartColors={chartColors}
               />
             </div>
           )}
@@ -443,6 +450,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   colors={colorMap ? (data.cpu_hours_by_account.labels || []).map((label, idx) =>
                     colorMap.get(label) || COLORS[idx % COLORS.length]
                   ) : undefined}
+                  chartColors={chartColors}
                 />
               ) : (
                 <HistogramChart
@@ -455,6 +463,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   showMedianMean={true}
                   unit="h"
                   decimalPlaces={0}
+                  chartColors={chartColors}
                 />
               )}
             </div>
@@ -473,6 +482,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 defaultName="GPU Hours"
                 chartType="area"
                 periodType={periodType}
+                chartColors={chartColors}
               />
             </div>
           )}
@@ -499,6 +509,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   colors={colorMap ? (data.gpu_hours_by_account.labels || []).map((label, idx) =>
                     colorMap.get(label) || COLORS[idx % COLORS.length]
                   ) : undefined}
+                  chartColors={chartColors}
                 />
               ) : (
                 <HistogramChart
@@ -511,6 +522,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   showMedianMean={true}
                   unit="h"
                   decimalPlaces={0}
+                  chartColors={chartColors}
                 />
               )}
             </div>
@@ -555,6 +567,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                     <GaugeChart
                       value={Math.round(clusterUtilization.cpu * 10) / 10}
                       title="Average CPU Utilization"
+                      chartColors={chartColors}
                     />
                   </div>
                 )}
@@ -563,6 +576,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                     <GaugeChart
                       value={Math.round(clusterUtilization.gpu * 10) / 10}
                       title="Average GPU Utilization"
+                      chartColors={chartColors}
                     />
                   </div>
                 )}
@@ -579,6 +593,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   colorMap={colorMap}
                   chartType="bar"
                   barMode="stack"
+                  chartColors={chartColors}
                 />
               </div>
             )}
@@ -593,6 +608,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   colorMap={colorMap}
                   chartType="bar"
                   barMode="stack"
+                  chartColors={chartColors}
                 />
               </div>
             )}
@@ -664,6 +680,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                       colorMap={colorMap}
                       defaultColor="#dc3545"
                       statistic={waitingTimeTrendStat}
+                      chartColors={chartColors}
                     />
                   </div>
                 )}
@@ -731,6 +748,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                       colorMap={colorMap}
                       defaultColor="#28a745"
                       statistic={jobDurationTrendStat}
+                      chartColors={chartColors}
                     />
                   </div>
                 )}
@@ -880,6 +898,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   colors={colorMap ? (data.waiting_times_hist.labels || []).map((label, idx) =>
                     colorMap.get(label) || COLORS[idx % COLORS.length]
                   ) : undefined}
+                  chartColors={chartColors}
                 />
               ) : (
                 <HistogramChart
@@ -892,6 +911,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   showMedianMean={true}
                   unit="h"
                   decimalPlaces={1}
+                  chartColors={chartColors}
                 />
               )}
             </div>
@@ -917,6 +937,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   colors={colorMap ? (data.job_duration_hist.labels || []).map((label, idx) =>
                     colorMap.get(label) || COLORS[idx % COLORS.length]
                   ) : undefined}
+                  chartColors={chartColors}
                 />
               ) : (
                 <HistogramChart
@@ -929,6 +950,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                   showMedianMean={true}
                   unit="h"
                   decimalPlaces={1}
+                  chartColors={chartColors}
                 />
               )}
             </div>
@@ -950,6 +972,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 defaultColor="#04A5D5"
                 colorMap={colorMap}
                 isHistogram={true}
+                chartColors={chartColors}
               />
             </div>
           )}
@@ -963,6 +986,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 defaultColor="#EC7300"
                 colorMap={colorMap}
                 isHistogram={true}
+                chartColors={chartColors}
               />
             </div>
           )}
@@ -976,6 +1000,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 defaultColor="#17a2b8"
                 colorMap={colorMap}
                 isHistogram={true}
+                chartColors={chartColors}
               />
             </div>
           )}

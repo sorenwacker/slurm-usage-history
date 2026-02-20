@@ -1,7 +1,7 @@
 import React from 'react';
 import Plot from 'react-plotly.js';
 import type { TrendData } from '../../types';
-import { getColorForLabel, getCommonLayout, getCommonConfig } from './chartHelpers';
+import { getColorForLabel, getCommonLayout, getCommonConfig, type ChartColorOptions } from './chartHelpers';
 
 interface TimelineChartProps {
   data: TrendData;
@@ -10,6 +10,7 @@ interface TimelineChartProps {
   colorMap: Map<string, string> | null;
   defaultColor?: string;
   statistic?: string;
+  chartColors?: ChartColorOptions;
 }
 
 const TimelineChart: React.FC<TimelineChartProps> = ({
@@ -19,6 +20,7 @@ const TimelineChart: React.FC<TimelineChartProps> = ({
   colorMap,
   defaultColor = '#28a745',
   statistic = 'median',
+  chartColors,
 }) => {
   if (!data || !data.x || data.x.length === 0) {
     return null;
@@ -76,22 +78,24 @@ const TimelineChart: React.FC<TimelineChartProps> = ({
     ];
   };
 
+  const baseLayout = getCommonLayout(xTitle, yTitle, false, chartColors);
+
   return (
     <div className="chart-container">
       <Plot
         data={generateTraces()}
         layout={{
-          ...getCommonLayout(xTitle, yTitle, false),
+          ...baseLayout,
           showlegend: true,
           legend: {
             x: 0.02,
             y: 0.98,
             xanchor: 'left',
             yanchor: 'top',
-            bgcolor: 'rgba(255, 255, 255, 0.8)',
-            bordercolor: '#ddd',
+            bgcolor: chartColors?.legendBgColor || 'rgba(255, 255, 255, 0.8)',
+            bordercolor: chartColors?.legendBorderColor || '#ddd',
             borderwidth: 1,
-            font: { size: 10 },
+            font: { size: 10, color: chartColors?.textColor || '#333' },
           },
         }}
         useResizeHandler={true}
