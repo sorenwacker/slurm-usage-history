@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import Plot from 'react-plotly.js';
 import type { AggregatedChartsResponse, ChartData } from '../types';
 import { createGlobalColorMap, COLORS, adjustColorForDarkMode } from './charts/chartHelpers';
@@ -26,7 +26,6 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
   const [jobDurationTrendStat, setJobDurationTrendStat] = useState<string>('median');
   const [showWaitingTimeCharts, setShowWaitingTimeCharts] = useState<boolean>(true);
   const [showJobDurationCharts, setShowJobDurationCharts] = useState<boolean>(true);
-  const renderStartTime = useRef<number>(Date.now());
   const { chartColors, isDark } = useDarkMode();
 
   // Calculate timing summary stats
@@ -73,9 +72,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
   // Only create a color map if a "color by" dimension is selected (not "None")
   const colorMap = React.useMemo(() => {
     // colorBy is empty string "" when "None (default)" is selected
-    console.log('Charts: colorBy =', JSON.stringify(colorBy), 'type:', typeof colorBy);
     if (!data || !colorBy) {
-      console.log('Charts: Returning null colorMap because colorBy is empty');
       return null;
     }
 
@@ -118,6 +115,31 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
     const filterAndSortNodeData = (nodeData: ChartData, resourceType: 'cpu' | 'gpu'): ChartData => {
       let indices = nodeData.x.map((_, i) => i);
 
+      // Determine if we should normalize
+      const totalHours = nodeData.total_hours || 0;
+      const shouldNormalize = normalizeNodeUsage && nodeData.hardware_config && totalHours > 0;
+
+      // Helper to get the value for sorting (normalized if applicable)
+      const getSortValue = (idx: number): number => {
+        let rawValue = 0;
+        if (nodeData.series) {
+          rawValue = nodeData.series.reduce((sum, s) => sum + (s.data[idx] || 0), 0);
+        } else if (nodeData.y) {
+          rawValue = nodeData.y[idx] as number;
+        }
+
+        if (shouldNormalize && nodeData.hardware_config) {
+          const node = String(nodeData.x[idx]);
+          const hw = nodeData.hardware_config[node];
+          if (hw) {
+            const capacity = resourceType === 'cpu' ? hw.cpu_cores : hw.gpu_count;
+            const maxCapacity = capacity * totalHours;
+            return normalizeValue(rawValue, maxCapacity);
+          }
+        }
+        return rawValue;
+      };
+
       // Filter: hide nodes with 0 usage (when series data, sum all series values)
       if (hideUnusedNodes) {
         indices = indices.filter(i => {
@@ -133,19 +155,11 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
       }
 
       // Sort: by usage (descending) or alphabetically
+      // When normalizing, sort by normalized percentage values
       if (sortByUsage) {
         indices.sort((a, b) => {
-          let valueA = 0;
-          let valueB = 0;
-
-          if (nodeData.series) {
-            valueA = nodeData.series.reduce((sum, s) => sum + (s.data[a] || 0), 0);
-            valueB = nodeData.series.reduce((sum, s) => sum + (s.data[b] || 0), 0);
-          } else if (nodeData.y) {
-            valueA = nodeData.y[a] as number;
-            valueB = nodeData.y[b] as number;
-          }
-
+          const valueA = getSortValue(a);
+          const valueB = getSortValue(b);
           return valueB - valueA; // Descending order
         });
       }
@@ -158,10 +172,6 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
               .filter(([_, config]) => config !== undefined)
           )
         : undefined;
-
-      // Get values (apply normalization if requested)
-      const totalHours = nodeData.total_hours || 0;
-      const shouldNormalize = normalizeNodeUsage && filteredHardwareConfig && totalHours > 0;
 
       let processedY: (string | number)[] | undefined = undefined;
       if (nodeData.y) {
@@ -244,27 +254,6 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
     };
   }, [processedNodeData]);
 
-  // Performance logging - measure render time after charts are rendered
-  useEffect(() => {
-    if (!data) return;
-
-    const renderTime = Date.now() - renderStartTime.current;
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('📊 CHARTS RENDER PERFORMANCE');
-    console.log('═══════════════════════════════════════════════════════');
-    console.log(`⏱️  Render time: ${renderTime}ms`);
-    console.log(`📈 Total jobs: ${data.summary.total_jobs.toLocaleString()}`);
-    console.log(`🎨 Color by: ${colorBy || 'None'}`);
-    console.log(`🔍 Hide unused nodes: ${hideUnusedNodes}`);
-    console.log(`📊 Sort by usage: ${sortByUsage}`);
-    console.log(`🖥️  CPU nodes (filtered): ${processedNodeData.cpu?.x.length || 0}`);
-    console.log(`🎮 GPU nodes (filtered): ${processedNodeData.gpu?.x.length || 0}`);
-    console.log('═══════════════════════════════════════════════════════');
-
-    // Reset timer for next render
-    renderStartTime.current = Date.now();
-  }, [data, colorBy, hideUnusedNodes, sortByUsage, processedNodeData]);
-
   if (!data) {
     return (
       <div className="card">
@@ -277,10 +266,13 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
 
   return (
     <div>
-      {/* USERS SECTION */}
-      <section className="section">
-        <h2 className="section-title">Users</h2>
-        <div className="chart-row">
+      {/* USERS & JOBS SECTION - Combined on wide screens */}
+      <section className="section-combined">
+        <div className="section-header">
+          <h2>Users</h2>
+          <h2>Jobs</h2>
+        </div>
+        <div className="chart-row-4col">
           {data.active_users_over_time && data.active_users_over_time.x.length > 0 && (
             <div className="card">
               <h3>Active Users</h3>
@@ -340,13 +332,6 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
               )}
             </div>
           )}
-        </div>
-      </section>
-
-      {/* JOBS SECTION */}
-      <section className="section">
-        <h2 className="section-title">Jobs</h2>
-        <div className="chart-row">
           {data.jobs_over_time && data.jobs_over_time.x.length > 0 && (
             <div className="card">
               <h3>Number of Submitted Jobs</h3>
@@ -392,7 +377,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 <HistogramChart
                   data={data.jobs_distribution}
                   xTitle="Jobs per Period"
-                  yTitle="Number of Periods"
+                  yTitle="Count"
                   defaultColor="#6f42c1"
                   colorMap={null}
                   isHistogram={true}
@@ -408,9 +393,12 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
       </section>
 
       {/* USAGE SECTION */}
-      <section className="section">
-        <h2 className="section-title">Usage</h2>
-        <div className="chart-row">
+      <section className="section-combined">
+        <div className="section-header">
+          <h2>CPU Usage</h2>
+          <h2>GPU Usage</h2>
+        </div>
+        <div className="chart-row-4col">
           {data.cpu_usage_over_time && data.cpu_usage_over_time.x.length > 0 && (
             <div className="card">
               <h3>CPU Usage</h3>
@@ -468,8 +456,6 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
               )}
             </div>
           )}
-        </div>
-        <div className="chart-row">
           {data.gpu_usage_over_time && data.gpu_usage_over_time.x.length > 0 && (
             <div className="card">
               <h3>GPU Usage</h3>
@@ -582,36 +568,38 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
                 )}
               </div>
             )}
-            {processedNodeData.cpu && processedNodeData.cpu.x.length > 0 && (
-              <div className="card" style={{ marginBottom: '1.5rem' }}>
-                <h3>CPU Usage by Node {processedNodeData.cpu.normalized && <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>(% of capacity)</span>}</h3>
-                <StackedAreaChart
-                  data={processedNodeData.cpu}
-                  xTitle="Node"
-                  yTitle={processedNodeData.cpu.normalized ? "Utilization (%)" : "CPU Hours"}
-                  defaultColor="#04A5D5"
-                  colorMap={colorMap}
-                  chartType="bar"
-                  barMode="stack"
-                  chartColors={chartColors}
-                />
-              </div>
-            )}
-            {processedNodeData.gpu && processedNodeData.gpu.x.length > 0 && (
-              <div className="card">
-                <h3>GPU Usage by Node {processedNodeData.gpu.normalized && <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>(% of capacity)</span>}</h3>
-                <StackedAreaChart
-                  data={processedNodeData.gpu}
-                  xTitle="Node"
-                  yTitle={processedNodeData.gpu.normalized ? "Utilization (%)" : "GPU Hours"}
-                  defaultColor="#EC7300"
-                  colorMap={colorMap}
-                  chartType="bar"
-                  barMode="stack"
-                  chartColors={chartColors}
-                />
-              </div>
-            )}
+            <div className="chart-row-equal">
+              {processedNodeData.cpu && processedNodeData.cpu.x.length > 0 && (
+                <div className="card">
+                  <h3>CPU Usage by Node {processedNodeData.cpu.normalized && <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>(% of capacity)</span>}</h3>
+                  <StackedAreaChart
+                    data={processedNodeData.cpu}
+                    xTitle="Node"
+                    yTitle={processedNodeData.cpu.normalized ? "Utilization (%)" : "CPU Hours"}
+                    defaultColor="#04A5D5"
+                    colorMap={colorMap}
+                    chartType="bar"
+                    barMode="stack"
+                    chartColors={chartColors}
+                  />
+                </div>
+              )}
+              {processedNodeData.gpu && processedNodeData.gpu.x.length > 0 && (
+                <div className="card">
+                  <h3>GPU Usage by Node {processedNodeData.gpu.normalized && <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>(% of capacity)</span>}</h3>
+                  <StackedAreaChart
+                    data={processedNodeData.gpu}
+                    xTitle="Node"
+                    yTitle={processedNodeData.gpu.normalized ? "Utilization (%)" : "GPU Hours"}
+                    defaultColor="#EC7300"
+                    colorMap={colorMap}
+                    chartType="bar"
+                    barMode="stack"
+                    chartColors={chartColors}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         )}
       </section>
@@ -757,7 +745,8 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
           </div>
         </div>
 
-        {/* STACKED DISTRIBUTION CHARTS - Always visible, together for comparison */}
+        {/* STACKED DISTRIBUTION CHARTS - Side by side on wide screens */}
+        <div className="chart-row-equal">
         {data.waiting_times_stacked && data.waiting_times_stacked.x && data.waiting_times_stacked.x.length > 0 && (
           <div className="card">
             <h3>Waiting Time Distribution Over Time <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>(stacked percentages)</span></h3>
@@ -874,6 +863,7 @@ const Charts: React.FC<ChartsProps> = ({ data, hideUnusedNodes, setHideUnusedNod
             </div>
           </div>
         )}
+        </div>
 
         {/* HISTOGRAM CHARTS - Together at the bottom */}
         <div className="chart-row-equal">

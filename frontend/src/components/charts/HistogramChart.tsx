@@ -78,6 +78,16 @@ const HistogramChart: React.FC<HistogramChartProps> = ({
     ...getCommonLayout(xTitle, yTitle, data.series && data.series.length > 1, chartColors),
   };
 
+  // For histogram mode with string bin labels, force categorical x-axis to align labels with bars
+  // Only apply for data with string x values (bin labels like "1-10", "11-20")
+  // Don't apply for numeric x values (like CPUs per job: 1, 2, 4, 8...)
+  if (isHistogram && data.x.length > 0 && typeof data.x[0] === 'string') {
+    layout.xaxis = {
+      ...layout.xaxis,
+      type: 'category',
+    };
+  }
+
   // Add tick angle if specified
   if (tickAngle !== undefined) {
     layout.xaxis = {

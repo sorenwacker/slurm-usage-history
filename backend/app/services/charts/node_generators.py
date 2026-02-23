@@ -118,32 +118,47 @@ def generate_node_usage(
         cpu_grouped = cpu_grouped[cpu_grouped["CPUHours"] > 0]
         gpu_grouped = gpu_grouped[gpu_grouped["GPUHours"] > 0]
 
-    # Sort nodes
-    if sort_by_usage:
-        if color_by and color_by in cpu_grouped.columns:
-            cpu_total_per_node = cpu_grouped.groupby("NodeList")["CPUHours"].sum().sort_values(ascending=False)
-            gpu_total_per_node = gpu_grouped.groupby("NodeList")["GPUHours"].sum().sort_values(ascending=False)
-        else:
-            cpu_total_per_node = cpu_grouped.set_index("NodeList")["CPUHours"].sort_values(ascending=False)
-            gpu_total_per_node = gpu_grouped.set_index("NodeList")["GPUHours"].sort_values(ascending=False)
-        cpu_sorted_nodes = cpu_total_per_node.index.tolist()
-        gpu_sorted_nodes = gpu_total_per_node.index.tolist()
-    else:
-        # Alphabetical sort (natural sort would be better but requires natsort library)
-        cpu_sorted_nodes = sorted(cpu_grouped["NodeList"].unique())
-        gpu_sorted_nodes = sorted(gpu_grouped["NodeList"].unique())
-
-    # Pre-compute max capacities and hardware config for each node
+    # Pre-compute max capacities and hardware config for each node (needed for sorting when normalized)
+    all_nodes = set(cpu_grouped["NodeList"].unique()) | set(gpu_grouped["NodeList"].unique())
     cpu_max_capacities = {}
     gpu_max_capacities = {}
     hardware_config = {}  # Store per-node hardware specs for hover info
     config = get_cluster_config()
-    for node in set(cpu_sorted_nodes + gpu_sorted_nodes):
+    for node in all_nodes:
         hw = config.get_node_hardware(cluster_name, node) if cluster_name else {"cpu_cores": 64, "gpu_count": 0}
         hardware_config[node] = hw
         if cluster_config and total_hours:
             cpu_max_capacities[node] = hw["cpu_cores"] * total_hours
             gpu_max_capacities[node] = hw["gpu_count"] * total_hours
+
+    # Sort nodes
+    if sort_by_usage:
+        if color_by and color_by in cpu_grouped.columns:
+            cpu_total_per_node = cpu_grouped.groupby("NodeList")["CPUHours"].sum()
+            gpu_total_per_node = gpu_grouped.groupby("NodeList")["GPUHours"].sum()
+        else:
+            cpu_total_per_node = cpu_grouped.set_index("NodeList")["CPUHours"]
+            gpu_total_per_node = gpu_grouped.set_index("NodeList")["GPUHours"]
+
+        # If normalizing, sort by percentage utilization instead of raw hours
+        if cluster_config:
+            cpu_normalized = pd.Series({
+                node: normalize_value(float(cpu_total_per_node.get(node, 0)), cpu_max_capacities.get(node, 1))
+                for node in cpu_total_per_node.index
+            })
+            gpu_normalized = pd.Series({
+                node: normalize_value(float(gpu_total_per_node.get(node, 0)), gpu_max_capacities.get(node, 1))
+                for node in gpu_total_per_node.index
+            })
+            cpu_sorted_nodes = cpu_normalized.sort_values(ascending=False).index.tolist()
+            gpu_sorted_nodes = gpu_normalized.sort_values(ascending=False).index.tolist()
+        else:
+            cpu_sorted_nodes = cpu_total_per_node.sort_values(ascending=False).index.tolist()
+            gpu_sorted_nodes = gpu_total_per_node.sort_values(ascending=False).index.tolist()
+    else:
+        # Alphabetical sort (natural sort would be better but requires natsort library)
+        cpu_sorted_nodes = sorted(cpu_grouped["NodeList"].unique())
+        gpu_sorted_nodes = sorted(gpu_grouped["NodeList"].unique())
 
     # Build response
     if color_by and color_by in cpu_grouped.columns:

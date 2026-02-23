@@ -352,7 +352,7 @@ export function AdminConfig() {
                 onClick={handleReload}
                 className="admin-btn admin-btn-primary"
               >
-                <span>🔄</span> Reload
+                Reload
               </button>
               {selectedCluster && (
                 <button
@@ -494,7 +494,7 @@ export function AdminConfig() {
                   <div className="admin-search-grid">
                     <input
                       type="text"
-                      placeholder="🔍 Search nodes..."
+                      placeholder="Search nodes..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="admin-search-input"
@@ -698,7 +698,7 @@ export function AdminConfig() {
                     className="admin-btn admin-btn-secondary"
                     disabled={saving}
                   >
-                    🔄 Reset
+                    Reset
                   </button>
                   <button
                     onClick={() => setActiveTab('overview')}

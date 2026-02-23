@@ -133,7 +133,6 @@ export function AdminUsers() {
           <div className="admin-header-title">
             <div>
               <h1>
-                <span className="emoji">👥</span>
                 Admin Users
               </h1>
               <p className="admin-header-subtitle">Manage admin and superadmin access via SAML email addresses</p>
@@ -353,7 +352,7 @@ export function AdminUsers() {
             className="admin-btn admin-btn-secondary"
             style={{ padding: '0.75rem 1.5rem' }}
           >
-            🔄 Reset
+            Reset
           </button>
         </div>
       </div>

@@ -105,14 +105,12 @@ export const generateChartTraces = (
   if (chartData.series && chartData.series.length > 0) {
     // If no color map (color by "None"), aggregate all series into one
     if (!colorMap) {
-      console.log('generateChartTraces: No colorMap, aggregating', chartData.series.length, 'series');
       // Sum up all series data for each x value
       const aggregatedData = chartData.x.map((_, index) =>
         chartData.series!.reduce((sum, series) => sum + (series.data[index] || 0), 0)
       );
 
       if (chartType === 'area') {
-        console.log('generateChartTraces: Returning single area trace with color', defaultColor);
         return [{
           x: chartData.x,
           y: aggregatedData,
@@ -125,8 +123,6 @@ export const generateChartTraces = (
           hovertemplate: 'Period: %{x}<br>Value: %{y:,.0f}<extra></extra>',
         }];
       } else {
-        console.log('generateChartTraces: Returning single bar trace with color', defaultColor);
-
         // Build custom data with hardware config if available
         let customdata: string[] | undefined = undefined;
         let hovertemplate = '%{x}<br>Value: %{y:,.1f}';
