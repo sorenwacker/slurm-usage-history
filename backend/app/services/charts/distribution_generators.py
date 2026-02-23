@@ -576,25 +576,79 @@ def generate_active_users_distribution(df: pd.DataFrame, period_type: str = "mon
     """Aggregate active users distribution.
 
     Shows histogram of how many unique users were active per period.
-    Only Account is valid for color_by since users can span multiple
-    partitions/QoS, making those groupings meaningless.
+    Valid color_by options:
+    - Account: shows unique users per account
+    - User: shows most active users (periods active per user)
+    Partition/QoS are ignored since users span multiple partitions/QoS.
     """
     if "User" not in df.columns:
         return {"type": "empty", "x": [], "y": []}
 
+    # Only Account and User make sense for user distribution
+    effective_color_by = color_by if color_by in ("Account", "User") else None
+
+    # For "User" mode: count periods each user was active (most active users)
+    if effective_color_by == "User":
+        df_work, time_column = _get_time_column(df, period_type)
+        if time_column is None:
+            return {"type": "empty", "x": [], "y": []}
+
+        # Count unique periods per user
+        periods_per_user = df_work.groupby("User")[time_column].nunique().sort_values(ascending=False)
+
+        if periods_per_user.empty:
+            return {"type": "empty", "x": [], "y": []}
+
+        # Return top 15 users
+        top_users = periods_per_user.head(15)
+        labels = [str(x) for x in top_users.index.tolist()]
+        values = top_users.values.tolist()
+
+        # Add "Others" if more users exist
+        if len(periods_per_user) > 15:
+            others_count = int(periods_per_user.iloc[15:].sum())
+            labels.append(f"Others ({len(periods_per_user) - 15})")
+            values.append(others_count)
+
+        return {
+            "type": "pie",
+            "labels": labels,
+            "values": values,
+        }
+
+    # For "Account" mode: count unique users per account
+    if effective_color_by == "Account":
+        users_per_account = df.groupby("Account")["User"].nunique().sort_values(ascending=False)
+
+        if users_per_account.empty:
+            return {"type": "empty", "x": [], "y": []}
+
+        top_accounts = users_per_account.head(15)
+        labels = [str(x) for x in top_accounts.index.tolist()]
+        values = top_accounts.values.tolist()
+
+        if len(users_per_account) > 15:
+            others_count = int(users_per_account.iloc[15:].sum())
+            labels.append(f"Others ({len(users_per_account) - 15})")
+            values.append(others_count)
+
+        return {
+            "type": "pie",
+            "labels": labels,
+            "values": values,
+        }
+
+    # Default: histogram of users per period
     def agg_unique_users(data, group_col):
         return data.groupby(group_col)["User"].nunique()
-
-    # Only Account makes sense for user grouping
-    effective_color_by = color_by if color_by == "Account" else None
 
     return _aggregate_period_distribution(
         df=df,
         period_type=period_type,
-        color_by=effective_color_by,
+        color_by=None,
         agg_func=agg_unique_users,
         metric_name="Active users",
-        allowed_pie_dimensions=["Account"]
+        allowed_pie_dimensions=[]
     )
 
 
