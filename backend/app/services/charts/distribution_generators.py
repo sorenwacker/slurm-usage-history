@@ -576,8 +576,8 @@ def generate_active_users_distribution(df: pd.DataFrame, period_type: str = "mon
     """Aggregate active users distribution.
 
     Shows histogram of how many unique users were active per period.
-    Note: color_by="User" is ignored as it doesn't make sense for this chart
-    (grouping users by user would just show each user with count=1).
+    Only Account is valid for color_by since users can span multiple
+    partitions/QoS, making those groupings meaningless.
     """
     if "User" not in df.columns:
         return {"type": "empty", "x": [], "y": []}
@@ -585,8 +585,8 @@ def generate_active_users_distribution(df: pd.DataFrame, period_type: str = "mon
     def agg_unique_users(data, group_col):
         return data.groupby(group_col)["User"].nunique()
 
-    # Ignore color_by="User" - it doesn't make sense for user distribution
-    effective_color_by = None if color_by == "User" else color_by
+    # Only Account makes sense for user grouping
+    effective_color_by = color_by if color_by == "Account" else None
 
     return _aggregate_period_distribution(
         df=df,

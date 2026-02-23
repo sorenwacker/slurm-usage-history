@@ -226,22 +226,21 @@ def generate_active_users_over_time(
     period_type: str = "month",
     color_by: str | None = None
 ) -> dict[str, list]:
-    """Aggregate active users by time period, optionally grouped by a dimension.
+    """Aggregate active users by time period, optionally grouped by account.
 
     Args:
         df: Input DataFrame
         period_type: Time period (day, week, month, year)
-        color_by: Optional dimension to group by (Account, Partition, QOS)
-                  Note: "State" and "User" are ignored as they don't produce
-                  meaningful results for user counts (a user can have multiple
-                  states, and grouping users by user is redundant).
+        color_by: Optional dimension to group by. Only "Account" is valid for
+                  user counts. Other dimensions are ignored because a user can
+                  use multiple partitions/QoS, making those groupings meaningless.
 
     Returns:
         Without color_by: {"x": [...], "y": [...]}
         With color_by: {"x": [...], "series": [{"name": "group", "data": [...]}, ...]}
     """
-    # Ignore color_by for dimensions that don't make sense for user counts
-    effective_color_by = None if color_by in ("State", "User") else color_by
+    # Only Account makes sense for user grouping - users can span partitions/QoS
+    effective_color_by = color_by if color_by == "Account" else None
 
     return _generate_timeline(
         df=df,
