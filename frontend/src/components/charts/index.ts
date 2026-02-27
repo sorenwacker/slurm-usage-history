@@ -3,6 +3,8 @@ export { default as TimelineChart } from './TimelineChart';
 export { default as PieChart } from './PieChart';
 export { default as HistogramChart } from './HistogramChart';
 export { default as StackedAreaChart } from './StackedAreaChart';
+export { default as StackedPercentageChart } from './StackedPercentageChart';
+export { default as GaugeChart } from './GaugeChart';
 
 export {
   COLORS,
@@ -13,4 +15,5 @@ export {
   generateChartTraces,
   getCommonLayout,
   getCommonConfig,
+  adjustColorForDarkMode,
 } from './chartHelpers';
