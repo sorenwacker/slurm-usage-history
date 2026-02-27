@@ -5,9 +5,9 @@ import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 
+import jwt
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
 
 from .config import get_settings
 
@@ -67,7 +67,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Security(security))
         if username is None:
             raise credentials_exception
         return username
-    except JWTError:
+    except jwt.PyJWTError:
         raise credentials_exception
 
 
