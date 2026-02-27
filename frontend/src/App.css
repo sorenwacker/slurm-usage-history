@@ -417,6 +417,68 @@ body {
   margin-bottom: var(--space-xl);
 }
 
+/* Users/Jobs container - stacks by default, side by side on ultra-wide */
+.users-jobs-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+@media (min-width: 2000px) {
+  .users-jobs-container {
+    flex-direction: row;
+  }
+
+  .users-jobs-container .subsection {
+    flex: 1;
+  }
+}
+
+.subsection {
+  margin-bottom: var(--space-md);
+}
+
+.subsection-header {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 3vw, 1.25rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 2px solid var(--border);
+}
+
+.subsection-header::before {
+  content: '';
+  width: 4px;
+  height: 1.2em;
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+/* 2-column chart row for subsections */
+.chart-row-2col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+
+@media (min-width: 900px) {
+  .chart-row-2col {
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-lg);
+  }
+}
+
+@media (min-width: 1400px) {
+  .chart-row-2col {
+    grid-template-columns: 5fr 3fr;
+  }
+}
+
 .section-combined .section-header {
   display: flex;
   gap: var(--space-xl);
