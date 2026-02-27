@@ -8,7 +8,7 @@ services:
       dockerfile: docker/Dockerfile.saml-idp
     container_name: slurm-saml-idp
     ports:
-      - "8080:8080"
+      - "8180:8080"
     volumes:
       - ./docker/saml-idp/authsources.php:/var/www/simplesamlphp/config/authsources.php
       - ./docker/saml-idp/saml20-sp-remote.php:/var/www/simplesamlphp/metadata/saml20-sp-remote.php
