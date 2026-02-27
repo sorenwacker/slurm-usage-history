@@ -213,22 +213,35 @@ const UsageSection: React.FC<UsageSectionProps> = ({
             </div>
           </div>
 
+          {/* Utilization gauges */}
+          {(clusterUtilization.cpu !== null || clusterUtilization.gpu !== null) && (
+            <div className="gauge-grid" style={{ marginBottom: 'var(--space-lg)' }}>
+              {clusterUtilization.cpu !== null && (
+                <div className="card gauge-card">
+                  <GaugeChart
+                    value={Math.round(clusterUtilization.cpu * 10) / 10}
+                    title="Average CPU Utilization"
+                    chartColors={chartColors}
+                  />
+                </div>
+              )}
+              {clusterUtilization.gpu !== null && (
+                <div className="card gauge-card">
+                  <GaugeChart
+                    value={Math.round(clusterUtilization.gpu * 10) / 10}
+                    title="Average GPU Utilization"
+                    chartColors={chartColors}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="users-jobs-container">
             {/* CPU Node Usage */}
             {processedNodeData.cpu && processedNodeData.cpu.x.length > 0 && (
               <div className="subsection">
                 <h2 className="subsection-header">CPU Usage by Node</h2>
-                {clusterUtilization.cpu !== null && (
-                  <div className="gauge-grid" style={{ marginBottom: 'var(--space-md)' }}>
-                    <div className="card gauge-card">
-                      <GaugeChart
-                        value={Math.round(clusterUtilization.cpu * 10) / 10}
-                        title="Average CPU Utilization"
-                        chartColors={chartColors}
-                      />
-                    </div>
-                  </div>
-                )}
                 <div className="card">
                   <h3>
                     CPU Usage by Node{' '}
@@ -256,17 +269,6 @@ const UsageSection: React.FC<UsageSectionProps> = ({
             {processedNodeData.gpu && processedNodeData.gpu.x.length > 0 && (
               <div className="subsection">
                 <h2 className="subsection-header">GPU Usage by Node</h2>
-                {clusterUtilization.gpu !== null && (
-                  <div className="gauge-grid" style={{ marginBottom: 'var(--space-md)' }}>
-                    <div className="card gauge-card">
-                      <GaugeChart
-                        value={Math.round(clusterUtilization.gpu * 10) / 10}
-                        title="Average GPU Utilization"
-                        chartColors={chartColors}
-                      />
-                    </div>
-                  </div>
-                )}
                 <div className="card">
                   <h3>
                     GPU Usage by Node{' '}
