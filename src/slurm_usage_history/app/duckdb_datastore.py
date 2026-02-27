@@ -152,13 +152,14 @@ class DuckDBDataStore(metaclass=Singleton):
                         cluster_data = json.load(f)
                     break
 
-            if cluster_data:
+            if cluster_data and cluster_data.get("clusters"):
                 active_clusters = {
                     cluster["name"] for cluster in cluster_data.get("clusters", {}).values()
                     if cluster.get("active", True)
                 }
-                # Return only hosts that are in active clusters
-                return [hostname for hostname in self.hosts.keys() if hostname in active_clusters]
+                # Only filter if we have active clusters defined
+                if active_clusters:
+                    return [hostname for hostname in self.hosts.keys() if hostname in active_clusters]
         except Exception as e:
             logger.warning(f"Failed to filter by active clusters: {e}")
 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { dashboardApi, reportsApi, authApi } from '../api/client';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -14,7 +14,6 @@ import type { ReportData } from '../components/ReportPreview';
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'reports'>('overview');
-  const queryClient = useQueryClient();
 
   // Fetch current user info to check admin status
   const { data: userInfo } = useQuery({
@@ -22,9 +21,6 @@ const Dashboard: React.FC = () => {
     queryFn: authApi.getCurrentUser,
   });
 
-  const handleDevAdminToggle = () => {
-    queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-  };
 
   // Fetch full cluster list (never filtered by hostname)
   const { data: allClustersMetadata } = useQuery({
@@ -116,7 +112,7 @@ const Dashboard: React.FC = () => {
   if (metadataLoading) {
     return (
       <div className="app">
-        <Header userInfo={userInfo} onDevAdminToggle={handleDevAdminToggle} />
+        <Header userInfo={userInfo}  />
         <div className="container">
           <div className="loading-screen">
             <div className="loading-spinner"></div>
@@ -133,7 +129,7 @@ const Dashboard: React.FC = () => {
   if (!metadata || metadata.hostnames.length === 0) {
     return (
       <div className="app">
-        <Header userInfo={userInfo} onDevAdminToggle={handleDevAdminToggle} />
+        <Header userInfo={userInfo}  />
         <div className="container">
           <div className="error-screen">
             <h2>No Data Available</h2>
@@ -147,7 +143,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="app">
-      <Header activeTab={activeTab} onTabChange={setActiveTab} userInfo={userInfo} onDevAdminToggle={handleDevAdminToggle} />
+      <Header activeTab={activeTab} onTabChange={setActiveTab} userInfo={userInfo}  />
       <div className="dashboard-layout">
         <div className="sidebar">
           {activeTab === 'overview' ? (

@@ -39,6 +39,15 @@ $config = [
             'sn' => ['User'],
             'netid' => ['testuser'],
         ],
+        'test:test' => [
+            'uid' => ['test'],
+            'eduPersonAffiliation' => ['member', 'staff'],
+            'email' => ['test@example.com'],
+            'displayName' => ['Test Account'],
+            'givenName' => ['Test'],
+            'sn' => ['Account'],
+            'netid' => ['test'],
+        ],
     ],
 
 ];
