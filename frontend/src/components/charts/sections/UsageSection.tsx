@@ -184,7 +184,7 @@ const UsageSection: React.FC<UsageSectionProps> = ({
       {(processedNodeData.cpu?.x.length || processedNodeData.gpu?.x.length) && (
         <div className="node-usage-section">
           <div className="node-usage-header">
-            <h3 className="section-title">CPU/GPU Usage by Node</h3>
+            <h3 className="section-title">Usage by Node</h3>
             <div className="node-usage-controls">
               <label className="checkbox-label">
                 <input
@@ -213,73 +213,80 @@ const UsageSection: React.FC<UsageSectionProps> = ({
             </div>
           </div>
 
-          {/* Utilization gauges */}
-          {(clusterUtilization.cpu !== null || clusterUtilization.gpu !== null) && (
-            <div className="gauge-grid">
-              {clusterUtilization.cpu !== null && (
-                <div className="card gauge-card">
-                  <GaugeChart
-                    value={Math.round(clusterUtilization.cpu * 10) / 10}
-                    title="Average CPU Utilization"
-                    chartColors={chartColors}
-                  />
-                </div>
-              )}
-              {clusterUtilization.gpu !== null && (
-                <div className="card gauge-card">
-                  <GaugeChart
-                    value={Math.round(clusterUtilization.gpu * 10) / 10}
-                    title="Average GPU Utilization"
-                    chartColors={chartColors}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="chart-row-equal">
+          <div className="users-jobs-container">
+            {/* CPU Node Usage */}
             {processedNodeData.cpu && processedNodeData.cpu.x.length > 0 && (
-              <div className="card">
-                <h3>
-                  CPU Usage by Node{' '}
-                  {processedNodeData.cpu.normalized && (
-                    <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>
-                      (% of capacity)
-                    </span>
-                  )}
-                </h3>
-                <StackedAreaChart
-                  data={processedNodeData.cpu}
-                  xTitle="Node"
-                  yTitle={processedNodeData.cpu.normalized ? "Utilization (%)" : "CPU Hours"}
-                  defaultColor="#04A5D5"
-                  colorMap={colorMap}
-                  chartType="bar"
-                  barMode="stack"
-                  chartColors={chartColors}
-                />
+              <div className="subsection">
+                <h2 className="subsection-header">CPU Usage by Node</h2>
+                {clusterUtilization.cpu !== null && (
+                  <div className="gauge-grid" style={{ marginBottom: 'var(--space-md)' }}>
+                    <div className="card gauge-card">
+                      <GaugeChart
+                        value={Math.round(clusterUtilization.cpu * 10) / 10}
+                        title="Average CPU Utilization"
+                        chartColors={chartColors}
+                      />
+                    </div>
+                  </div>
+                )}
+                <div className="card">
+                  <h3>
+                    CPU Usage by Node{' '}
+                    {processedNodeData.cpu.normalized && (
+                      <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>
+                        (% of capacity)
+                      </span>
+                    )}
+                  </h3>
+                  <StackedAreaChart
+                    data={processedNodeData.cpu}
+                    xTitle="Node"
+                    yTitle={processedNodeData.cpu.normalized ? "Utilization (%)" : "CPU Hours"}
+                    defaultColor="#04A5D5"
+                    colorMap={colorMap}
+                    chartType="bar"
+                    barMode="stack"
+                    chartColors={chartColors}
+                  />
+                </div>
               </div>
             )}
+
+            {/* GPU Node Usage */}
             {processedNodeData.gpu && processedNodeData.gpu.x.length > 0 && (
-              <div className="card">
-                <h3>
-                  GPU Usage by Node{' '}
-                  {processedNodeData.gpu.normalized && (
-                    <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>
-                      (% of capacity)
-                    </span>
-                  )}
-                </h3>
-                <StackedAreaChart
-                  data={processedNodeData.gpu}
-                  xTitle="Node"
-                  yTitle={processedNodeData.gpu.normalized ? "Utilization (%)" : "GPU Hours"}
-                  defaultColor="#EC7300"
-                  colorMap={colorMap}
-                  chartType="bar"
-                  barMode="stack"
-                  chartColors={chartColors}
-                />
+              <div className="subsection">
+                <h2 className="subsection-header">GPU Usage by Node</h2>
+                {clusterUtilization.gpu !== null && (
+                  <div className="gauge-grid" style={{ marginBottom: 'var(--space-md)' }}>
+                    <div className="card gauge-card">
+                      <GaugeChart
+                        value={Math.round(clusterUtilization.gpu * 10) / 10}
+                        title="Average GPU Utilization"
+                        chartColors={chartColors}
+                      />
+                    </div>
+                  </div>
+                )}
+                <div className="card">
+                  <h3>
+                    GPU Usage by Node{' '}
+                    {processedNodeData.gpu.normalized && (
+                      <span style={{ fontSize: '0.85rem', color: '#666', fontWeight: 'normal' }}>
+                        (% of capacity)
+                      </span>
+                    )}
+                  </h3>
+                  <StackedAreaChart
+                    data={processedNodeData.gpu}
+                    xTitle="Node"
+                    yTitle={processedNodeData.gpu.normalized ? "Utilization (%)" : "GPU Hours"}
+                    defaultColor="#EC7300"
+                    colorMap={colorMap}
+                    chartType="bar"
+                    barMode="stack"
+                    chartColors={chartColors}
+                  />
+                </div>
               </div>
             )}
           </div>
