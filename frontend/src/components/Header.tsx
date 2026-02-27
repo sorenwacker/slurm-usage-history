@@ -96,6 +96,27 @@ const Header: React.FC<HeaderProps> = ({ activeTab = 'overview', onTabChange, us
             <span className="theme-toggle-icon">{isDark ? '\u263E' : '\u2600'}</span>
             <span>{getThemeLabel()}</span>
           </button>
+          {!userInfo && (
+            <button
+              onClick={() => {
+                const currentUrl = window.location.href;
+                window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8100'}/saml/login?redirect_to=${encodeURIComponent(currentUrl)}`;
+              }}
+              style={{
+                padding: '0.5rem 1rem',
+                color: 'white',
+                backgroundColor: 'rgba(59, 130, 246, 0.9)',
+                textDecoration: 'none',
+                borderRadius: '0.375rem',
+                border: '1px solid rgba(96, 165, 250, 1)',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Login
+            </button>
+          )}
           {userInfo && (
             <>
               <div style={{

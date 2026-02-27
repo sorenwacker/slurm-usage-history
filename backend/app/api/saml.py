@@ -262,7 +262,10 @@ async def saml_sls(request: Request):
         )
 
     # Clear session cookie
-    response = RedirectResponse(url=url or "/", status_code=status.HTTP_302_FOUND)
+    # Use RelayState for redirect if available, otherwise fall back to url or "/"
+    relay_state = request.query_params.get("RelayState")
+    redirect_url = url or relay_state or "/"
+    response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
     response.delete_cookie(key="session_token", path="/")
 
     return response

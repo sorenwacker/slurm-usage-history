@@ -48,7 +48,7 @@ services:
       - saml-idp
     networks:
       - slurm-network
-    command: ["uv", "run", "uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8100", "--reload"]
+    command: ["python3", "-m", "uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8100", "--reload"]
 
   # Frontend development server
   frontend:

@@ -136,7 +136,7 @@ async def get_metadata(
             date_ranges[host] = {"min_date": min_date or "", "max_date": max_date or ""}
 
         # Determine which hostnames to return
-        returned_hostnames = list(hostnames) if query_param_hostname else datastore.get_hostnames()
+        returned_hostnames = list(hostnames) if hostname else datastore.get_hostnames()
         logger.info(f"[METADATA] Returning hostnames: {returned_hostnames}")
 
         return MetadataResponse(
