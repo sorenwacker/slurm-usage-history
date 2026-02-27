@@ -65,7 +65,6 @@ web = [
   "python-multipart>=0.0.9",
   "python3-saml>=1.15.0",
   "PyJWT>=2.8.0",
-  "python-jose[cryptography]>=3.3.0",
   "passlib[bcrypt]>=1.7.4",
   "email-validator>=2.0.0",
   "reportlab>=4.0.0",
@@ -75,7 +74,6 @@ web = [
 # Legacy dash dashboard (deprecated, will be removed)
 dash = [
   "dash>=2.0.0",
-  "dash[diskcache]",
   "dash-bootstrap-components>=1.4.0",
   "flask-saml",
 ]
