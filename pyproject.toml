@@ -123,8 +123,8 @@ slurm-waiting-times = "slurm_usage_history.scripts.waiting_times:main"
 slurm-backend = "slurm_usage_history.backend.cli:main [web]"
 slurm-dashboard-legacy = "slurm_usage_history.app.main:main"
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
   "hatch>=1.13.0",
   "pre-commit>=3.8.0",
   "pytest>=8.3.3",
