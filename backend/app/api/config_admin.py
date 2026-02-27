@@ -3,9 +3,10 @@ from pathlib import Path
 from typing import Any, Dict
 
 import yaml
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from ..config import get_cluster_config, reload_cluster_config
+from ..core.admin_auth import get_current_admin
 
 router = APIRouter()
 
@@ -17,7 +18,7 @@ def get_config_path() -> Path:
 
 
 @router.get("/config")
-async def get_configuration():
+async def get_configuration(admin: str = Depends(get_current_admin)):
     """Get current cluster configuration.
 
     Returns the complete YAML configuration including all clusters,
@@ -35,7 +36,7 @@ async def get_configuration():
 
 
 @router.get("/config/{cluster_name}")
-async def get_cluster_configuration(cluster_name: str):
+async def get_cluster_configuration(cluster_name: str, admin: str = Depends(get_current_admin)):
     """Get configuration for a specific cluster.
 
     Args:
@@ -59,7 +60,7 @@ async def get_cluster_configuration(cluster_name: str):
 
 
 @router.post("/config/{cluster_name}/auto-generate")
-async def auto_generate_cluster_configuration(cluster_name: str):
+async def auto_generate_cluster_configuration(cluster_name: str, admin: str = Depends(get_current_admin)):
     """Auto-generate configuration for a cluster based on existing data.
 
     This endpoint analyzes the data for a cluster and automatically generates:
@@ -317,7 +318,7 @@ async def auto_generate_cluster_configuration(cluster_name: str):
 
 
 @router.post("/config/reload")
-async def reload_configuration():
+async def reload_configuration(admin: str = Depends(get_current_admin)):
     """Reload configuration from file.
 
     Useful after manual edits to the YAML file.
@@ -339,7 +340,7 @@ async def reload_configuration():
 
 
 @router.put("/config")
-async def update_configuration(config_data: Dict[str, Any]):
+async def update_configuration(config_data: Dict[str, Any], admin: str = Depends(get_current_admin)):
     """Update the entire cluster configuration.
 
     This endpoint allows you to update the complete YAML configuration.
@@ -391,7 +392,7 @@ async def update_configuration(config_data: Dict[str, Any]):
 
 
 @router.post("/generate-demo-cluster")
-async def generate_demo_cluster():
+async def generate_demo_cluster(admin: str = Depends(get_current_admin)):
     """Generate a demo cluster with 2 years of synthetic data.
 
     Creates a DemoCluster with:
@@ -608,7 +609,7 @@ async def generate_demo_cluster():
 
 
 @router.post("/config/{cluster_name}/cleanup-invalid-nodes")
-async def cleanup_invalid_nodes(cluster_name: str):
+async def cleanup_invalid_nodes(cluster_name: str, admin: str = Depends(get_current_admin)):
     """Clean up invalid nodes from cluster configuration.
 
     Removes nodes that are just numbers, ranges, or contain brackets (malformed SLURM notation).
@@ -684,7 +685,7 @@ async def cleanup_invalid_nodes(cluster_name: str):
 
 
 @router.delete("/config/{cluster_name}/cleanup")
-async def cleanup_demo_cluster(cluster_name: str):
+async def cleanup_demo_cluster(cluster_name: str, admin: str = Depends(get_current_admin)):
     """Delete a demo cluster's data and configuration.
 
     This removes:
@@ -758,7 +759,7 @@ async def cleanup_demo_cluster(cluster_name: str):
 
 
 @router.put("/config/{cluster_name}")
-async def update_cluster_configuration(cluster_name: str, cluster_data: Dict[str, Any]):
+async def update_cluster_configuration(cluster_name: str, cluster_data: Dict[str, Any], admin: str = Depends(get_current_admin)):
     """Update configuration for a specific cluster.
 
     This endpoint allows you to update the configuration for a single cluster.

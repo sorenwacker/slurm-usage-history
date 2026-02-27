@@ -41,7 +41,7 @@ class ClusterConfig:
             # Build synonym maps for fast lookup
             self._build_synonym_maps()
 
-            print(f"✅ Loaded cluster configuration from {self.config_path}")
+            print(f"Loaded cluster configuration from {self.config_path}")
         except Exception as e:
             print(f"Error loading config: {e}")
             self.config = {}

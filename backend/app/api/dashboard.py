@@ -111,32 +111,31 @@ async def get_metadata(
         states = {}
         date_ranges = {}
 
-        for hostname in hostnames:
+        for host in hostnames:
             # If date range is provided, get filter values from filtered data
             if start_date or end_date:
                 filter_values = datastore.get_filter_values_for_period(
-                    hostname=hostname,
+                    hostname=host,
                     start_date=start_date,
                     end_date=end_date
                 )
-                partitions[hostname] = filter_values["partitions"]
-                accounts[hostname] = filter_values["accounts"]
-                users[hostname] = filter_values["users"]
-                qos[hostname] = filter_values["qos"]
-                states[hostname] = filter_values["states"]
+                partitions[host] = filter_values["partitions"]
+                accounts[host] = filter_values["accounts"]
+                users[host] = filter_values["users"]
+                qos[host] = filter_values["qos"]
+                states[host] = filter_values["states"]
             else:
                 # Otherwise get all values from full dataset
-                partitions[hostname] = datastore.get_partitions(hostname)
-                accounts[hostname] = datastore.get_accounts(hostname)
-                users[hostname] = datastore.get_users(hostname)
-                qos[hostname] = datastore.get_qos(hostname)
-                states[hostname] = datastore.get_states(hostname)
+                partitions[host] = datastore.get_partitions(host)
+                accounts[host] = datastore.get_accounts(host)
+                users[host] = datastore.get_users(host)
+                qos[host] = datastore.get_qos(host)
+                states[host] = datastore.get_states(host)
 
-            min_date, max_date = datastore.get_min_max_dates(hostname)
-            date_ranges[hostname] = {"min_date": min_date or "", "max_date": max_date or ""}
+            min_date, max_date = datastore.get_min_max_dates(host)
+            date_ranges[host] = {"min_date": min_date or "", "max_date": max_date or ""}
 
         # Determine which hostnames to return
-        query_param_hostname = hostname  # Save the query parameter before it gets shadowed
         returned_hostnames = list(hostnames) if query_param_hostname else datastore.get_hostnames()
         logger.info(f"[METADATA] Returning hostnames: {returned_hostnames}")
 
