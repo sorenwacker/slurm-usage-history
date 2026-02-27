@@ -391,6 +391,11 @@ body {
   margin-bottom: var(--space-md);
 }
 
+.chart-row-4col > * {
+  min-width: 0;
+  overflow: hidden;
+}
+
 @media (min-width: 900px) {
   .chart-row-4col {
     grid-template-columns: 2fr 1fr;
@@ -436,6 +441,8 @@ body {
 
 .subsection {
   margin-bottom: var(--space-md);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .subsection-header {
@@ -464,6 +471,11 @@ body {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-md);
+}
+
+.chart-row-2col > * {
+  min-width: 0;
+  overflow: hidden;
 }
 
 @media (min-width: 900px) {
@@ -624,6 +636,8 @@ body {
   border: 1px solid var(--border-light);
   margin-bottom: var(--space-md);
   transition: box-shadow var(--transition-base);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .card:hover {
@@ -803,6 +817,11 @@ body {
   margin-bottom: var(--space-md);
 }
 
+.chart-row-equal > * {
+  min-width: 0;
+  overflow: hidden;
+}
+
 @media (min-width: 900px) {
   .chart-row-equal {
     grid-template-columns: repeat(2, 1fr);
@@ -817,6 +836,11 @@ body {
   grid-template-columns: 1fr;
   gap: var(--space-md);
   margin-bottom: var(--space-md);
+}
+
+.chart-row-3col > * {
+  min-width: 0;
+  overflow: hidden;
 }
 
 @media (min-width: 640px) {
