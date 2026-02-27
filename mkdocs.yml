@@ -52,8 +52,6 @@ nav:
       - Configuration: user-guide/configuration.md
   - Deployment:
       - SAML Setup: deployment/saml-setup.md
-      - Basic Auth Setup: deployment/basic-auth-setup.md
-      - Phased Deployment: deployment/phased-deployment.md
   - Development:
       - Local Development: development/local-development.md
       - Packaging: development/packaging.md
