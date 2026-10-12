@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Hiding the filter sidebar left the dashboard content at its sidebar-adjacent width with an empty band on the right; the content now spans the full row when the sidebar is hidden
+
 ### Changed
 - Repository links point at the GitHub mirror `sorenwacker/slurm-usage-history`; the previously linked `tudelft-reit/slurm-dashboard` repository does not exist. README badges show the latest release, PyPI version, and test status. `SECURITY.md`, `CONTRIBUTING.md`, and `CITATION.cff` are added
 

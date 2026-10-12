@@ -389,9 +389,11 @@ body {
   position: relative;
 }
 
-/* Main Content - Mobile */
+/* Main Content - Mobile. min-width: 0 lets the flex item shrink below its charts;
+   it takes whatever width the sidebar and its toggle leave, so it fills the row when they are hidden. */
 .main-content {
   flex: 1;
+  min-width: 0;
   padding: var(--space-md);
   width: 100%;
   max-width: 100%;
@@ -417,7 +419,6 @@ body {
   }
 
   .main-content {
-    max-width: calc(100% - var(--sidebar-width-tablet));
     padding: var(--space-lg);
   }
 }
@@ -430,7 +431,6 @@ body {
   }
 
   .main-content {
-    max-width: calc(100% - var(--sidebar-width));
     padding: var(--space-xl);
   }
 }
