@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Hiding the filter sidebar left the dashboard content at its sidebar-adjacent width with an empty band on the right; the content now spans the full row when the sidebar is hidden
+- Time-series charts skipped periods in which no job started and drew a straight line between the neighbouring periods. The time axis now covers the whole selected range: counts and sums show zero in empty periods, averages and efficiencies leave a gap (see docs/user-guide/dashboard.md)
 
 ### Changed
 - Repository links point at the GitHub mirror `sorenwacker/slurm-usage-history`; the previously linked `tudelft-reit/slurm-dashboard` repository does not exist. README badges show the latest release, PyPI version, and test status. `SECURITY.md`, `CONTRIBUTING.md`, and `CITATION.cff` are added

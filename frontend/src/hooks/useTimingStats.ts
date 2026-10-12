@@ -14,16 +14,19 @@ export function useTimingStats(data: AggregatedChartsResponse | undefined): Timi
   return useMemo(() => {
     if (!data) return null;
 
-    const calcAverage = (arr: number[] | undefined): number | null => {
+    const known = (arr: (number | null)[]): number[] =>
+      arr.filter((v): v is number => v != null && !isNaN(v));
+
+    const calcAverage = (arr: (number | null)[] | undefined): number | null => {
       if (!arr || arr.length === 0) return null;
-      const valid = arr.filter(v => v != null && !isNaN(v));
+      const valid = known(arr);
       if (valid.length === 0) return null;
       return valid.reduce((a, b) => a + b, 0) / valid.length;
     };
 
-    const calcMax = (arr: number[] | undefined): number | null => {
+    const calcMax = (arr: (number | null)[] | undefined): number | null => {
       if (!arr || arr.length === 0) return null;
-      const valid = arr.filter(v => v != null && !isNaN(v));
+      const valid = known(arr);
       if (valid.length === 0) return null;
       return Math.max(...valid);
     };

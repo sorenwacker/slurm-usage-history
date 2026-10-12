@@ -48,6 +48,7 @@ nav:
       - Quick Start: getting-started/quickstart.md
       - Installation: getting-started/installation.md
   - User Guide:
+      - Dashboard: user-guide/dashboard.md
       - Cluster Setup: user-guide/cluster-setup.md
       - Configuration: user-guide/configuration.md
       - Memory Usage: user-guide/memory-usage.md

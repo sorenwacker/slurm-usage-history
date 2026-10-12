@@ -72,7 +72,7 @@ export interface ClusterStats {
 
 export interface SeriesData {
   name: string;
-  data: number[];
+  data: (number | null)[];  // null in a period without jobs for averages and efficiencies
   color?: string;  // set by the backend for the stacked timing charts
 }
 
@@ -92,7 +92,7 @@ export interface ClusterUtilization {
 
 export interface ChartData {
   x: (string | number)[];
-  y?: (string | number)[];  // Optional for backward compatibility
+  y?: (string | number | null)[];  // Optional for backward compatibility; null in a period without jobs for averages
   series?: SeriesData[];    // For multi-series stacked charts
   mean?: number;            // For histogram mode (when no color_by filter)
   median?: number;          // For histogram mode (when no color_by filter)
@@ -112,16 +112,16 @@ export interface ChartData {
 export interface TrendData {
   x: (string | number)[];
   series?: SeriesData[];  // Optional for grouped trend data
-  stats: {
-    mean: number[];
-    median: number[];
-    max: number[];
-    p25: number[];
-    p50: number[];
-    p75: number[];
-    p90: number[];
-    p95: number[];
-    p99: number[];
+  stats: {  // null in a period without jobs
+    mean: (number | null)[];
+    median: (number | null)[];
+    max: (number | null)[];
+    p25: (number | null)[];
+    p50: (number | null)[];
+    p75: (number | null)[];
+    p90: (number | null)[];
+    p95: (number | null)[];
+    p99: (number | null)[];
   };
 }
 

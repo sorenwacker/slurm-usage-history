@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -54,7 +55,7 @@ class FilterRequest(BaseModel):
     qos: list[str] | None = None
     states: list[str] | None = None
     complete_periods_only: bool = False
-    period_type: str = "month"
+    period_type: Literal["day", "week", "month", "year"] = "month"
     color_by: str | None = None  # Group/color charts by: Account, Partition, State, QoS, User
     account_segments: int | None = None  # Number of segments to keep in account names (0 = all)
     normalize_node_usage: bool = False  # Normalize node CPU/GPU usage to 100% capacity

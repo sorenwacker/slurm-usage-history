@@ -64,4 +64,4 @@ Efficiency compares what jobs consumed with what they allocated; it does not aff
 - With a colour dimension selected in the sidebar, both efficiency charts show one line per group (the groups with the most allocated resource); without one, a single cluster-wide line. Group names appear only when the dimension is selected, like in every other chart.
 - GPU efficiency cannot be computed from SLURM accounting.
 
-Jobs collected before the agent reported `CPUUsedHours` are excluded from CPU efficiency; a period with no such jobs is omitted.
+Jobs collected before the agent reported `CPUUsedHours` are excluded from CPU efficiency; a period with no such jobs is drawn as a gap (see [Dashboard](dashboard.md#empty-periods)).
