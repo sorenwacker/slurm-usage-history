@@ -51,6 +51,7 @@ from ..services.charts import (
     generate_waiting_times_trends,
     total_memory_gb_hours,
 )
+from ..services.charts.period_axis import fill_missing_periods, period_axis
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 
@@ -294,6 +295,8 @@ async def get_aggregated_charts(
             "user_activity_frequency": generate_user_activity_frequency(df, period_type, color_by),
         }
 
+        charts_data = _complete_period_axes(charts_data, period_type, window)
+
         # Save to cache before returning
         _save_to_cache(cache_key, charts_data)
 
@@ -307,6 +310,41 @@ async def get_aggregated_charts(
         logger.error(f"Charts endpoint error: {e!s}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Error generating charts: {e!s}") from e
+
+
+# Time-series charts and what an empty period shows: zero for counts and sums,
+# nothing (a gap in the line) for averages, percentiles and efficiencies.
+ZERO_IN_EMPTY_PERIODS = (
+    "cpu_usage_over_time",
+    "gpu_usage_over_time",
+    "active_users_over_time",
+    "jobs_over_time",
+    "memory_usage_over_time",
+    "job_duration_stacked",
+    "waiting_times_stacked",
+)
+GAP_IN_EMPTY_PERIODS = (
+    "waiting_times_over_time",
+    "job_duration_over_time",
+    "waiting_times_trends",
+    "job_duration_trends",
+    "memory_efficiency_over_time",
+    "cpu_efficiency_over_time",
+)
+
+
+def _complete_period_axes(
+    charts_data: dict[str, Any], period_type: str, window: tuple[pd.Timestamp, pd.Timestamp] | None
+) -> dict[str, Any]:
+    """Extend every time-series chart to all periods of the selected window."""
+    if window is None:
+        return charts_data
+    periods = period_axis(period_type, *window)
+    for key in ZERO_IN_EMPTY_PERIODS:
+        charts_data[key] = fill_missing_periods(charts_data[key], periods, fill=0)
+    for key in GAP_IN_EMPTY_PERIODS:
+        charts_data[key] = fill_missing_periods(charts_data[key], periods, fill=None)
+    return charts_data
 
 
 def _submitted_in_range(df: pd.DataFrame, start_date: str | None, end_date: str | None) -> pd.DataFrame:
