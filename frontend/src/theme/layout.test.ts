@@ -29,3 +29,14 @@ describe('efficiency charts', () => {
     expect(multiColumn).toEqual([]);
   });
 });
+
+describe('jobs section', () => {
+  const section = readFileSync(join(__dirname, '..', 'components', 'charts', 'sections', 'UsersJobsSection.tsx'), 'utf8');
+
+  it('gives Nodes per Job its own full-width row below the jobs charts', () => {
+    const rowsBeforeNodes = [...section.slice(0, section.indexOf('data.nodes_per_job')).matchAll(/className="(chart-row[^"]*)"/g)]
+      .map((m) => m[1]);
+    expect(rowsBeforeNodes.at(-1)).toBe('chart-row full-width');
+    expect(section.includes('chart-row-3col')).toBe(false);
+  });
+});

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - The CPU and memory efficiency charts span the full content width instead of half of it
+- Nodes per Job has its own full-width row under the two jobs charts instead of sharing their row; per-job histograms over integer counts (nodes, CPUs, GPUs) draw one bar per value with a tick on every integer, instead of bars widened to the gap between sparse values
 
 ## [0.7.1] - 2026-10-13
 
