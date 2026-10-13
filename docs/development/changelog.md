@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Changing the cluster reset the date range to the default six weeks and cleared every partition, account, user, QOS and state selection; the selections are now kept, dates clamped to the new cluster's data range and list selections reduced to the values the new cluster has (see docs/user-guide/dashboard.md)
 - Hiding the filter sidebar left the dashboard content at its sidebar-adjacent width with an empty band on the right; the content now spans the full row when the sidebar is hidden
 - Time-series charts skipped periods in which no job started and drew a straight line between the neighbouring periods. The time axis now covers the whole selected range: counts and sums show zero in empty periods, averages and efficiencies leave a gap (see docs/user-guide/dashboard.md)
 

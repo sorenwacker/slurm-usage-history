@@ -16,3 +16,7 @@ The time axis of every time-series chart covers the whole selected date range, i
 A period whose jobs all lack the measured column, for example CPU efficiency before the agent reported `CPUUsedHours`, is also drawn as a gap.
 
 Histograms of per-period values (jobs per period, hours per period) only use periods in which at least one job started.
+
+## Switching cluster
+
+Changing the cluster in the sidebar keeps the other selections. The date range is kept and only moved inside the new cluster's data range when it falls outside it. Binning period, colour dimension, account name format and the node chart options are unchanged. Selected partitions, accounts, users, QOS values and states are kept where the new cluster has them; a value the new cluster does not have is dropped, because it could not be seen or unticked in the sidebar.
