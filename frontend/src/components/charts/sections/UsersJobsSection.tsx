@@ -98,7 +98,7 @@ const UsersJobsSection: React.FC<UsersJobsSectionProps> = ({
         {/* Jobs Section */}
         <div className="subsection">
           <h2 className="subsection-header">Jobs</h2>
-          <div className="chart-row-3col">
+          <div className="chart-row-2col">
             {data.jobs_over_time && data.jobs_over_time.x.length > 0 && (
               <div className="card">
                 <h3>Number of Submitted Jobs</h3>
@@ -158,6 +158,8 @@ const UsersJobsSection: React.FC<UsersJobsSectionProps> = ({
                 <ChartCaption text={dim ? `Share of all jobs per ${dim}.` : 'Distribution of jobs per user.'} />
               </div>
             )}
+          </div>
+          <div className="chart-row full-width">
             {data.nodes_per_job && data.nodes_per_job.x.length > 0 && (
               <div className="card">
                 <h3>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { countAxisBars } from './countAxis';
 import Plot from './Plot';
 import type { ChartData } from '../../types';
 import {
@@ -43,6 +44,8 @@ const HistogramChart: React.FC<HistogramChartProps> = ({
     return null;
   }
 
+  const countBars = isHistogram ? countAxisBars(data.x) : null;
+
   const generateTraces = () => {
     // For histogram mode with series (grouped bar charts)
     if (isHistogram && data.series && data.series.length > 0) {
@@ -63,6 +66,7 @@ const HistogramChart: React.FC<HistogramChartProps> = ({
           x: data.x,
           y: data.y,
           type: 'bar',
+          ...(countBars ? { width: countBars.width } : {}),
           marker: { color: defaultColor },
           name: xTitle,
           hovertemplate: `<b>${xTitle}</b><br>Range: %{x}<br>Count: %{y:,.0f}<extra></extra>`,
@@ -85,6 +89,14 @@ const HistogramChart: React.FC<HistogramChartProps> = ({
     layout.xaxis = {
       ...(layout.xaxis as object),
       type: 'category',
+    };
+  }
+
+  // Integer counts: a tick on every integer so sparse values (1 and 3 nodes) are not interpolated
+  if (countBars) {
+    layout.xaxis = {
+      ...(layout.xaxis as object),
+      dtick: countBars.dtick,
     };
   }
 

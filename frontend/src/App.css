@@ -1023,42 +1023,6 @@ body {
   }
 }
 
-/* 3-column layout for resource charts; columns follow the section's width */
-.chart-row-3col {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-md);
-  margin-bottom: var(--space-md);
-}
-
-.chart-row-3col > * {
-  min-width: 0;
-  overflow: hidden;
-}
-
-@container (min-width: 640px) {
-  .chart-row-3col {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  /* With two columns the third card wraps; span the full row instead of leaving a hole */
-  .chart-row-3col > :nth-child(3) {
-    grid-column: 1 / -1;
-  }
-}
-
-@container (min-width: 1100px) {
-  .chart-row-3col {
-    grid-template-columns: 2fr 1fr 1fr;
-    gap: var(--space-lg);
-    margin-bottom: var(--space-lg);
-  }
-
-  .chart-row-3col > :nth-child(3) {
-    grid-column: auto;
-  }
-}
-
 /* Resource section top row: usage (wide), distribution, per-job histogram */
 .resource-top-row {
   display: grid;
