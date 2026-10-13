@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- The P25-P75 band of the waiting-time and job-duration trend charts was filled straight across empty periods, so a gap next to a high percentile drew a large wedge. The band is now drawn per contiguous run of periods and leaves the same gap as the median line
+
 ## [0.7.2] - 2026-10-13
 
 ### Changed
