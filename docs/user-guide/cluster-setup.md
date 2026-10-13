@@ -224,9 +224,10 @@ tail -f ~/agent.log
 The agent extracts data from SLURM's accounting database (sacct), which retains historical data. If submission fails:
 
 1. Error is logged to `~/agent.log` (or wherever your cron logs)
-2. Next cron run will retry the same period (default: last 7 days)
-3. No data is lost - SLURM keeps accounting data persistently
-4. Overlapping submissions are handled - dashboard deduplicates jobs by JobID
+2. Next cron run covers the collection window again (`collection_window_days` in the config, 14 by default, 7 when the setting is absent)
+3. Overlapping submissions are handled - dashboard deduplicates jobs by JobID
+
+**Which jobs a run collects:** every job that *ended* inside the window, whatever its submit or start time; running and pending jobs are left for a later run. A job is therefore stored once it has finished, by the first run whose window contains its end time. Nothing is lost as long as the agent runs at least once per `collection_window_days`. A job that finished longer ago than the window is only collected by an explicit backfill (`--start-date`).
 
 **Checking for failures:**
 
