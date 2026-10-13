@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import type { MetadataResponse, FilterRequest } from '../types';
 import { clampDate, defaultDateRange } from '../utils/dateRange';
+import { carryDatesToCluster, carrySelectionToCluster } from '../utils/clusterSwitch';
 
 export interface OverviewFiltersState {
   selectedHostname: string;
@@ -104,24 +105,22 @@ export function useOverviewFilters(
     }
   }, [allClustersMetadata, selectedHostname]);
 
-  // Update dates when hostname changes
+  // Changing the cluster keeps the selections: dates clamped to the new cluster's data range,
+  // list selections reduced to the values the new cluster has
   useEffect(() => {
     if (selectedHostname && selectedHostname !== previousHostname.current) {
-      const initial = defaultDateRange(allClustersMetadata?.date_ranges[selectedHostname]);
-      if (initial) {
-        setStartDateState(initial.start);
-        setEndDateState(initial.end);
-      }
-      // Reset filters when changing hostname
-      setSelectedPartitions([]);
-      setSelectedAccounts([]);
-      setSelectedUsers([]);
-      setSelectedQos([]);
-      setSelectedStates([]);
+      const dates = carryDatesToCluster(startDate, endDate, allClustersMetadata?.date_ranges[selectedHostname]);
+      setStartDateState(dates.start);
+      setEndDateState(dates.end);
+      setSelectedPartitions((selected) => carrySelectionToCluster(selected, allClustersMetadata?.partitions[selectedHostname]));
+      setSelectedAccounts((selected) => carrySelectionToCluster(selected, allClustersMetadata?.accounts[selectedHostname]));
+      setSelectedUsers((selected) => carrySelectionToCluster(selected, allClustersMetadata?.users[selectedHostname]));
+      setSelectedQos((selected) => carrySelectionToCluster(selected, allClustersMetadata?.qos[selectedHostname]));
+      setSelectedStates((selected) => carrySelectionToCluster(selected, allClustersMetadata?.states[selectedHostname]));
 
       previousHostname.current = selectedHostname;
     }
-  }, [selectedHostname, allClustersMetadata]);
+  }, [selectedHostname, allClustersMetadata, startDate, endDate]);
 
   const filterRequest: FilterRequest = useMemo(() => ({
     hostname: selectedHostname,
