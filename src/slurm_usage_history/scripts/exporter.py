@@ -109,12 +109,15 @@ class SlurmDataExtractor:
         """
         logger.info(f"Extracting jobs from {start_date} to {end_date}")
 
+        # sacct reads a bare date as midnight, so the end date is passed as the next midnight
+        # to cover its whole day; the End filter below uses the same bound
+        end_exclusive = pd.to_datetime(end_date) + pd.Timedelta(days=1)
         cmd = [
             "sacct",
             f"--format={self.SACCT_FORMAT}",
             "--parsable2",
             f"--starttime={start_date}",
-            f"--endtime={end_date}",
+            f"--endtime={end_exclusive.strftime('%Y-%m-%d')}",
         ]
 
         if all_users:
@@ -139,19 +142,20 @@ class SlurmDataExtractor:
             df = df[~df["State"].isin(["RUNNING", "Unknown", "PENDING"])]
             logger.info(f"Filtered to {len(df)} completed job records")
 
-            # Filter by Submit date to ensure we only get jobs within the requested range
-            # sacct filters by End time, but we want to filter by Submit time
-            if not df.empty and "Submit" in df.columns:
-                df["Submit"] = pd.to_datetime(df["Submit"], errors="coerce")
+            # Keep the jobs that ended inside the window. sacct returns every job that was active in
+            # it; selecting by end time stores each finished job exactly once, however long it was
+            # submitted or ran before the window. Selecting by submit time lost every job whose
+            # submit-to-end span exceeded the window.
+            if not df.empty and "End" in df.columns:
+                end = pd.to_datetime(df["End"], errors="coerce")
                 start_dt = pd.to_datetime(start_date)
-                end_dt = pd.to_datetime(end_date) + pd.Timedelta(days=1)  # Make end_date inclusive
 
                 initial_count = len(df)
-                df = df[(df["Submit"] >= start_dt) & (df["Submit"] < end_dt)]
+                df = df[(end >= start_dt) & (end < end_exclusive)]
                 filtered_count = initial_count - len(df)
 
                 if filtered_count > 0:
-                    logger.info(f"Filtered out {filtered_count} jobs outside Submit date range")
+                    logger.info(f"Filtered out {filtered_count} jobs that did not end inside the window")
 
             return df
 

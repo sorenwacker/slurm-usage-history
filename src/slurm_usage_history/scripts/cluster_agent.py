@@ -4,6 +4,7 @@ import argparse
 import json
 import subprocess
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import requests
@@ -152,8 +153,28 @@ def format_sync_result(result):
     return "Cluster configuration synced (" + "; ".join(parts) + ")"
 
 
+DEFAULT_COLLECTION_WINDOW_DAYS = 7
+
+
+def window_start(days: int) -> str:
+    """First day of a collection window of ``days`` days ending today, as YYYY-MM-DD."""
+    return (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+
+
+def configured_window_start(config_path: str | None) -> str:
+    """Window start from ``collection_window_days`` in the config file; the default when unset or unreadable."""
+    days = DEFAULT_COLLECTION_WINDOW_DAYS
+    if config_path:
+        try:
+            with open(config_path) as f:
+                days = int(json.load(f).get("collection_window_days", days))
+        except (OSError, ValueError) as e:
+            print(f"WARNING: cannot read collection_window_days from {config_path}: {e}", file=sys.stderr)
+    return window_start(days)
+
+
 def run_command(args):
-    """Run the cluster agent exporter."""
+    """Run the cluster agent exporter over the configured collection window."""
     if args.sync_config:
         try:
             result = sync_config(Path(args.config), args.dry_run)
@@ -177,8 +198,7 @@ def run_command(args):
         cmd.extend(["--config", args.config])
     if args.cluster_name:
         cmd.extend(["--cluster-name", args.cluster_name])
-    if args.start_date:
-        cmd.extend(["--start-date", args.start_date])
+    cmd.extend(["--start-date", args.start_date or configured_window_start(args.config)])
     if args.end_date:
         cmd.extend(["--end-date", args.end_date])
     if args.dry_run:
@@ -274,7 +294,7 @@ def build_parser():
     )
     run_parser.add_argument(
         "--start-date",
-        help="Start date for data collection (YYYY-MM-DD)",
+        help="Start date for data collection (YYYY-MM-DD; default: collection_window_days before today)",
     )
     run_parser.add_argument(
         "--end-date",
