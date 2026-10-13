@@ -1093,7 +1093,7 @@ body {
   }
 }
 
-/* Trailing efficiency card: same half width as the other timelines */
+/* Trailing efficiency card spans the full content width */
 .efficiency-row {
   display: grid;
   grid-template-columns: 1fr;
@@ -1103,12 +1103,6 @@ body {
 .efficiency-row > * {
   min-width: 0;
   overflow: hidden;
-}
-
-@container (min-width: 860px) {
-  .efficiency-row {
-    grid-template-columns: 1fr 1fr;
-  }
 }
 
 /* Gauge beside the per-node chart when normalizing */

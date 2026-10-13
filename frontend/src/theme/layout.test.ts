@@ -22,3 +22,10 @@ describe('dashboard layout', () => {
     expect(blocksFor('.main-content').some((b) => /min-width:\s*0\b/.test(b))).toBe(true);
   });
 });
+
+describe('efficiency charts', () => {
+  it('span the full content width at every container width', () => {
+    const multiColumn = blocksFor('.efficiency-row').filter((b) => /grid-template-columns:\s*(1fr\s+1fr|repeat\()/.test(b));
+    expect(multiColumn).toEqual([]);
+  });
+});
