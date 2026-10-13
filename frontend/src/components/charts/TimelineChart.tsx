@@ -3,6 +3,7 @@ import Plot from './Plot';
 import type { TrendData } from '../../types';
 
 import { getColorForLabel, getCommonLayout, getCommonConfig, type ChartColorOptions } from './chartHelpers';
+import { rangeBandPolygon } from './rangeBand';
 
 interface TimelineChartProps {
   data: Omit<TrendData, 'stats'> & Partial<Pick<TrendData, 'stats'>>;
@@ -43,25 +44,15 @@ const TimelineChart: React.FC<TimelineChartProps> = ({
 
     if (!data.stats) return [];
 
-    // Single line mode with only P25-P75 range
+    // Single line mode with only P25-P75 range, one closed polygon per run of periods with jobs
+    const band = rangeBandPolygon(data.x, data.stats.p25, data.stats.p75);
     return [
-      // P75 upper bound
       {
-        x: data.x,
-        y: data.stats.p75,
+        x: band.x,
+        y: band.y,
         type: 'scatter',
         mode: 'lines',
-        line: { width: 0 },
-        showlegend: false,
-        hoverinfo: 'skip',
-      },
-      // P25-P75 shaded range (using preferred color with transparency)
-      {
-        x: data.x,
-        y: data.stats.p25,
-        type: 'scatter',
-        mode: 'lines',
-        fill: 'tonexty',
+        fill: 'toself',
         fillcolor: `${defaultColor}30`, // Add transparency to the default color (hex alpha)
         line: { width: 0 },
         name: 'P25-P75 Range',
