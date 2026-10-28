@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Python 3.11 is the minimum supported version. The fixed releases of Pillow, filelock and dnspython for the open security advisories require Python 3.11, so on 3.10 the vulnerable versions could not be replaced. Existing installations on Python 3.10, including the cluster agent's pip route, must move to 3.11 or 3.12
+- The frontend uses plotly.js 4 and vitest 4. plotly.js 4 requires Node.js 22 to build, so building the frontend needs Node.js 22 or newer; the frontend Dockerfiles and CI use Node.js 22
+
+### Security
+- plotly.js 4 brings maplibre-gl 6.11 in place of a vulnerable 4.x, and vitest 4 replaces the vulnerable tinypool and @vitest/mocker
+- The plotly.js 4 modebar button that uploads chart data to cloud.plotly.com is switched off for every chart, so usage data is not sent off the dashboard
 
 ### Fixed
 - The P25-P75 band of the waiting-time and job-duration trend charts was filled straight across empty periods, so a gap next to a high percentile drew a large wedge. The band is now drawn per contiguous run of periods and leaves the same gap as the median line

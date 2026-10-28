@@ -290,7 +290,7 @@ SAML_SETTINGS_PATH=/etc/slurm-dashboard/saml.json
 
 1. Check Node.js version:
    ```bash
-   node --version  # Should be 20+
+   node --version  # Should be 22+
    ```
 
 2. Clear cache:
