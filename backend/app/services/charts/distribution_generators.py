@@ -118,6 +118,10 @@ def _generate_stacked_distribution(
     }
 
 
+TREND_PERCENTILES = (25, 50, 75, 90, 95, 99)
+TREND_STATS = ("mean", "median", "max", *(f"p{q}" for q in TREND_PERCENTILES))
+
+
 def _generate_trends(
     df: pd.DataFrame,
     value_column: str,
@@ -142,12 +146,14 @@ def _generate_trends(
         Without color_by: {"x": periods, "stats": {"mean": [...], "median": [...], ...}}
         With color_by: {"x": periods, "series": [{"name": group, "data": [...]}, ...]}
     """
+    # Every statistic is present even without data, so a filled period axis gets a gap in each of them
+    empty = {"x": [], "stats": {name: [] for name in TREND_STATS}}
     if value_column not in df.columns:
-        return {"x": [], "stats": {}}
+        return empty
 
     df_work, time_column = _get_time_column(df, period_type)
     if time_column is None:
-        return {"x": [], "stats": {}}
+        return empty
 
     # Work on the few columns needed so row filters do not copy the whole frame
     columns = [time_column, value_column] + ([color_by] if color_by and color_by in df_work.columns else [])
@@ -160,7 +166,7 @@ def _generate_trends(
         df_work = df_work[df_work[value_column] > 0]
 
     if df_work.empty:
-        return {"x": [], "stats": {}}
+        return empty
 
     all_periods = sorted(df_work[time_column].unique())
 
@@ -190,7 +196,7 @@ def _generate_trends(
                 "mean": grouped.mean(),
                 "median": grouped.median(),
                 "max": grouped.max(),
-                **{f"p{q}": grouped.quantile(q / 100.0) for q in (25, 50, 75, 90, 95, 99)},
+                **{f"p{q}": grouped.quantile(q / 100.0) for q in TREND_PERCENTILES},
             }
         )
         .reindex(all_periods)
