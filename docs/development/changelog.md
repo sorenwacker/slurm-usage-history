@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-10-28
+
 ### Changed
 - Python 3.11 is the minimum supported version. The fixed releases of Pillow, filelock and dnspython for the open security advisories require Python 3.11, so on 3.10 the vulnerable versions could not be replaced. Existing installations on Python 3.10, including the cluster agent's pip route, must move to 3.11 or 3.12
 - The frontend uses plotly.js 4 and vitest 4. plotly.js 4 requires Node.js 22 to build, so building the frontend needs Node.js 22 or newer; the frontend Dockerfiles and CI use Node.js 22
