@@ -12,6 +12,8 @@ The time axis of every time-series chart covers the whole selected date range, i
 
 - Counts and sums (submitted jobs, active users, CPU, GPU and memory hours, and the stacked duration and waiting-time shares) show zero.
 - Averages, percentiles and efficiencies (waiting time and job duration over time and their trend bands, CPU and memory efficiency) have no value in an empty period and leave a gap in the line and in the P25-P75 band, so neither is drawn through periods that were never measured.
+- The P25-P75 band of an isolated period, one with empty periods on both sides, is drawn as a vertical bar from P25 to P75 at that period.
+- A trend chart with no measured period in the whole range shows an empty axis.
 
 A period whose jobs all lack the measured column, for example CPU efficiency before the agent reported `CPUUsedHours`, is also drawn as a gap.
 
