@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - The P25-P75 band of the waiting-time and job-duration trend charts was filled straight across empty periods, so a gap next to a high percentile drew a large wedge. The band is now drawn per contiguous run of periods and leaves the same gap as the median line
+- A waiting-time or job-duration trend with no measured period in the selected range made the dashboard go blank, because the trend arrived with a full time axis but without percentile values. The trend now carries every statistic, empty in every period
+- The P25-P75 band of an isolated period had no width and was not visible. It is now drawn as a vertical bar from P25 to P75
 
 ## [0.7.2] - 2026-10-13
 

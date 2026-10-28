@@ -98,3 +98,12 @@ def test_stacked_shares_are_zero_on_days_without_jobs(client):
 def test_unknown_period_type_is_rejected_with_422(client):
     response = client.post("/api/charts", json={"hostname": "test", "period_type": "fortnight"})
     assert response.status_code == 422
+
+
+def test_trend_without_any_measured_period_carries_every_statistic_as_gaps(monkeypatch, client):
+    frame = jobs_on(["2026-09-20 10:00"]).assign(ElapsedHours=0.0)
+    monkeypatch.setattr(charts_api, "get_datastore", lambda: FakeDatastore(frame))
+    trend = charts(client)["job_duration_trends"]
+    assert trend["x"] == DAYS
+    for name in ("mean", "median", "max", "p25", "p50", "p75", "p90", "p95", "p99"):
+        assert trend["stats"][name] == [None] * len(DAYS)
