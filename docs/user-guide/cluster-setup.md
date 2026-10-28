@@ -5,7 +5,7 @@ Quick guide for installing and configuring the SLURM data collection agent on yo
 ## Prerequisites
 
 - SLURM cluster with `sacct` access
-- Python 3.10-3.12 (installed by uv if the system Python does not match)
+- Python 3.11-3.12 (installed by uv if the system Python does not match)
 - Git (for GitLab installation)
 - Network access to dashboard API
 
@@ -30,7 +30,7 @@ To update later: `uv tool upgrade slurm-dashboard`.
 
 ### Alternative: Using venv
 
-Requires a system `python3` between 3.10 and 3.12.
+Requires a system `python3` between 3.11 and 3.12.
 
 ```bash
 python3 --version
@@ -53,7 +53,7 @@ slurm-dashboard --help
 
 ### Important Notes
 
-- **Python version**: 3.10-3.12. On Python 3.13+ the install fails while building `pyarrow`; use the uv route or a venv with an older Python.
+- **Python version**: 3.11-3.12. On Python 3.13+ the install fails while building `pyarrow`; use the uv route or a venv with an older Python.
 - **PATH setup**: If `slurm-dashboard` command is not found, add `~/.local/bin` to PATH:
   ```bash
   export PATH="$HOME/.local/bin:$PATH"

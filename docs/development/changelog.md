@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Python 3.11 is the minimum supported version. The fixed releases of Pillow, filelock and dnspython for the open security advisories require Python 3.11, so on 3.10 the vulnerable versions could not be replaced. Existing installations on Python 3.10, including the cluster agent's pip route, must move to 3.11 or 3.12
+
 ### Fixed
 - The P25-P75 band of the waiting-time and job-duration trend charts was filled straight across empty periods, so a gap next to a high percentile drew a large wedge. The band is now drawn per contiguous run of periods and leaves the same gap as the median line
 - A waiting-time or job-duration trend with no measured period in the selected range made the dashboard go blank, because the trend arrived with a full time axis but without percentile values. The trend now carries every statistic, empty in every period

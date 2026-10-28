@@ -92,7 +92,7 @@ pip install slurm-dashboard[web]
 ```
 
 **Requirements:**
-- Python 3.10+
+- Python 3.11+
 - Access to data directory (e.g., NFS mount)
 - For production: systemd, optional nginx/apache for reverse proxy
 
