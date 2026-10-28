@@ -5,7 +5,7 @@ Web dashboard for SLURM cluster usage analytics powered by DuckDB. It answers wh
 [![Release](https://img.shields.io/github/v/release/sorenwacker/slurm-usage-history?display_name=tag)](https://github.com/sorenwacker/slurm-usage-history/releases)
 [![PyPI](https://img.shields.io/pypi/v/slurm-dashboard)](https://pypi.org/project/slurm-dashboard/)
 [![Tests](https://github.com/sorenwacker/slurm-usage-history/actions/workflows/tests.yml/badge.svg)](https://github.com/sorenwacker/slurm-usage-history/actions/workflows/tests.yml)
-[![Python 3.10 to 3.12](https://img.shields.io/pypi/pyversions/slurm-dashboard)](https://pypi.org/project/slurm-dashboard/)
+[![Python 3.11 to 3.12](https://img.shields.io/pypi/pyversions/slurm-dashboard)](https://pypi.org/project/slurm-dashboard/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 **[Documentation](https://sdrwacker.pages.ewi.tudelft.nl/slurm-usage-history)** | **[Changelog](docs/development/changelog.md)** | **[GitHub](https://github.com/sorenwacker/slurm-usage-history)** | **[Security policy](SECURITY.md)**

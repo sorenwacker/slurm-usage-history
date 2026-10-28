@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -34,7 +34,7 @@ RUN uv pip install --system ".[web]"
 RUN rm -rf /app/src
 
 # Fix version lookup - package name is slurm-dashboard not slurm_usage_history
-RUN sed -i 's/__version__ = version(__name__)/__version__ = version("slurm-dashboard")/g' /usr/local/lib/python3.10/site-packages/slurm_usage_history/__init__.py
+RUN sed -i 's/__version__ = version(__name__)/__version__ = version("slurm-dashboard")/g' /usr/local/lib/python3.11/site-packages/slurm_usage_history/__init__.py
 
 # Create SAML directories
 RUN mkdir -p /app/saml/certs
