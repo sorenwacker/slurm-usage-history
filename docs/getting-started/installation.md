@@ -336,7 +336,7 @@ python3 -c "import duckdb; print('DuckDB OK')"
 ### Frontend build fails
 ```bash
 # Check Node.js version
-node --version  # Should be 20+
+node --version  # Should be 22+
 
 # Clear cache and rebuild
 rm -rf node_modules dist

@@ -5,7 +5,7 @@ This guide covers setting up a local development environment with SAML authentic
 ## Prerequisites
 
 - Docker and Docker Compose
-- Node.js 18+ (for frontend development)
+- Node.js 22+ (for frontend development)
 - Git
 
 ## Development Environment
